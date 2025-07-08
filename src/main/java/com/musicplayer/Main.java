@@ -1,17 +1,21 @@
 package com.musicplayer;
 
+import java.io.IOException;
+
+import com.musicplayer.ui.controllers.MainController;
+
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-import java.io.IOException;
-
 /**
  * Main entry point for the SiMP3 music player application.
  */
 public class Main extends Application {
+
+    private MainController mainController;
 
     /**
      * The main entry point for all JavaFX applications.
@@ -22,13 +26,22 @@ public class Main extends Application {
      */
     @Override
     public void start(Stage primaryStage) throws IOException {
-        // For now, we'll just create a simple scene.
-        // Later, we will load an FXML file for the main view.
-        Parent root = FXMLLoader.load(getClass().getResource("/fxml/main.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main.fxml"));
+        Parent root = loader.load();
+        mainController = loader.getController();
+        
         Scene scene = new Scene(root, 1200, 800);
 
         primaryStage.setTitle("SiMP3 - Simple Music Player");
         primaryStage.setScene(scene);
+        
+        // Handle application close event to cleanup resources
+        primaryStage.setOnCloseRequest(event -> {
+            if (mainController != null) {
+                mainController.cleanup();
+            }
+        });
+        
         primaryStage.show();
     }
 

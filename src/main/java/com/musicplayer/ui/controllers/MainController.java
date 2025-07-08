@@ -9,9 +9,12 @@ import com.musicplayer.data.repositories.InMemoryPlaylistRepository;
 import com.musicplayer.data.repositories.InMemorySongRepository;
 import com.musicplayer.data.repositories.PlaylistRepository;
 import com.musicplayer.data.repositories.SongRepository;
+import com.musicplayer.services.AudioPlayerService;
 import com.musicplayer.services.LibraryService;
+import com.musicplayer.services.MusicLibraryManager;
 import com.musicplayer.services.PlaylistService;
 
+import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -21,6 +24,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.DirectoryChooser;
@@ -37,13 +41,16 @@ public class MainController implements Initializable {
     @FXML private Button previousButton;
     @FXML private Button playPauseButton;
     @FXML private Button nextButton;
+    @FXML private Button selectMusicFolderButton;
     @FXML private Label currentTimeLabel;
     @FXML private Label totalTimeLabel;
     @FXML private Slider timeSlider;
     @FXML private Slider volumeSlider;
     
     private LibraryService libraryService;
+    private MusicLibraryManager musicLibraryManager;
     private PlaylistService playlistService;
+    private AudioPlayerService audioPlayerService;
     private ObservableList<Song> songs;
 
     @Override
@@ -54,8 +61,25 @@ public class MainController implements Initializable {
         libraryService = new LibraryService(songRepository);
         playlistService = new PlaylistService(playlistRepository);
         
+        // Initialize the music library manager
+        musicLibraryManager = new MusicLibraryManager(songRepository);
+        
+        // Initialize audio player service
+        audioPlayerService = new AudioPlayerService();
+        
         // Initialize the songs list
         songs = FXCollections.observableArrayList();
+        
+        // Set up callback to update UI when library changes
+        musicLibraryManager.setLibraryUpdateCallback(updatedSongs -> {
+            songs.clear();
+            songs.addAll(updatedSongs);
+            // Update audio player playlist when library changes
+            audioPlayerService.setPlaylist(songs);
+        });
+        
+        // Set up audio controls
+        setupAudioControls();
         
         // Set up table columns
         titleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
@@ -80,61 +104,116 @@ public class MainController implements Initializable {
         System.out.println("MainController initialized.");
     }
     
+    private void setupAudioControls() {
+        // Bind play/pause button text to playing state
+        playPauseButton.textProperty().bind(
+            Bindings.when(audioPlayerService.playingProperty())
+                .then("Pause")
+                .otherwise("Play")
+        );
+        
+        // Bind time slider to current time (with proper max value)
+        timeSlider.valueProperty().bind(audioPlayerService.currentTimeProperty());
+        timeSlider.maxProperty().bind(audioPlayerService.totalTimeProperty());
+        
+        // Set up time slider for seeking
+        timeSlider.setOnMouseClicked(event -> {
+            double seekTime = (event.getX() / timeSlider.getWidth()) * audioPlayerService.getTotalTime();
+            audioPlayerService.seek(seekTime);
+        });
+        
+        // Bind volume slider to volume property
+        volumeSlider.valueProperty().bindBidirectional(audioPlayerService.volumeProperty());
+        volumeSlider.setMax(1.0); // Volume range 0.0 to 1.0
+        volumeSlider.setValue(0.5); // Default volume
+        
+        // Bind time labels
+        currentTimeLabel.textProperty().bind(
+            Bindings.createStringBinding(
+                () -> formatDuration((long) audioPlayerService.getCurrentTime()),
+                audioPlayerService.currentTimeProperty()
+            )
+        );
+        
+        totalTimeLabel.textProperty().bind(
+            Bindings.createStringBinding(
+                () -> formatDuration((long) audioPlayerService.getTotalTime()),
+                audioPlayerService.totalTimeProperty()
+            )
+        );
+        
+        // Set up table double-click to play song
+        songsTableView.setRowFactory(tv -> {
+            TableRow<Song> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !row.isEmpty()) {
+                    Song selectedSong = row.getItem();
+                    playSelectedSong(selectedSong);
+                }
+            });
+            return row;
+        });
+    }
+    
+    private void playSelectedSong(Song song) {
+        // Set current songs as playlist and play selected song
+        audioPlayerService.setPlaylist(songs);
+        audioPlayerService.playSong(song);
+    }
+    
     @FXML
-    private void handleAddFolder() {
+    private void handleSelectMusicFolder() {
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle("Select Music Folder");
-        File selectedDirectory = directoryChooser.showDialog(null);
+        File selectedDirectory = directoryChooser.showDialog(selectMusicFolderButton.getScene().getWindow());
         
         if (selectedDirectory != null) {
-            // TODO: Implement folder scanning logic
-            System.out.println("Selected folder: " + selectedDirectory.getAbsolutePath());
-            
-            // For now, add a sample song
-            Song sampleSong = new Song();
-            sampleSong.setTitle("Sample Song");
-            sampleSong.setArtist("Sample Artist");
-            sampleSong.setAlbum("Sample Album");
-            sampleSong.setDuration(225); // 3:45 in seconds
-            sampleSong.setFilePath(selectedDirectory.getAbsolutePath() + "/sample.mp3");
-            
-            libraryService.addSong(sampleSong);
-            refreshSongsList();
+            System.out.println("Selected music folder: " + selectedDirectory.getAbsolutePath());
+            // Use the MusicLibraryManager to handle scanning
+            musicLibraryManager.scanMusicFolder(selectedDirectory);
         }
     }
     
     @FXML
     private void handlePlayPause() {
-        // TODO: Implement play/pause logic
-        if (playPauseButton.getText().equals("Play")) {
-            playPauseButton.setText("Pause");
-            System.out.println("Playing music...");
+        if (songs.isEmpty()) {
+            System.out.println("No songs in library to play");
+            return;
+        }
+        
+        // If no song is currently selected, start with the first song
+        if (audioPlayerService.getCurrentSong() == null) {
+            audioPlayerService.setPlaylist(songs);
+            if (!songs.isEmpty()) {
+                audioPlayerService.playSong(songs.get(0));
+            }
         } else {
-            playPauseButton.setText("Play");
-            System.out.println("Pausing music...");
+            audioPlayerService.playPause();
         }
     }
     
     @FXML
     private void handlePrevious() {
-        // TODO: Implement previous track logic
-        System.out.println("Previous track");
+        audioPlayerService.previousTrack();
     }
     
     @FXML
     private void handleNext() {
-        // TODO: Implement next track logic
-        System.out.println("Next track");
-    }
-    
-    private void refreshSongsList() {
-        songs.clear();
-        songs.addAll(libraryService.getAllSongs());
+        audioPlayerService.nextTrack();
     }
     
     private String formatDuration(long durationInSeconds) {
         long minutes = durationInSeconds / 60;
         long seconds = durationInSeconds % 60;
         return String.format("%d:%02d", minutes, seconds);
+    }
+    
+    /**
+     * Cleanup method to dispose of resources when the application is closing.
+     */
+    public void cleanup() {
+        if (audioPlayerService != null) {
+            audioPlayerService.dispose();
+        }
     }
 }

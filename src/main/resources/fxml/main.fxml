@@ -11,6 +11,8 @@
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
@@ -21,7 +23,7 @@
             <menus>
                 <Menu mnemonicParsing="false" text="File">
                     <items>
-                        <MenuItem mnemonicParsing="false" onAction="#handleAddFolder" text="Add Folder to Library" />
+                        <MenuItem mnemonicParsing="false" text="Exit" />
                     </items>
                 </Menu>
             </menus>
@@ -32,7 +34,20 @@
             <items>
                 <VBox spacing="10.0">
                     <children>
-                        <Label text="Library" />
+                        <HBox alignment="CENTER_LEFT" spacing="5.0">
+                            <children>
+                                <Label text="Library" />
+                                <Button fx:id="selectMusicFolderButton" mnemonicParsing="false" onAction="#handleSelectMusicFolder" prefHeight="20.0" prefWidth="20.0">
+                                    <graphic>
+                                        <ImageView fitHeight="16.0" fitWidth="16.0" pickOnBounds="true" preserveRatio="true">
+                                            <image>
+                                                <Image url="@../images/icons/folder.png" />
+                                            </image>
+                                        </ImageView>
+                                    </graphic>
+                                </Button>
+                            </children>
+                        </HBox>
                         <ListView fx:id="libraryListView" />
                         <Label text="Playlists" />
                         <ListView fx:id="playlistsListView" />
