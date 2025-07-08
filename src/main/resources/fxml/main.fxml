@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.musicplayer.ui.controllers.MainController">
+    <top>
+        <MenuBar BorderPane.alignment="CENTER">
+            <menus>
+                <Menu mnemonicParsing="false" text="File">
+                    <items>
+                        <MenuItem mnemonicParsing="false" onAction="#handleAddFolder" text="Add Folder to Library" />
+                    </items>
+                </Menu>
+            </menus>
+        </MenuBar>
+    </top>
+    <center>
+        <SplitPane dividerPositions="0.25" prefHeight="160.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+            <items>
+                <VBox spacing="10.0">
+                    <children>
+                        <Label text="Library" />
+                        <ListView fx:id="libraryListView" />
+                        <Label text="Playlists" />
+                        <ListView fx:id="playlistsListView" />
+                    </children>
+                    <padding>
+                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                    </padding>
+                </VBox>
+                <TableView fx:id="songsTableView">
+                    <columns>
+                        <TableColumn fx:id="titleColumn" prefWidth="200.0" text="Title" />
+                        <TableColumn fx:id="artistColumn" prefWidth="150.0" text="Artist" />
+                        <TableColumn fx:id="albumColumn" prefWidth="150.0" text="Album" />
+                        <TableColumn fx:id="durationColumn" prefWidth="75.0" text="Duration" />
+                    </columns>
+                </TableView>
+            </items>
+        </SplitPane>
+    </center>
+    <bottom>
+        <VBox alignment="CENTER" spacing="5.0" BorderPane.alignment="CENTER">
+            <children>
+                <HBox alignment="CENTER" spacing="10.0">
+                    <children>
+                        <Button fx:id="previousButton" mnemonicParsing="false" onAction="#handlePrevious" text="Previous" />
+                        <Button fx:id="playPauseButton" mnemonicParsing="false" onAction="#handlePlayPause" text="Play" />
+                        <Button fx:id="nextButton" mnemonicParsing="false" onAction="#handleNext" text="Next" />
+                    </children>
+                </HBox>
+                <HBox alignment="CENTER" spacing="10.0">
+                    <children>
+                        <Label fx:id="currentTimeLabel" text="0:00" />
+                        <Slider fx:id="timeSlider" HBox.hgrow="ALWAYS" />
+                        <Label fx:id="totalTimeLabel" text="0:00" />
+                        <Label text="Volume:" />
+                        <Slider fx:id="volumeSlider" value="50.0" />
+                    </children>
+                    <padding>
+                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                    </padding>
+                </HBox>
+            </children>
+        </VBox>
+    </bottom>
+</BorderPane>
