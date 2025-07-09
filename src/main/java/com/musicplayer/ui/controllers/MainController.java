@@ -54,6 +54,7 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.control.SelectionMode;
 import com.musicplayer.ui.components.PlaybackModeButtons;
 import javafx.scene.layout.HBox;
+import com.musicplayer.ui.components.RescanButtonFactory;
 
 public class MainController implements Initializable {
     
@@ -190,6 +191,10 @@ public class MainController implements Initializable {
 
         // Set up audio visualizer (behind bottom controls)
         setupAudioVisualizer();
+        
+        // After setting up library controls or right after selectMusicFolderButton creation finish insert rescan button
+        HBox libraryHeader = (HBox) selectMusicFolderButton.getParent();
+        libraryHeader.getChildren().add(RescanButtonFactory.createRescanButton(musicLibraryManager));
         
         System.out.println("MainController initialized.");
     }

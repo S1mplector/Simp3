@@ -53,7 +53,7 @@ public class PlaybackModeButtons {
 
         // Overlay label "1" for repeat-one indication
         Label lblOne = new Label("1");
-        lblOne.setStyle("-fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold;");
+        lblOne.setStyle("-fx-text-fill: black; -fx-font-size: 10px; -fx-font-weight: bold;");
         lblOne.setVisible(false);
 
         StackPane graphicPane = new StackPane(iv, lblOne);
