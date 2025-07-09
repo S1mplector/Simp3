@@ -17,7 +17,10 @@ import com.musicplayer.data.models.Song;
  */
 public class MusicScanner {
     
-    private static final String[] SUPPORTED_EXTENSIONS = {".mp3", ".m4a", ".flac", ".wav", ".ogg"};
+    private static final String[] SUPPORTED_EXTENSIONS = {
+        ".mp3", ".m4a", ".flac", ".wav", ".ogg", ".opus", 
+        ".aac", ".wma", ".mp4", ".m4b", ".aif", ".aiff"
+    };
     
     /**
      * Scans a directory recursively for music files and extracts their metadata.
@@ -29,26 +32,44 @@ public class MusicScanner {
         List<Song> songs = new ArrayList<>();
         
         if (directory == null || !directory.exists() || !directory.isDirectory()) {
+            System.err.println("Invalid directory provided for scanning: " + directory);
             return songs;
         }
         
-        scanDirectoryRecursive(directory, songs);
+        System.out.println("Starting recursive scan of: " + directory.getAbsolutePath());
+        scanDirectoryRecursive(directory, songs, 0);
+        System.out.println("Scan completed. Found " + songs.size() + " music files total.");
         return songs;
     }
     
-    private static void scanDirectoryRecursive(File directory, List<Song> songs) {
+    private static void scanDirectoryRecursive(File directory, List<Song> songs, int depth) {
         File[] files = directory.listFiles();
-        if (files == null) return;
+        if (files == null) {
+            System.err.println("Could not read directory: " + directory.getAbsolutePath());
+            return;
+        }
+        
+        String indent = "  ".repeat(depth);
+        System.out.println(indent + "Scanning: " + directory.getName() + " (" + files.length + " items)");
         
         for (File file : files) {
+            // Skip hidden files and system directories
+            if (file.isHidden() || file.getName().startsWith(".")) {
+                continue;
+            }
+            
             if (file.isDirectory()) {
                 // Recursively scan subdirectories
-                scanDirectoryRecursive(file, songs);
+                System.out.println(indent + "  📁 Entering subdirectory: " + file.getName());
+                scanDirectoryRecursive(file, songs, depth + 1);
             } else if (file.isFile() && isSupportedAudioFile(file)) {
                 // Extract metadata from audio file
+                System.out.println(indent + "  🎵 Found music file: " + file.getName());
                 Song song = extractMetadata(file);
                 if (song != null) {
                     songs.add(song);
+                } else {
+                    System.err.println(indent + "    ❌ Failed to extract metadata from: " + file.getName());
                 }
             }
         }

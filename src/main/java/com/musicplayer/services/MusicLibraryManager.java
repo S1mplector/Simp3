@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import com.musicplayer.data.models.Song;
+import com.musicplayer.data.repositories.PersistentSongRepository;
 import com.musicplayer.data.repositories.SongRepository;
 import com.musicplayer.utils.MusicScanner;
 
@@ -23,6 +24,26 @@ public class MusicLibraryManager {
     
     public MusicLibraryManager(SongRepository songRepository) {
         this.songRepository = songRepository;
+        
+        // If using persistent storage, log existing data
+        if (songRepository instanceof PersistentSongRepository) {
+            PersistentSongRepository persistentRepo = (PersistentSongRepository) songRepository;
+            if (persistentRepo.size() > 0) {
+                System.out.println("Found existing library with " + persistentRepo.size() + " songs");
+            }
+        }
+    }
+    
+    /**
+     * Initializes the library by loading existing data and notifying the callback.
+     * Should be called after the UI is ready to receive updates.
+     */
+    public void initializeLibrary() {
+        List<Song> existingSongs = getAllSongs();
+        if (!existingSongs.isEmpty() && libraryUpdateCallback != null) {
+            System.out.println("Initializing UI with " + existingSongs.size() + " existing songs");
+            libraryUpdateCallback.accept(existingSongs);
+        }
     }
     
     /**
@@ -33,19 +54,19 @@ public class MusicLibraryManager {
     public void setLibraryUpdateCallback(Consumer<List<Song>> callback) {
         this.libraryUpdateCallback = callback;
     }
-    
-    /**
+      /**
      * Scans a music folder and adds all found songs to the library.
      * This method runs asynchronously to avoid blocking the UI.
      * 
      * @param folder The folder to scan for music files
+     * @param clearExisting Whether to clear existing songs before scanning
      */
-    public void scanMusicFolder(File folder) {
+    public void scanMusicFolder(File folder, boolean clearExisting) {
         if (folder == null || !folder.exists() || !folder.isDirectory()) {
             System.err.println("Invalid folder provided for scanning: " + folder);
             return;
         }
-        
+
         this.currentMusicFolder = folder;
         
         // Run scanning in a separate thread to avoid blocking the UI
@@ -53,8 +74,10 @@ public class MusicLibraryManager {
             try {
                 System.out.println("Starting scan of folder: " + folder.getAbsolutePath());
                 
-                // Clear existing songs from repository
-                clearLibrary();
+                // Clear existing songs from repository if requested
+                if (clearExisting) {
+                    clearLibrary();
+                }
                 
                 // Scan the folder for music files
                 List<Song> scannedSongs = MusicScanner.scanDirectory(folder);
@@ -83,6 +106,16 @@ public class MusicLibraryManager {
         scanThread.setDaemon(true);
         scanThread.setName("MusicScanner-" + folder.getName());
         scanThread.start();
+    }
+    
+    /**
+     * Scans a music folder and adds all found songs to the library.
+     * This method clears existing songs before scanning.
+     * 
+     * @param folder The folder to scan for music files
+     */
+    public void scanMusicFolder(File folder) {
+        scanMusicFolder(folder, true);
     }
     
     /**
@@ -172,5 +205,24 @@ public class MusicLibraryManager {
      */
     public int getSongCount() {
         return getAllSongs().size();
+    }
+    
+    /**
+     * Forces a save of all current data to persistent storage (if supported).
+     * This is useful for ensuring data is persisted before application shutdown.
+     */
+    public void forceSave() {
+        if (songRepository instanceof PersistentSongRepository) {
+            ((PersistentSongRepository) songRepository).forceSave();
+        }
+    }
+    
+    /**
+     * Checks if there is existing data in the library.
+     * 
+     * @return true if the library contains songs, false otherwise
+     */
+    public boolean hasExistingData() {
+        return getSongCount() > 0;
     }
 }

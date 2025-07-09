@@ -6,9 +6,11 @@ import java.util.ResourceBundle;
 
 import com.musicplayer.data.models.Song;
 import com.musicplayer.data.repositories.InMemoryPlaylistRepository;
-import com.musicplayer.data.repositories.InMemorySongRepository;
+import com.musicplayer.data.repositories.PersistentSongRepository;
 import com.musicplayer.data.repositories.PlaylistRepository;
 import com.musicplayer.data.repositories.SongRepository;
+import com.musicplayer.data.storage.JsonLibraryStorage;
+import com.musicplayer.data.storage.LibraryStorage;
 import com.musicplayer.services.AudioPlayerService;
 import com.musicplayer.services.LibraryService;
 import com.musicplayer.services.MusicLibraryManager;
@@ -20,6 +22,8 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.Slider;
@@ -62,9 +66,10 @@ public class MainController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Initialize repositories and services
-        SongRepository songRepository = new InMemorySongRepository();
-        PlaylistRepository playlistRepository = new InMemoryPlaylistRepository();
+        // Initialize storage and repositories
+        LibraryStorage storage = new JsonLibraryStorage();
+        SongRepository songRepository = new PersistentSongRepository(storage);
+        PlaylistRepository playlistRepository = new InMemoryPlaylistRepository(); // Playlists can remain in-memory for now
         libraryService = new LibraryService(songRepository);
         playlistService = new PlaylistService(playlistRepository);
         
@@ -84,6 +89,9 @@ public class MainController implements Initializable {
             // Update audio player playlist when library changes
             audioPlayerService.setPlaylist(songs);
         });
+        
+        // Load existing library data if available
+        musicLibraryManager.initializeLibrary();
         
         // Set up audio controls
         setupAudioControls();
@@ -270,8 +278,33 @@ public class MainController implements Initializable {
         
         if (selectedDirectory != null) {
             System.out.println("Selected music folder: " + selectedDirectory.getAbsolutePath());
-            // Use the MusicLibraryManager to handle scanning
-            musicLibraryManager.scanMusicFolder(selectedDirectory);
+            
+            // Check if there's existing data and ask user what to do
+            if (musicLibraryManager.hasExistingData()) {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Music Library");
+                alert.setHeaderText("Existing music library found");
+                alert.setContentText("You have " + musicLibraryManager.getSongCount() + 
+                                   " songs in your library. What would you like to do?");
+                
+                ButtonType clearAndScan = new ButtonType("Clear & Scan New Folder");
+                ButtonType addToLibrary = new ButtonType("Add to Existing Library");
+                ButtonType cancel = new ButtonType("Cancel", ButtonType.CANCEL.getButtonData());
+                
+                alert.getButtonTypes().setAll(clearAndScan, addToLibrary, cancel);
+                
+                alert.showAndWait().ifPresent(response -> {
+                    if (response == clearAndScan) {
+                        musicLibraryManager.scanMusicFolder(selectedDirectory, true);
+                    } else if (response == addToLibrary) {
+                        musicLibraryManager.scanMusicFolder(selectedDirectory, false);
+                    }
+                    // If cancel, do nothing
+                });
+            } else {
+                // No existing data, just scan normally
+                musicLibraryManager.scanMusicFolder(selectedDirectory, true);
+            }
         }
     }
     
@@ -336,8 +369,20 @@ public class MainController implements Initializable {
      * Cleanup method to dispose of resources when the application is closing.
      */
     public void cleanup() {
+        System.out.println("Shutting down application...");
+        
+        // Save library data to persistent storage
+        if (musicLibraryManager != null) {
+            musicLibraryManager.forceSave();
+            System.out.println("Library data saved to storage");
+        }
+        
+        // Dispose of audio resources
         if (audioPlayerService != null) {
             audioPlayerService.dispose();
+            System.out.println("Audio resources disposed");
         }
+        
+        System.out.println("Application shutdown complete");
     }
 }
