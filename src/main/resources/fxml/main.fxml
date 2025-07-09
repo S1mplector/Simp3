@@ -49,7 +49,20 @@
                             </children>
                         </HBox>
                         <ListView fx:id="libraryListView" />
-                        <Label text="Playlists" />
+                        <HBox alignment="CENTER_LEFT" spacing="5.0">
+                            <children>
+                                <Label text="Playlists" />
+                                <Button fx:id="addPlaylistButton" mnemonicParsing="false" onAction="#handleAddPlaylist" prefHeight="28.0" prefWidth="28.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
+                                    <graphic>
+                                        <ImageView fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true">
+                                            <image>
+                                                <Image url="@../images/icons/add.png" />
+                                            </image>
+                                        </ImageView>
+                                    </graphic>
+                                </Button>
+                            </children>
+                        </HBox>
                         <ListView fx:id="playlistsListView" />
                     </children>
                     <padding>

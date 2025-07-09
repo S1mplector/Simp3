@@ -5,8 +5,10 @@ import java.net.URL;
 import java.util.ResourceBundle;
 
 import com.musicplayer.data.models.Song;
+import com.musicplayer.data.models.Playlist;
 import com.musicplayer.data.repositories.InMemoryPlaylistRepository;
 import com.musicplayer.data.repositories.PersistentSongRepository;
+import com.musicplayer.data.repositories.PersistentPlaylistRepository;
 import com.musicplayer.data.repositories.PlaylistRepository;
 import com.musicplayer.data.repositories.SongRepository;
 import com.musicplayer.data.storage.JsonLibraryStorage;
@@ -15,6 +17,8 @@ import com.musicplayer.services.AudioPlayerService;
 import com.musicplayer.services.LibraryService;
 import com.musicplayer.services.MusicLibraryManager;
 import com.musicplayer.services.PlaylistService;
+import com.musicplayer.services.PlaylistManager;
+import com.musicplayer.ui.components.PlaylistCell;
 
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
@@ -30,15 +34,17 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.DirectoryChooser;
+import javafx.scene.control.TextInputDialog;
 
 public class MainController implements Initializable {
     
     @FXML private ListView<String> libraryListView;
-    @FXML private ListView<String> playlistsListView;
+    @FXML private ListView<Playlist> playlistsListView;
     @FXML private TableView<Song> songsTableView;
     @FXML private TableColumn<Song, String> titleColumn;
     @FXML private TableColumn<Song, String> artistColumn;
@@ -48,6 +54,7 @@ public class MainController implements Initializable {
     @FXML private Button playPauseButton;
     @FXML private Button nextButton;
     @FXML private Button selectMusicFolderButton;
+    @FXML private Button addPlaylistButton;
     @FXML private Label currentTimeLabel;
     @FXML private Label totalTimeLabel;
     @FXML private Slider timeSlider;
@@ -61,26 +68,32 @@ public class MainController implements Initializable {
     private LibraryService libraryService;
     private MusicLibraryManager musicLibraryManager;
     private PlaylistService playlistService;
+    private PlaylistManager playlistManager;
     private AudioPlayerService audioPlayerService;
     private ObservableList<Song> songs;
+    private ObservableList<Playlist> playlists;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // Initialize storage and repositories
         LibraryStorage storage = new JsonLibraryStorage();
         SongRepository songRepository = new PersistentSongRepository(storage);
-        PlaylistRepository playlistRepository = new InMemoryPlaylistRepository(); // Playlists can remain in-memory for now
+        PlaylistRepository playlistRepository = new PersistentPlaylistRepository(storage);
         libraryService = new LibraryService(songRepository);
         playlistService = new PlaylistService(playlistRepository);
         
         // Initialize the music library manager
         musicLibraryManager = new MusicLibraryManager(songRepository);
         
+        // Initialize the playlist manager
+        playlistManager = new PlaylistManager(playlistRepository);
+        
         // Initialize audio player service
         audioPlayerService = new AudioPlayerService();
         
-        // Initialize the songs list
+        // Initialize the songs and playlists lists
         songs = FXCollections.observableArrayList();
+        playlists = FXCollections.observableArrayList();
         
         // Set up callback to update UI when library changes
         musicLibraryManager.setLibraryUpdateCallback(updatedSongs -> {
@@ -90,8 +103,20 @@ public class MainController implements Initializable {
             audioPlayerService.setPlaylist(songs);
         });
         
+        // Set up callback to update UI when playlists change
+        playlistManager.setPlaylistUpdateCallback(updatedPlaylists -> {
+            playlists.clear();
+            playlists.addAll(updatedPlaylists);
+        });
+        
         // Load existing library data if available
         musicLibraryManager.initializeLibrary();
+        
+        // Load existing playlists if available
+        playlistManager.initializePlaylists();
+        
+        // Set up playlist controls
+        setupPlaylistControls();
         
         // Set up audio controls
         setupAudioControls();
@@ -114,10 +139,6 @@ public class MainController implements Initializable {
         // Initialize library list
         ObservableList<String> libraryItems = FXCollections.observableArrayList("All Songs", "Artists", "Albums");
         libraryListView.setItems(libraryItems);
-        
-        // Initialize playlists list
-        ObservableList<String> playlistItems = FXCollections.observableArrayList("My Playlist 1", "Favorites");
-        playlistsListView.setItems(playlistItems);
         
         System.out.println("MainController initialized.");
     }
@@ -377,6 +398,12 @@ public class MainController implements Initializable {
             System.out.println("Library data saved to storage");
         }
         
+        // Save playlist data to persistent storage
+        if (playlistManager != null) {
+            playlistManager.forceSave();
+            System.out.println("Playlist data saved to storage");
+        }
+        
         // Dispose of audio resources
         if (audioPlayerService != null) {
             audioPlayerService.dispose();
@@ -384,5 +411,86 @@ public class MainController implements Initializable {
         }
         
         System.out.println("Application shutdown complete");
+    }
+    
+    /**
+     * Sets up the playlist controls and ListView.
+     */
+    private void setupPlaylistControls() {
+        // Set up the playlist ListView
+        playlistsListView.setItems(playlists);
+        
+        // Create custom cell factory for playlists
+        playlistsListView.setCellFactory(listView -> {
+            PlaylistCell cell = new PlaylistCell();
+            
+            // Set up delete callback
+            cell.setOnDelete(playlist -> {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("Delete Playlist");
+                alert.setHeaderText("Delete playlist '" + playlist.getName() + "'?");
+                alert.setContentText("This action cannot be undone.");
+                
+                alert.showAndWait().ifPresent(response -> {
+                    if (response == ButtonType.OK) {
+                        playlistManager.deletePlaylist(playlist.getId());
+                    }
+                });
+            });
+            
+            // Set up rename callback
+            cell.setOnRename(renameRequest -> {
+                boolean success = playlistManager.renamePlaylist(
+                    renameRequest.getPlaylist().getId(), 
+                    renameRequest.getNewName()
+                );
+                
+                if (!success) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Rename Failed");
+                    alert.setHeaderText("Could not rename playlist");
+                    alert.setContentText("A playlist with that name already exists or the name is invalid.");
+                    alert.showAndWait();
+                }
+            });
+            
+            return cell;
+        });
+        
+        // Handle playlist selection to show songs
+        playlistsListView.getSelectionModel().selectedItemProperty().addListener(
+            (observable, oldPlaylist, newPlaylist) -> {
+                if (newPlaylist != null) {
+                    songs.clear();
+                    songs.addAll(newPlaylist.getSongs());
+                    audioPlayerService.setPlaylist(songs);
+                }
+            }
+        );
+    }
+    
+    /**
+     * Handles the add playlist button action.
+     */
+    @FXML
+    private void handleAddPlaylist() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("New Playlist");
+        dialog.setHeaderText("Create a new playlist");
+        dialog.setContentText("Enter playlist name:");
+        
+        dialog.showAndWait().ifPresent(name -> {
+            if (!name.trim().isEmpty()) {
+                try {
+                    playlistManager.createPlaylist(name.trim());
+                } catch (IllegalArgumentException e) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("Creation Failed");
+                    alert.setHeaderText("Could not create playlist");
+                    alert.setContentText(e.getMessage());
+                    alert.showAndWait();
+                }
+            }
+        });
     }
 }
