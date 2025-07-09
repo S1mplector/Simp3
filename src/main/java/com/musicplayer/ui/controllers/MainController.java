@@ -55,6 +55,9 @@ import javafx.scene.control.SelectionMode;
 import com.musicplayer.ui.components.PlaybackModeButtons;
 import javafx.scene.layout.HBox;
 import com.musicplayer.ui.components.RescanButtonFactory;
+import com.musicplayer.ui.components.AlbumGridView;
+import com.musicplayer.data.models.Album;
+import javafx.scene.layout.VBox;
 
 public class MainController implements Initializable {
     
@@ -98,6 +101,7 @@ public class MainController implements Initializable {
     @FXML private TextField songSearchField;
 
     private AudioVisualizer audioVisualizer;
+    private AlbumGridView albumGridView;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -131,6 +135,12 @@ public class MainController implements Initializable {
             songs.addAll(updatedSongs);
             // Update audio player playlist when library changes
             audioPlayerService.setPlaylist(songs);
+            // Refresh library service to update albums
+            libraryService.refreshLibrary();
+            // Refresh album view if it exists
+            if (albumGridView != null) {
+                albumGridView.refresh(libraryService.getAllAlbums());
+            }
         });
         
         // Set up callback to update UI when playlists change
@@ -183,6 +193,7 @@ public class MainController implements Initializable {
         // Initialize library list
         ObservableList<String> libraryItems = FXCollections.observableArrayList("All Songs", "Artists", "Albums");
         libraryListView.setItems(libraryItems);
+        libraryListView.getSelectionModel().select(0); // Select "All Songs" by default
 
         // Set up library controls (e.g., selection handling)
         setupLibraryControls();
@@ -195,6 +206,13 @@ public class MainController implements Initializable {
         // After setting up library controls or right after selectMusicFolderButton creation finish insert rescan button
         HBox libraryHeader = (HBox) selectMusicFolderButton.getParent();
         libraryHeader.getChildren().add(RescanButtonFactory.createRescanButton(musicLibraryManager));
+        
+        // Initialize album view after everything is set up
+        javafx.application.Platform.runLater(() -> {
+            if ("All Songs".equals(libraryListView.getSelectionModel().getSelectedItem())) {
+                showSongsWithAlbums();
+            }
+        });
         
         System.out.println("MainController initialized.");
     }
@@ -618,15 +636,48 @@ public class MainController implements Initializable {
     private void setupLibraryControls() {
         libraryListView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if ("All Songs".equals(newSelection)) {
-                // Display every track in the library
                 songs.setAll(musicLibraryManager.getAllSongs());
                 audioPlayerService.setPlaylist(songs);
-
-                // Clear any playlist selection to avoid confusion
                 playlistsListView.getSelectionModel().clearSelection();
+                showSongsWithAlbums();
+            } else if ("Albums".equals(newSelection)) {
+                showAlbumsView();
             }
-            // TODO: Future: handle "Artists", "Albums" selections
+            // TODO: Artists handling
         });
+    }
+
+    private void showSongsWithAlbums() {
+        // Show albums at top and all songs below
+        if (albumGridView == null) {
+            albumGridView = new AlbumGridView(libraryService.getAllAlbums(), this::onAlbumSelected);
+            albumGridView.setPrefHeight(150);
+            albumGridView.setMaxHeight(200);
+            VBox container = (VBox) songsTableView.getParent();
+            int tableIndex = container.getChildren().indexOf(songsTableView);
+            container.getChildren().add(tableIndex, albumGridView);
+        } else {
+            albumGridView.refresh(libraryService.getAllAlbums());
+        }
+        albumGridView.setVisible(true);
+        songsTableView.setVisible(true);
+        // Show all songs when in "All Songs" view
+        songs.setAll(musicLibraryManager.getAllSongs());
+    }
+
+    private void showAlbumsView() {
+        // Just reuse the same method since we always show albums above songs
+        showSongsWithAlbums();
+        // But clear songs since this is albums-only view
+        songs.clear();
+    }
+
+    private void onAlbumSelected(Album album) {
+        songs.clear();
+        songs.setAll(album.getSongs());
+        audioPlayerService.setPlaylist(songs);
+        // Clear any playlist selection since we're now showing album songs
+        playlistsListView.getSelectionModel().clearSelection();
     }
 
     /**

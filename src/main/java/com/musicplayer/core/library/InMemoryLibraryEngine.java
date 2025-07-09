@@ -55,12 +55,15 @@ public class InMemoryLibraryEngine implements LibraryEngine {
         for (Song song : songs) {
             if (song.getAlbum() != null && !song.getAlbum().trim().isEmpty()) {
                 String albumKey = song.getAlbum().toLowerCase();
-                if (!albumMap.containsKey(albumKey)) {
-                    Album album = new Album();
+                Album album = albumMap.get(albumKey);
+                if (album == null) {
+                    album = new Album();
                     album.setTitle(song.getAlbum());
                     album.setArtistName(song.getArtist());
                     albumMap.put(albumKey, album);
                 }
+                // Add song to album
+                album.addSong(song);
             }
         }
         
