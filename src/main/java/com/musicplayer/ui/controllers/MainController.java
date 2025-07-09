@@ -81,6 +81,9 @@ public class MainController implements Initializable {
         // Set up audio controls
         setupAudioControls();
         
+        // Set up keyboard shortcuts
+        setupKeyboardShortcuts();
+        
         // Set up table columns
         titleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
         artistColumn.setCellValueFactory(new PropertyValueFactory<>("artist"));
@@ -116,10 +119,20 @@ public class MainController implements Initializable {
         timeSlider.valueProperty().bind(audioPlayerService.currentTimeProperty());
         timeSlider.maxProperty().bind(audioPlayerService.totalTimeProperty());
         
-        // Set up time slider for seeking
+        // Set up time slider for seeking (both click and drag)
         timeSlider.setOnMouseClicked(event -> {
-            double seekTime = (event.getX() / timeSlider.getWidth()) * audioPlayerService.getTotalTime();
-            audioPlayerService.seek(seekTime);
+            if (audioPlayerService.getTotalTime() > 0) {
+                double seekTime = (event.getX() / timeSlider.getWidth()) * audioPlayerService.getTotalTime();
+                audioPlayerService.seek(seekTime);
+            }
+        });
+        
+        // Allow dragging to seek
+        timeSlider.setOnMouseDragged(event -> {
+            if (audioPlayerService.getTotalTime() > 0) {
+                double seekTime = (event.getX() / timeSlider.getWidth()) * audioPlayerService.getTotalTime();
+                audioPlayerService.seek(seekTime);
+            }
         });
         
         // Bind volume slider to volume property
@@ -144,7 +157,26 @@ public class MainController implements Initializable {
         
         // Set up table double-click to play song
         songsTableView.setRowFactory(tv -> {
-            TableRow<Song> row = new TableRow<>();
+            TableRow<Song> row = new TableRow<Song>() {
+                @Override
+                protected void updateItem(Song song, boolean empty) {
+                    super.updateItem(song, empty);
+                    
+                    // Highlight currently playing song
+                    if (song != null && !empty) {
+                        if (song.equals(audioPlayerService.getCurrentSong()) && audioPlayerService.isPlaying()) {
+                            setStyle("-fx-background-color: lightblue;");
+                        } else if (song.equals(audioPlayerService.getCurrentSong())) {
+                            setStyle("-fx-background-color: lightgray;");
+                        } else {
+                            setStyle("");
+                        }
+                    } else {
+                        setStyle("");
+                    }
+                }
+            };
+            
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && !row.isEmpty()) {
                     Song selectedSong = row.getItem();
@@ -153,12 +185,66 @@ public class MainController implements Initializable {
             });
             return row;
         });
+        
+        // Update table row highlighting when song changes
+        audioPlayerService.currentSongProperty().addListener((obs, oldSong, newSong) -> {
+            songsTableView.refresh(); // Refresh to update row highlighting
+        });
+        
+        audioPlayerService.playingProperty().addListener((obs, oldPlaying, newPlaying) -> {
+            songsTableView.refresh(); // Refresh to update row highlighting
+        });
+    }
+    
+    private void setupKeyboardShortcuts() {
+        // Set up keyboard shortcuts for the main scene
+        // This will be called when the scene is available
+        javafx.application.Platform.runLater(() -> {
+            if (songsTableView.getScene() != null) {
+                songsTableView.getScene().setOnKeyPressed(event -> {
+                    switch (event.getCode()) {
+                        case SPACE:
+                            handlePlayPause();
+                            event.consume();
+                            break;
+                        case LEFT:
+                            if (event.isControlDown()) {
+                                handlePrevious();
+                                event.consume();
+                            }
+                            break;
+                        case RIGHT:
+                            if (event.isControlDown()) {
+                                handleNext();
+                                event.consume();
+                            }
+                            break;
+                        case UP:
+                            if (event.isControlDown()) {
+                                double currentVolume = audioPlayerService.getVolume();
+                                audioPlayerService.setVolume(Math.min(1.0, currentVolume + 0.1));
+                                event.consume();
+                            }
+                            break;
+                        case DOWN:
+                            if (event.isControlDown()) {
+                                double currentVolume = audioPlayerService.getVolume();
+                                audioPlayerService.setVolume(Math.max(0.0, currentVolume - 0.1));
+                                event.consume();
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                });
+            }
+        });
     }
     
     private void playSelectedSong(Song song) {
         // Set current songs as playlist and play selected song
         audioPlayerService.setPlaylist(songs);
-        audioPlayerService.playSong(song);
+        audioPlayerService.playTrack(song);
     }
     
     @FXML
@@ -185,10 +271,10 @@ public class MainController implements Initializable {
         if (audioPlayerService.getCurrentSong() == null) {
             audioPlayerService.setPlaylist(songs);
             if (!songs.isEmpty()) {
-                audioPlayerService.playSong(songs.get(0));
+                audioPlayerService.playTrack(songs.get(0));
             }
         } else {
-            audioPlayerService.playPause();
+            audioPlayerService.togglePlayPause();
         }
     }
     
@@ -200,6 +286,29 @@ public class MainController implements Initializable {
     @FXML
     private void handleNext() {
         audioPlayerService.nextTrack();
+    }
+    
+    /**
+     * Stop playback completely.
+     */
+    public void stopPlayback() {
+        audioPlayerService.stop();
+    }
+    
+    /**
+     * Get information about the currently playing song.
+     * 
+     * @return String with current song info, or null if no song is playing
+     */
+    public String getCurrentSongInfo() {
+        Song currentSong = audioPlayerService.getCurrentSong();
+        if (currentSong != null) {
+            return String.format("%s - %s (%s)", 
+                currentSong.getArtist(), 
+                currentSong.getTitle(), 
+                currentSong.getAlbum());
+        }
+        return null;
     }
     
     private String formatDuration(long durationInSeconds) {

@@ -1,44 +1,47 @@
 package com.musicplayer.services;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
+import com.musicplayer.core.audio.AudioEngine;
+import com.musicplayer.core.audio.JavaFXAudioEngine;
+import com.musicplayer.core.playlist.AdvancedPlaylistEngine;
+import com.musicplayer.core.playlist.PlaylistEngine;
 import com.musicplayer.data.models.Song;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaPlayer;
-import javafx.util.Duration;
 
 /**
- * Service for handling audio playback functionality.
- * Manages MediaPlayer instances and provides a clean API for audio operations.
+ * Enhanced AudioPlayerService that integrates AudioEngine and PlaylistEngine.
+ * Provides comprehensive playback control with advanced playlist features.
  */
 public class AudioPlayerService {
-    private MediaPlayer mediaPlayer;
-    private List<Song> currentPlaylist = new ArrayList<>();
-    private int currentTrackIndex = -1;
-    
-    // Observable properties for UI binding
-    private final BooleanProperty playing = new SimpleBooleanProperty(false);
-    private final DoubleProperty currentTime = new SimpleDoubleProperty(0.0);
-    private final DoubleProperty totalTime = new SimpleDoubleProperty(0.0);
-    private final DoubleProperty volume = new SimpleDoubleProperty(0.5);
-    private final ObjectProperty<Song> currentSong = new SimpleObjectProperty<>();
+    private final AudioEngine audioEngine;
+    private final PlaylistEngine playlistEngine;
     
     public AudioPlayerService() {
-        // Initialize volume listener
-        volume.addListener((obs, oldVal, newVal) -> {
-            if (mediaPlayer != null) {
-                mediaPlayer.setVolume(newVal.doubleValue());
-            }
+        this.audioEngine = new JavaFXAudioEngine();
+        this.playlistEngine = new AdvancedPlaylistEngine();
+        
+        // Set up audio engine callbacks
+        audioEngine.setOnSongEnded(this::handleSongEnded);
+        audioEngine.setOnError(() -> {
+            System.err.println("Audio playback error occurred");
+            handleSongEnded();
         });
+    }
+    
+    /**
+     * Handles song ended event by advancing to next track.
+     */
+    private void handleSongEnded() {
+        Song nextSong = playlistEngine.next();
+        if (nextSong != null) {
+            if (audioEngine.loadSong(nextSong)) {
+                audioEngine.play();
+            }
+        }
     }
     
     /**
@@ -47,10 +50,51 @@ public class AudioPlayerService {
      * @param songs List of songs to set as playlist
      */
     public void setPlaylist(List<Song> songs) {
-        this.currentPlaylist = new ArrayList<>(songs);
-        if (!songs.isEmpty() && currentTrackIndex == -1) {
-            currentTrackIndex = 0;
+        playlistEngine.setPlaylist(songs);
+    }
+    
+    /**
+     * Plays the current song or resumes playback.
+     */
+    public void play() {
+        audioEngine.play();
+    }
+    
+    /**
+     * Pauses the current playback.
+     */
+    public void pause() {
+        audioEngine.pause();
+    }
+    
+    /**
+     * Toggles between play and pause.
+     */
+    public void togglePlayPause() {
+        if (audioEngine.isPlaying()) {
+            pause();
+        } else {
+            // If no song loaded, try to play current playlist song
+            if (audioEngine.currentSongProperty().get() == null) {
+                Song currentSong = playlistEngine.getCurrentSong();
+                if (currentSong == null && !playlistEngine.isEmpty()) {
+                    // Start with first song
+                    currentSong = playlistEngine.next();
+                }
+                if (currentSong != null && audioEngine.loadSong(currentSong)) {
+                    audioEngine.play();
+                }
+            } else {
+                play();
+            }
         }
+    }
+    
+    /**
+     * Stops the current playback.
+     */
+    public void stop() {
+        audioEngine.stop();
     }
     
     /**
@@ -58,59 +102,56 @@ public class AudioPlayerService {
      * 
      * @param song The song to play
      */
-    public void playSong(Song song) {
-        int index = currentPlaylist.indexOf(song);
-        if (index != -1) {
-            currentTrackIndex = index;
-            loadAndPlayCurrentSong();
-        }
-    }
-    
-    /**
-     * Toggles play/pause state.
-     */
-    public void playPause() {
-        if (mediaPlayer == null) {
-            if (!currentPlaylist.isEmpty() && currentTrackIndex >= 0) {
-                loadAndPlayCurrentSong();
-            }
+    public void playTrack(Song song) {
+        if (song == null) {
             return;
         }
         
-        if (playing.get()) {
-            mediaPlayer.pause();
-        } else {
-            mediaPlayer.play();
+        // Set current song in playlist engine
+        List<Song> playlist = playlistEngine.getPlaylist();
+        int index = playlist.indexOf(song);
+        if (index != -1) {
+            playlistEngine.setCurrentIndex(index);
+        }
+        
+        if (audioEngine.loadSong(song)) {
+            audioEngine.play();
         }
     }
     
     /**
-     * Stops playback.
+     * Plays the track at the specified index.
+     * 
+     * @param index Track index to play
      */
-    public void stop() {
-        if (mediaPlayer != null) {
-            mediaPlayer.stop();
+    public void playTrack(int index) {
+        if (index >= 0 && index < playlistEngine.size()) {
+            playlistEngine.setCurrentIndex(index);
+            Song song = playlistEngine.getCurrentSong();
+            if (song != null && audioEngine.loadSong(song)) {
+                audioEngine.play();
+            }
         }
     }
     
     /**
-     * Advances to the next track in the playlist.
+     * Skips to the next track in the playlist.
      */
     public void nextTrack() {
-        if (currentPlaylist.isEmpty()) return;
-        
-        currentTrackIndex = (currentTrackIndex + 1) % currentPlaylist.size();
-        loadAndPlayCurrentSong();
+        Song nextSong = playlistEngine.next();
+        if (nextSong != null && audioEngine.loadSong(nextSong)) {
+            audioEngine.play();
+        }
     }
     
     /**
-     * Goes back to the previous track in the playlist.
+     * Skips to the previous track in the playlist.
      */
     public void previousTrack() {
-        if (currentPlaylist.isEmpty()) return;
-        
-        currentTrackIndex = currentTrackIndex > 0 ? currentTrackIndex - 1 : currentPlaylist.size() - 1;
-        loadAndPlayCurrentSong();
+        Song prevSong = playlistEngine.previous();
+        if (prevSong != null && audioEngine.loadSong(prevSong)) {
+            audioEngine.play();
+        }
     }
     
     /**
@@ -119,118 +160,96 @@ public class AudioPlayerService {
      * @param seconds Time position in seconds
      */
     public void seek(double seconds) {
-        if (mediaPlayer != null) {
-            mediaPlayer.seek(Duration.seconds(seconds));
-        }
+        audioEngine.seek(seconds);
     }
     
     /**
-     * Loads and plays the current song based on currentTrackIndex.
+     * Sets the volume level.
+     * 
+     * @param volume Volume level (0.0 to 1.0)
      */
-    private void loadAndPlayCurrentSong() {
-        if (currentPlaylist.isEmpty() || currentTrackIndex < 0 || currentTrackIndex >= currentPlaylist.size()) {
-            return;
-        }
-        
-        Song song = currentPlaylist.get(currentTrackIndex);
-        File audioFile = new File(song.getFilePath());
-        
-        if (!audioFile.exists()) {
-            System.err.println("Audio file not found: " + song.getFilePath());
-            // Try next track if current file doesn't exist
-            nextTrack();
-            return;
-        }
-        
-        try {
-            // Dispose of previous media player
-            if (mediaPlayer != null) {
-                mediaPlayer.dispose();
-            }
-            
-            Media media = new Media(audioFile.toURI().toString());
-            mediaPlayer = new MediaPlayer(media);
-            
-            // Set up event handlers
-            mediaPlayer.setOnReady(() -> {
-                totalTime.set(mediaPlayer.getTotalDuration().toSeconds());
-                mediaPlayer.setVolume(volume.get());
-                System.out.println("Media ready: " + song.getTitle());
-            });
-            
-            mediaPlayer.setOnPlaying(() -> {
-                playing.set(true);
-                System.out.println("Playing: " + song.getTitle());
-            });
-            
-            mediaPlayer.setOnPaused(() -> {
-                playing.set(false);
-                System.out.println("Paused: " + song.getTitle());
-            });
-            
-            mediaPlayer.setOnStopped(() -> {
-                playing.set(false);
-                System.out.println("Stopped: " + song.getTitle());
-            });
-            
-            mediaPlayer.setOnEndOfMedia(() -> {
-                playing.set(false);
-                System.out.println("End of media: " + song.getTitle());
-                nextTrack(); // Auto-play next track
-            });
-            
-            mediaPlayer.currentTimeProperty().addListener((obs, oldTime, newTime) -> {
-                if (newTime != null) {
-                    currentTime.set(newTime.toSeconds());
-                }
-            });
-            
-            mediaPlayer.setOnError(() -> {
-                System.err.println("Media player error: " + mediaPlayer.getError().getMessage());
-                playing.set(false);
-                // Try next track on error
-                nextTrack();
-            });
-            
-            currentSong.set(song);
-            mediaPlayer.play();
-            
-        } catch (Exception e) {
-            System.err.println("Error loading audio file: " + e.getMessage());
-            e.printStackTrace();
-            playing.set(false);
-            nextTrack();
-        }
+    public void setVolume(double volume) {
+        audioEngine.setVolume(volume);
+    }
+    
+    // Playlist engine methods
+    public void setShuffle(boolean shuffle) {
+        playlistEngine.setShuffle(shuffle);
+    }
+    
+    public boolean isShuffle() {
+        return playlistEngine.isShuffle();
+    }
+    
+    public void setRepeatMode(PlaylistEngine.RepeatMode mode) {
+        playlistEngine.setRepeatMode(mode);
+    }
+    
+    public PlaylistEngine.RepeatMode getRepeatMode() {
+        return playlistEngine.getRepeatMode();
+    }
+    
+    public void queueSong(Song song) {
+        playlistEngine.queueSong(song);
+    }
+    
+    public List<Song> getQueue() {
+        return playlistEngine.getQueue();
+    }
+    
+    public List<Song> getHistory() {
+        return playlistEngine.getHistory();
     }
     
     /**
-     * Disposes of the media player resources.
+     * Disposes of the audio engine and playlist engine resources.
      */
     public void dispose() {
-        if (mediaPlayer != null) {
-            mediaPlayer.dispose();
-            mediaPlayer = null;
-        }
-        playing.set(false);
-        currentSong.set(null);
+        audioEngine.dispose();
+        playlistEngine.clear();
     }
     
-    // Property getters for UI binding
-    public BooleanProperty playingProperty() { return playing; }
-    public DoubleProperty currentTimeProperty() { return currentTime; }
-    public DoubleProperty totalTimeProperty() { return totalTime; }
-    public DoubleProperty volumeProperty() { return volume; }
-    public ObjectProperty<Song> currentSongProperty() { return currentSong; }
+    // Property getters for UI binding (delegate to audio engine)
+    public BooleanProperty playingProperty() { 
+        return audioEngine.playingProperty(); 
+    }
+    
+    public DoubleProperty currentTimeProperty() { 
+        return audioEngine.currentTimeProperty(); 
+    }
+    
+    public DoubleProperty totalTimeProperty() { 
+        return audioEngine.totalTimeProperty(); 
+    }
+    
+    public DoubleProperty volumeProperty() { 
+        return audioEngine.volumeProperty(); 
+    }
+    
+    public ObjectProperty<Song> currentSongProperty() { 
+        return audioEngine.currentSongProperty(); 
+    }
     
     // Convenience getters
-    public boolean isPlaying() { return playing.get(); }
-    public double getCurrentTime() { return currentTime.get(); }
-    public double getTotalTime() { return totalTime.get(); }
-    public double getVolume() { return volume.get(); }
-    public Song getCurrentSong() { return currentSong.get(); }
+    public boolean isPlaying() { 
+        return audioEngine.isPlaying(); 
+    }
     
-    // Convenience setters
-    public void setVolume(double volume) { this.volume.set(volume); }
+    public double getCurrentTime() { 
+        return audioEngine.getCurrentTime(); 
+    }
+    
+    public double getTotalTime() { 
+        return audioEngine.getTotalTime(); 
+    }
+    
+    public double getVolume() { 
+        return audioEngine.getVolume(); 
+    }
+    
+    public Song getCurrentSong() { 
+        return audioEngine.currentSongProperty().get(); 
+    }
     
     /**
      * Gets the current playlist.
@@ -238,7 +257,7 @@ public class AudioPlayerService {
      * @return Copy of the current playlist
      */
     public List<Song> getCurrentPlaylist() {
-        return new ArrayList<>(currentPlaylist);
+        return playlistEngine.getPlaylist();
     }
     
     /**
@@ -247,6 +266,6 @@ public class AudioPlayerService {
      * @return Current track index, or -1 if no track is selected
      */
     public int getCurrentTrackIndex() {
-        return currentTrackIndex;
+        return playlistEngine.getCurrentIndex();
     }
 }

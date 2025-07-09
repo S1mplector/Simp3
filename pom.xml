@@ -129,6 +129,16 @@
                 <version>3.0.0</version>
             </plugin>
 
+            <!-- Exec Maven Plugin -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.1</version>
+                <configuration>
+                    <mainClass>com.musicplayer.Main</mainClass>
+                </configuration>
+            </plugin>
+
             <!-- Maven JAR Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
