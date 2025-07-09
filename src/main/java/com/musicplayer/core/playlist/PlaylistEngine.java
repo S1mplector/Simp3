@@ -1,8 +1,8 @@
 package com.musicplayer.core.playlist;
 
-import com.musicplayer.data.models.Song;
-
 import java.util.List;
+
+import com.musicplayer.data.models.Song;
 
 /**
  * Interface defining advanced playlist management functionality.

@@ -1,8 +1,11 @@
 package com.musicplayer.core.playlist;
 
-import com.musicplayer.data.models.Song;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 
-import java.util.*;
+import com.musicplayer.data.models.Song;
 
 /**
  * Advanced in-memory implementation of PlaylistEngine.

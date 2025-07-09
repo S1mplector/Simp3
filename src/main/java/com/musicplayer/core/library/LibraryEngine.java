@@ -1,11 +1,11 @@
 package com.musicplayer.core.library;
 
+import java.util.List;
+import java.util.Set;
+
 import com.musicplayer.data.models.Album;
 import com.musicplayer.data.models.Artist;
 import com.musicplayer.data.models.Song;
-
-import java.util.List;
-import java.util.Set;
 
 /**
  * Interface defining core library management functionality.

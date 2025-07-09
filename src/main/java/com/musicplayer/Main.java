@@ -8,6 +8,7 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
 /**
@@ -33,6 +34,10 @@ public class Main extends Application {
         Scene scene = new Scene(root, 1200, 800);
 
         primaryStage.setTitle("SiMP3 - Simple Music Player");
+        
+        // Set app icon
+        primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/images/icons/app.png")));
+        
         primaryStage.setScene(scene);
         
         // Handle application close event to cleanup resources

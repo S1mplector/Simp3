@@ -37,9 +37,9 @@
                         <HBox alignment="CENTER_LEFT" spacing="5.0">
                             <children>
                                 <Label text="Library" />
-                                <Button fx:id="selectMusicFolderButton" mnemonicParsing="false" onAction="#handleSelectMusicFolder" prefHeight="20.0" prefWidth="20.0">
+                                <Button fx:id="selectMusicFolderButton" mnemonicParsing="false" onAction="#handleSelectMusicFolder" prefHeight="28.0" prefWidth="28.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
                                     <graphic>
-                                        <ImageView fitHeight="16.0" fitWidth="16.0" pickOnBounds="true" preserveRatio="true">
+                                        <ImageView fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true">
                                             <image>
                                                 <Image url="@../images/icons/folder.png" />
                                             </image>
@@ -72,9 +72,33 @@
             <children>
                 <HBox alignment="CENTER" spacing="10.0">
                     <children>
-                        <Button fx:id="previousButton" mnemonicParsing="false" onAction="#handlePrevious" text="Previous" />
-                        <Button fx:id="playPauseButton" mnemonicParsing="false" onAction="#handlePlayPause" text="Play" />
-                        <Button fx:id="nextButton" mnemonicParsing="false" onAction="#handleNext" text="Next" />
+                        <Button fx:id="previousButton" mnemonicParsing="false" onAction="#handlePrevious" prefHeight="40.0" prefWidth="40.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
+                            <graphic>
+                                <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
+                                    <image>
+                                        <Image url="@../images/icons/previous.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+                        <Button fx:id="playPauseButton" mnemonicParsing="false" onAction="#handlePlayPause" prefHeight="40.0" prefWidth="40.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
+                            <graphic>
+                                <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
+                                    <image>
+                                        <Image url="@../images/icons/play.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+                        <Button fx:id="nextButton" mnemonicParsing="false" onAction="#handleNext" prefHeight="40.0" prefWidth="40.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
+                            <graphic>
+                                <ImageView fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true">
+                                    <image>
+                                        <Image url="@../images/icons/next.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                        </Button>
                     </children>
                 </HBox>
                 <HBox alignment="CENTER" spacing="10.0">

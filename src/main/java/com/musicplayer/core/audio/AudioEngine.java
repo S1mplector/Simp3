@@ -1,7 +1,10 @@
 package com.musicplayer.core.audio;
 
 import com.musicplayer.data.models.Song;
-import javafx.beans.property.*;
+
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ObjectProperty;
 
 /**
  * Core audio engine interface that defines the contract for audio playback functionality.

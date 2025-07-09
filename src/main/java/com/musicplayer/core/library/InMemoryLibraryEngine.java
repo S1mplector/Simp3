@@ -1,11 +1,17 @@
 package com.musicplayer.core.library;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import com.musicplayer.data.models.Album;
 import com.musicplayer.data.models.Artist;
 import com.musicplayer.data.models.Song;
-
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * In-memory implementation of LibraryEngine.

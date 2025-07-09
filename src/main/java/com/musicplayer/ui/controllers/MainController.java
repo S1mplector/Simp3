@@ -27,6 +27,8 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.stage.DirectoryChooser;
 
 public class MainController implements Initializable {
@@ -46,6 +48,11 @@ public class MainController implements Initializable {
     @FXML private Label totalTimeLabel;
     @FXML private Slider timeSlider;
     @FXML private Slider volumeSlider;
+    
+    // Icons for play/pause button
+    private Image playIcon;
+    private Image pauseIcon;
+    private ImageView playPauseImageView;
     
     private LibraryService libraryService;
     private MusicLibraryManager musicLibraryManager;
@@ -108,12 +115,20 @@ public class MainController implements Initializable {
     }
     
     private void setupAudioControls() {
-        // Bind play/pause button text to playing state
-        playPauseButton.textProperty().bind(
-            Bindings.when(audioPlayerService.playingProperty())
-                .then("Pause")
-                .otherwise("Play")
-        );
+        // Initialize play/pause icons
+        playIcon = new Image(getClass().getResourceAsStream("/images/icons/play.png"));
+        pauseIcon = new Image(getClass().getResourceAsStream("/images/icons/pause.png"));
+        
+        // Get the ImageView from the play/pause button (it should already be set in FXML)
+        playPauseImageView = (ImageView) playPauseButton.getGraphic();
+        
+        // Set initial icon
+        playPauseImageView.setImage(playIcon);
+        
+        // Bind play/pause button icon to playing state
+        audioPlayerService.playingProperty().addListener((obs, oldPlaying, newPlaying) -> {
+            playPauseImageView.setImage(newPlaying ? pauseIcon : playIcon);
+        });
         
         // Bind time slider to current time (with proper max value)
         timeSlider.valueProperty().bind(audioPlayerService.currentTimeProperty());

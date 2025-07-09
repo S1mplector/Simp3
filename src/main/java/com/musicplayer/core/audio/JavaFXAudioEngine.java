@@ -1,12 +1,18 @@
 package com.musicplayer.core.audio;
 
+import java.io.File;
+
 import com.musicplayer.data.models.Song;
-import javafx.beans.property.*;
+
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.util.Duration;
-
-import java.io.File;
 
 /**
  * JavaFX-based implementation of the AudioEngine interface.
