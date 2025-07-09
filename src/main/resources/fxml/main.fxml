@@ -69,14 +69,31 @@
                         <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                     </padding>
                 </VBox>
-                <TableView fx:id="songsTableView">
-                    <columns>
-                        <TableColumn fx:id="titleColumn" prefWidth="200.0" text="Title" />
-                        <TableColumn fx:id="artistColumn" prefWidth="150.0" text="Artist" />
-                        <TableColumn fx:id="albumColumn" prefWidth="150.0" text="Album" />
-                        <TableColumn fx:id="durationColumn" prefWidth="75.0" text="Duration" />
-                    </columns>
-                </TableView>
+                <VBox spacing="5.0">
+                    <children>
+                        <HBox alignment="CENTER_RIGHT">
+                            <children>
+                                <Button fx:id="addToPlaylistButton" mnemonicParsing="false" onAction="#handleAddSongToPlaylist" prefHeight="28.0" prefWidth="28.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
+                                    <graphic>
+                                        <ImageView fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true">
+                                            <image>
+                                                <Image url="@../images/icons/add.png" />
+                                            </image>
+                                        </ImageView>
+                                    </graphic>
+                                </Button>
+                            </children>
+                        </HBox>
+                        <TableView fx:id="songsTableView">
+                            <columns>
+                                <TableColumn fx:id="titleColumn" prefWidth="200.0" text="Title" />
+                                <TableColumn fx:id="artistColumn" prefWidth="150.0" text="Artist" />
+                                <TableColumn fx:id="albumColumn" prefWidth="150.0" text="Album" />
+                                <TableColumn fx:id="durationColumn" prefWidth="75.0" text="Duration" />
+                            </columns>
+                        </TableView>
+                    </children>
+                </VBox>
             </items>
         </SplitPane>
     </center>

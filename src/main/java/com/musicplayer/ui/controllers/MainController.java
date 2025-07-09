@@ -19,6 +19,8 @@ import com.musicplayer.services.MusicLibraryManager;
 import com.musicplayer.services.PlaylistService;
 import com.musicplayer.services.PlaylistManager;
 import com.musicplayer.ui.components.PlaylistCell;
+import com.musicplayer.ui.util.SongContextMenuProvider;
+import com.musicplayer.ui.dialogs.PlaylistSelectionPopup;
 
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
@@ -34,12 +36,10 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.DirectoryChooser;
-import javafx.scene.control.TextInputDialog;
 
 public class MainController implements Initializable {
     
@@ -55,6 +55,7 @@ public class MainController implements Initializable {
     @FXML private Button nextButton;
     @FXML private Button selectMusicFolderButton;
     @FXML private Button addPlaylistButton;
+    @FXML private Button addToPlaylistButton;
     @FXML private Label currentTimeLabel;
     @FXML private Label totalTimeLabel;
     @FXML private Slider timeSlider;
@@ -136,9 +137,23 @@ public class MainController implements Initializable {
         // Bind the table to the songs list
         songsTableView.setItems(songs);
         
+        // Configure Add-to-Playlist button
+        addToPlaylistButton.setVisible(false);
+        addToPlaylistButton.setDisable(true);
+
+        // Show button when a song is selected
+        songsTableView.getSelectionModel().selectedItemProperty().addListener((obs, oldSel, newSel) -> {
+            boolean hasSelection = newSel != null;
+            addToPlaylistButton.setVisible(hasSelection);
+            addToPlaylistButton.setDisable(!hasSelection);
+        });
+
         // Initialize library list
         ObservableList<String> libraryItems = FXCollections.observableArrayList("All Songs", "Artists", "Albums");
         libraryListView.setItems(libraryItems);
+
+        // Set up library controls (e.g., selection handling)
+        setupLibraryControls();
         
         System.out.println("MainController initialized.");
     }
@@ -227,6 +242,9 @@ public class MainController implements Initializable {
                     playSelectedSong(selectedSong);
                 }
             });
+            
+            // Attach context menu for playlist operations
+            SongContextMenuProvider.attachContextMenu(row, playlists, playlistManager, playlistsListView, songs);
             return row;
         });
         
@@ -474,7 +492,7 @@ public class MainController implements Initializable {
      */
     @FXML
     private void handleAddPlaylist() {
-        TextInputDialog dialog = new TextInputDialog();
+        javafx.scene.control.TextInputDialog dialog = new javafx.scene.control.TextInputDialog();
         dialog.setTitle("New Playlist");
         dialog.setHeaderText("Create a new playlist");
         dialog.setContentText("Enter playlist name:");
@@ -492,5 +510,52 @@ public class MainController implements Initializable {
                 }
             }
         });
+    }
+
+    /**
+     * Configures behavior of the library list ("All Songs", "Artists", etc.).
+     * Currently handles showing all songs when the user selects "All Songs".
+     */
+    private void setupLibraryControls() {
+        libraryListView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            if ("All Songs".equals(newSelection)) {
+                // Display every track in the library
+                songs.setAll(musicLibraryManager.getAllSongs());
+                audioPlayerService.setPlaylist(songs);
+
+                // Clear any playlist selection to avoid confusion
+                playlistsListView.getSelectionModel().clearSelection();
+            }
+            // TODO: Future: handle "Artists", "Albums" selections
+        });
+    }
+
+    /**
+     * Handles clicking the “add to playlist” button for a selected song.
+     */
+    @FXML
+    private void handleAddSongToPlaylist() {
+        Song selectedSong = songsTableView.getSelectionModel().getSelectedItem();
+        if (selectedSong == null) {
+            return;
+        }
+
+        if (playlists.isEmpty()) {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("No Playlists");
+            alert.setHeaderText("No playlists available");
+            alert.setContentText("Please create a playlist first.");
+            alert.showAndWait();
+            return;
+        }
+
+        PlaylistSelectionPopup.show(addToPlaylistButton.getScene().getWindow(), playlists)
+                .ifPresent(pl -> {
+                    playlistManager.addSongToPlaylist(pl.getId(), selectedSong);
+
+                    if (pl.equals(playlistsListView.getSelectionModel().getSelectedItem())) {
+                        songs.setAll(pl.getSongs());
+                    }
+                });
     }
 }
