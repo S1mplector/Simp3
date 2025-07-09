@@ -3,6 +3,7 @@ package com.musicplayer.ui.controllers;
 import java.io.File;
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.ArrayList;
 
 import com.musicplayer.data.models.Song;
 import com.musicplayer.data.models.Playlist;
@@ -40,6 +41,12 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.DirectoryChooser;
+import javafx.collections.transformation.FilteredList;
+import javafx.scene.control.TextField;
+import com.musicplayer.ui.util.SearchManager;
+import javafx.scene.input.TransferMode;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.ClipboardContent;
 
 public class MainController implements Initializable {
     
@@ -74,6 +81,14 @@ public class MainController implements Initializable {
     private ObservableList<Song> songs;
     private ObservableList<Playlist> playlists;
 
+    private FilteredList<Song> filteredSongs;
+    private FilteredList<Playlist> filteredPlaylists;
+
+    @FXML private Button playlistSearchButton;
+    @FXML private TextField playlistSearchField;
+    @FXML private Button songSearchButton;
+    @FXML private TextField songSearchField;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // Initialize storage and repositories
@@ -95,6 +110,10 @@ public class MainController implements Initializable {
         // Initialize the songs and playlists lists
         songs = FXCollections.observableArrayList();
         playlists = FXCollections.observableArrayList();
+
+        // Wrap with filtered lists for searching
+        filteredSongs = new FilteredList<>(songs, s -> true);
+        filteredPlaylists = new FilteredList<>(playlists, p -> true);
         
         // Set up callback to update UI when library changes
         musicLibraryManager.setLibraryUpdateCallback(updatedSongs -> {
@@ -135,7 +154,7 @@ public class MainController implements Initializable {
         });
         
         // Bind the table to the songs list
-        songsTableView.setItems(songs);
+        songsTableView.setItems(filteredSongs);
         
         // Configure Add-to-Playlist button
         addToPlaylistButton.setVisible(false);
@@ -154,6 +173,8 @@ public class MainController implements Initializable {
 
         // Set up library controls (e.g., selection handling)
         setupLibraryControls();
+        
+        setupSearchControls();
         
         System.out.println("MainController initialized.");
     }
@@ -245,6 +266,56 @@ public class MainController implements Initializable {
             
             // Attach context menu for playlist operations
             SongContextMenuProvider.attachContextMenu(row, playlists, playlistManager, playlistsListView, songs);
+            
+            // Enable drag-and-drop reordering when a playlist is selected
+            row.setOnDragDetected(event -> {
+                if (!row.isEmpty() && playlistsListView.getSelectionModel().getSelectedItem() != null) {
+                    Dragboard db = row.startDragAndDrop(TransferMode.MOVE);
+                    ClipboardContent cc = new ClipboardContent();
+                    cc.putString(Integer.toString(row.getIndex()));
+                    db.setContent(cc);
+                    event.consume();
+                }
+            });
+
+            row.setOnDragOver(event -> {
+                Dragboard db = event.getDragboard();
+                if (db.hasString()) {
+                    int draggedIndex = Integer.parseInt(db.getString());
+                    if (row.getIndex() != draggedIndex) {
+                        event.acceptTransferModes(TransferMode.MOVE);
+                    }
+                }
+                event.consume();
+            });
+
+            row.setOnDragDropped(event -> {
+                Dragboard db = event.getDragboard();
+                if (db.hasString()) {
+                    int draggedIndex = Integer.parseInt(db.getString());
+                    int dropIndex = row.isEmpty() ? songs.size() : row.getIndex();
+
+                    if (draggedIndex != dropIndex) {
+                        Song draggedSong = songs.remove(draggedIndex);
+                        songs.add(dropIndex, draggedSong);
+
+                        // Update playlist order in repository
+                        Playlist selectedPl = playlistsListView.getSelectionModel().getSelectedItem();
+                        if (selectedPl != null) {
+                            selectedPl.setSongs(new ArrayList<>(songs));
+                            playlistManager.updatePlaylistSongs(selectedPl.getId(), selectedPl.getSongs());
+                        }
+
+                        event.setDropCompleted(true);
+                        songsTableView.getSelectionModel().select(dropIndex);
+                    } else {
+                        event.setDropCompleted(false);
+                    }
+                } else {
+                    event.setDropCompleted(false);
+                }
+                event.consume();
+            });
             return row;
         });
         
@@ -436,7 +507,7 @@ public class MainController implements Initializable {
      */
     private void setupPlaylistControls() {
         // Set up the playlist ListView
-        playlistsListView.setItems(playlists);
+        playlistsListView.setItems(filteredPlaylists);
         
         // Create custom cell factory for playlists
         playlistsListView.setCellFactory(listView -> {
@@ -557,5 +628,18 @@ public class MainController implements Initializable {
                         songs.setAll(pl.getSongs());
                     }
                 });
+    }
+
+    private void setupSearchControls() {
+        if (songSearchButton != null) {
+            songSearchButton.setOnAction(e -> songSearchField.requestFocus());
+        }
+        if (playlistSearchButton != null) {
+            playlistSearchButton.setOnAction(e -> playlistSearchField.requestFocus());
+        }
+
+        // Delegate predicate logic to SearchManager
+        SearchManager.bindSongSearch(songSearchField, filteredSongs, libraryListView);
+        SearchManager.bindPlaylistSearch(playlistSearchField, filteredPlaylists);
     }
 }

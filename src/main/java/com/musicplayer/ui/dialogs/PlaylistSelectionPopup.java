@@ -5,6 +5,7 @@ import java.util.Optional;
 import com.musicplayer.data.models.Playlist;
 
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -12,6 +13,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
@@ -43,7 +45,16 @@ public final class PlaylistSelectionPopup {
 
         Label header = new Label("Select a playlist:");
 
-        ListView<Playlist> listView = new ListView<>(playlists);
+        FilteredList<Playlist> filtered = new FilteredList<>(playlists, p -> true);
+
+        TextField searchField = new TextField();
+        searchField.setPromptText("Search");
+        searchField.textProperty().addListener((obs, oldV, newV) -> {
+            String filter = newV == null ? "" : newV.toLowerCase().trim();
+            filtered.setPredicate(pl -> filter.isEmpty() || pl.getName().toLowerCase().contains(filter));
+        });
+
+        ListView<Playlist> listView = new ListView<>(filtered);
         listView.setCellFactory(lv -> new ListCell<>() {
             @Override
             protected void updateItem(Playlist item, boolean empty) {
@@ -62,7 +73,7 @@ public final class PlaylistSelectionPopup {
         listView.getSelectionModel().selectedItemProperty().addListener((obs, oldSel, newSel) -> ok.setDisable(newSel == null));
 
         buttonBar.getChildren().addAll(ok, cancel);
-        root.getChildren().addAll(header, listView, buttonBar);
+        root.getChildren().addAll(header, searchField, listView, buttonBar);
 
         Scene scene = new Scene(root, 300, 400);
         stage.setScene(scene);

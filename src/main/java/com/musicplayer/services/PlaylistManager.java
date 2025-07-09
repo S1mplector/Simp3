@@ -1,5 +1,6 @@
 package com.musicplayer.services;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -289,5 +290,18 @@ public class PlaylistManager {
                 playlistUpdateCallback.accept(getAllPlaylists());
             });
         }
+    }
+
+    /**
+     * Updates song order in a playlist.
+     * @param playlistId playlist id
+     * @param newSongs new ordered list
+     */
+    public void updatePlaylistSongs(long playlistId, List<Song> newSongs) {
+        Playlist playlist = playlistRepository.findById(playlistId);
+        if (playlist == null) return;
+        playlist.setSongs(new ArrayList<>(newSongs));
+        playlistRepository.save(playlist);
+        notifyPlaylistUpdate();
     }
 }

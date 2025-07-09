@@ -11,6 +11,7 @@
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
@@ -52,6 +53,16 @@
                         <HBox alignment="CENTER_LEFT" spacing="5.0">
                             <children>
                                 <Label text="Playlists" />
+                                <TextField fx:id="playlistSearchField" promptText="Search" prefWidth="120.0" />
+                                <Button fx:id="playlistSearchButton" mnemonicParsing="false" prefHeight="28.0" prefWidth="28.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
+                                    <graphic>
+                                        <ImageView fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true">
+                                            <image>
+                                                <Image url="@../images/icons/search.png" />
+                                            </image>
+                                        </ImageView>
+                                    </graphic>
+                                </Button>
                                 <Button fx:id="addPlaylistButton" mnemonicParsing="false" onAction="#handleAddPlaylist" prefHeight="28.0" prefWidth="28.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
                                     <graphic>
                                         <ImageView fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true">
@@ -71,8 +82,18 @@
                 </VBox>
                 <VBox spacing="5.0">
                     <children>
-                        <HBox alignment="CENTER_RIGHT">
+                        <HBox alignment="CENTER_RIGHT" spacing="5.0">
                             <children>
+                                <TextField fx:id="songSearchField" promptText="Search" prefWidth="150.0" />
+                                <Button fx:id="songSearchButton" mnemonicParsing="false" prefHeight="28.0" prefWidth="28.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
+                                    <graphic>
+                                        <ImageView fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true">
+                                            <image>
+                                                <Image url="@../images/icons/search.png" />
+                                            </image>
+                                        </ImageView>
+                                    </graphic>
+                                </Button>
                                 <Button fx:id="addToPlaylistButton" mnemonicParsing="false" onAction="#handleAddSongToPlaylist" prefHeight="28.0" prefWidth="28.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
                                     <graphic>
                                         <ImageView fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true">
