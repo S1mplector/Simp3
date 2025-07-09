@@ -103,4 +103,6 @@ public interface AudioEngine {
      * @param callback Runnable to execute on error
      */
     void setOnError(Runnable callback);
+
+    void setAudioSpectrumListener(javafx.scene.media.AudioSpectrumListener listener);
 }

@@ -22,6 +22,10 @@ import com.musicplayer.services.PlaylistManager;
 import com.musicplayer.ui.components.PlaylistCell;
 import com.musicplayer.ui.util.SongContextMenuProvider;
 import com.musicplayer.ui.dialogs.PlaylistSelectionPopup;
+import com.musicplayer.ui.components.AudioVisualizer;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.Node;
 
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
@@ -47,6 +51,7 @@ import com.musicplayer.ui.util.SearchManager;
 import javafx.scene.input.TransferMode;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.control.SelectionMode;
 
 public class MainController implements Initializable {
     
@@ -88,6 +93,8 @@ public class MainController implements Initializable {
     @FXML private TextField playlistSearchField;
     @FXML private Button songSearchButton;
     @FXML private TextField songSearchField;
+
+    private AudioVisualizer audioVisualizer;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -155,6 +162,9 @@ public class MainController implements Initializable {
         
         // Bind the table to the songs list
         songsTableView.setItems(filteredSongs);
+
+        // Enable multi-selection
+        songsTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         
         // Configure Add-to-Playlist button
         addToPlaylistButton.setVisible(false);
@@ -175,6 +185,9 @@ public class MainController implements Initializable {
         setupLibraryControls();
         
         setupSearchControls();
+
+        // Set up audio visualizer (behind bottom controls)
+        setupAudioVisualizer();
         
         System.out.println("MainController initialized.");
     }
@@ -606,8 +619,8 @@ public class MainController implements Initializable {
      */
     @FXML
     private void handleAddSongToPlaylist() {
-        Song selectedSong = songsTableView.getSelectionModel().getSelectedItem();
-        if (selectedSong == null) {
+        javafx.collections.ObservableList<Song> selectedSongs = songsTableView.getSelectionModel().getSelectedItems();
+        if (selectedSongs == null || selectedSongs.isEmpty()) {
             return;
         }
 
@@ -622,7 +635,9 @@ public class MainController implements Initializable {
 
         PlaylistSelectionPopup.show(addToPlaylistButton.getScene().getWindow(), playlists)
                 .ifPresent(pl -> {
-                    playlistManager.addSongToPlaylist(pl.getId(), selectedSong);
+                    for (Song s : selectedSongs) {
+                        playlistManager.addSongToPlaylist(pl.getId(), s);
+                    }
 
                     if (pl.equals(playlistsListView.getSelectionModel().getSelectedItem())) {
                         songs.setAll(pl.getSongs());
@@ -641,5 +656,46 @@ public class MainController implements Initializable {
         // Delegate predicate logic to SearchManager
         SearchManager.bindSongSearch(songSearchField, filteredSongs, libraryListView);
         SearchManager.bindPlaylistSearch(playlistSearchField, filteredPlaylists);
+    }
+
+    private void setupAudioVisualizer() {
+        audioVisualizer = new AudioVisualizer(64);
+        audioVisualizer.setMouseTransparent(true);
+        audioVisualizer.setVisible(false);
+
+        // Register spectrum listener so visualizer gets live data
+        audioPlayerService.setAudioSpectrumListener((timestamp, duration, magnitudes, phases) -> {
+            // MediaPlayer invokes this on JavaFX thread already
+            audioVisualizer.update(magnitudes);
+        });
+
+        // Show/hide based on playing state
+        audioPlayerService.playingProperty().addListener((obs, oldVal, isPlaying) -> {
+            audioVisualizer.setVisible(isPlaying);
+        });
+
+        // Defer layout changes until scene is ready
+        javafx.application.Platform.runLater(() -> {
+            if (playPauseButton == null || playPauseButton.getScene() == null) {
+                return;
+            }
+            BorderPane root = (BorderPane) playPauseButton.getScene().getRoot();
+            if (root == null) {
+                return;
+            }
+            Node bottomNode = root.getBottom();
+            if (bottomNode == null) {
+                return;
+            }
+            // Remove existing bottom node and wrap into stack pane with visualizer behind
+            root.setBottom(null);
+            StackPane stack = new StackPane();
+            stack.getChildren().addAll(audioVisualizer, bottomNode);
+            // Bind visualizer size to stack pane
+            audioVisualizer.widthProperty().bind(stack.widthProperty());
+            audioVisualizer.heightProperty().bind(stack.heightProperty());
+
+            root.setBottom(stack);
+        });
     }
 }

@@ -268,4 +268,8 @@ public class AudioPlayerService {
     public int getCurrentTrackIndex() {
         return playlistEngine.getCurrentIndex();
     }
+
+    public void setAudioSpectrumListener(javafx.scene.media.AudioSpectrumListener listener) {
+        audioEngine.setAudioSpectrumListener(listener);
+    }
 }

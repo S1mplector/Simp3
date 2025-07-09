@@ -30,6 +30,9 @@ public class JavaFXAudioEngine implements AudioEngine {
     private final DoubleProperty volume = new SimpleDoubleProperty(0.5);
     private final ObjectProperty<Song> currentSongProperty = new SimpleObjectProperty<>();
     
+    // Spectrum listener
+    private javafx.scene.media.AudioSpectrumListener spectrumListener;
+    
     // Callbacks
     private Runnable onSongEndedCallback;
     private Runnable onErrorCallback;
@@ -66,6 +69,13 @@ public class JavaFXAudioEngine implements AudioEngine {
             
             Media media = new Media(audioFile.toURI().toString());
             mediaPlayer = new MediaPlayer(media);
+            
+            // Configure spectrum analysis if a listener is provided
+            mediaPlayer.setAudioSpectrumInterval(0.017); // ~60 FPS
+            mediaPlayer.setAudioSpectrumNumBands(64);
+            if (spectrumListener != null) {
+                mediaPlayer.setAudioSpectrumListener(spectrumListener);
+            }
             
             // Set up event handlers
             setupMediaPlayerEvents();
@@ -231,6 +241,14 @@ public class JavaFXAudioEngine implements AudioEngine {
     @Override
     public void setOnError(Runnable callback) {
         this.onErrorCallback = callback;
+    }
+    
+    @Override
+    public void setAudioSpectrumListener(javafx.scene.media.AudioSpectrumListener listener) {
+        this.spectrumListener = listener;
+        if (mediaPlayer != null) {
+            mediaPlayer.setAudioSpectrumListener(listener);
+        }
     }
     
     private String formatTime(double seconds) {
