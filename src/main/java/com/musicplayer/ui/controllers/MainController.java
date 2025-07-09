@@ -52,6 +52,8 @@ import javafx.scene.input.TransferMode;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.control.SelectionMode;
+import com.musicplayer.ui.components.PlaybackModeButtons;
+import javafx.scene.layout.HBox;
 
 public class MainController implements Initializable {
     
@@ -207,6 +209,14 @@ public class MainController implements Initializable {
         audioPlayerService.playingProperty().addListener((obs, oldPlaying, newPlaying) -> {
             playPauseImageView.setImage(newPlaying ? pauseIcon : playIcon);
         });
+        
+        // After play/pause, icon setup and before other bindings we can add buttons by inserting to control bar
+        HBox controlBar = (HBox) previousButton.getParent();
+        javafx.scene.control.Button shuffleBtn = PlaybackModeButtons.createShuffleButton(audioPlayerService);
+        javafx.scene.control.Button repeatBtn = PlaybackModeButtons.createRepeatButton(audioPlayerService);
+        // Insert shuffle at beginning and repeat at end
+        controlBar.getChildren().add(0, shuffleBtn);
+        controlBar.getChildren().add(repeatBtn);
         
         // Bind time slider to current time (with proper max value)
         timeSlider.valueProperty().bind(audioPlayerService.currentTimeProperty());
