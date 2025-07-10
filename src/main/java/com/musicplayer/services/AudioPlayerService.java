@@ -3,7 +3,7 @@ package com.musicplayer.services;
 import java.util.List;
 
 import com.musicplayer.core.audio.AudioEngine;
-import com.musicplayer.core.audio.JavaFXAudioEngine;
+import com.musicplayer.core.audio.HybridAudioEngine;
 import com.musicplayer.core.playlist.AdvancedPlaylistEngine;
 import com.musicplayer.core.playlist.PlaylistEngine;
 import com.musicplayer.data.models.Song;
@@ -22,7 +22,7 @@ public class AudioPlayerService {
     private Runnable customErrorCallback;
     
     public AudioPlayerService() {
-        this.audioEngine = new JavaFXAudioEngine();
+        this.audioEngine = new HybridAudioEngine();
         this.playlistEngine = new AdvancedPlaylistEngine();
         
         // Set up audio engine callbacks
