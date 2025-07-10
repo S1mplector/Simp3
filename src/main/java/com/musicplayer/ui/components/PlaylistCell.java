@@ -4,6 +4,7 @@ import java.util.function.Consumer;
 
 import com.musicplayer.data.models.Playlist;
 
+import javafx.animation.FadeTransition;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -16,6 +17,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.util.Duration;
 
 /**
  * Custom ListCell for displaying playlists with rename and delete functionality.
@@ -27,6 +29,8 @@ public class PlaylistCell extends ListCell<Playlist> {
     private final TextField nameField;
     private final Region spacer;
     private final Button removeButton;
+    private final ImageView playingIcon;
+    private FadeTransition fade;
     
     private boolean isEditing = false;
     private Consumer<Playlist> onDelete;
@@ -68,6 +72,12 @@ public class PlaylistCell extends ListCell<Playlist> {
             removeButton.setText("×"); // Fallback text
         }
         
+        playingIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/icons/playing.png")));
+        playingIcon.setFitHeight(16);
+        playingIcon.setFitWidth(16);
+        playingIcon.setOpacity(0);
+        
+        content.getChildren().add(0, playingIcon);
         content.getChildren().addAll(nameLabel, nameField, spacer, removeButton);
         
         setupEventHandlers();
@@ -142,6 +152,25 @@ public class PlaylistCell extends ListCell<Playlist> {
         nameLabel.setManaged(true);
     }
     
+    public void updatePlaying(boolean isPlaying) {
+        if (isPlaying) {
+            if (fade == null) {
+                fade = new FadeTransition(Duration.seconds(1), playingIcon);
+                fade.setFromValue(0.2);
+                fade.setToValue(1.0);
+                fade.setAutoReverse(true);
+                fade.setCycleCount(FadeTransition.INDEFINITE);
+            }
+            playingIcon.setOpacity(0.8);
+            fade.play();
+        } else {
+            if (fade != null) {
+                fade.stop();
+            }
+            playingIcon.setOpacity(0);
+        }
+    }
+    
     @Override
     public void cancelEdit() {
         stopEditing();
@@ -155,6 +184,7 @@ public class PlaylistCell extends ListCell<Playlist> {
         if (empty || playlist == null) {
             setGraphic(null);
             setText(null);
+            updatePlaying(false);
         } else {
             nameLabel.setText(playlist.getName());
             nameField.setText(playlist.getName());

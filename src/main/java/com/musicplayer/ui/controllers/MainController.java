@@ -97,6 +97,8 @@ public class MainController implements Initializable {
     private FilteredList<Song> filteredSongs;
     private FilteredList<Playlist> filteredPlaylists;
 
+    private Playlist playingPlaylist;
+
     @FXML private Button playlistSearchButton;
     @FXML private TextField playlistSearchField;
     @FXML private Button songSearchButton;
@@ -608,7 +610,18 @@ public class MainController implements Initializable {
                     alert.showAndWait();
                 }
             });
-            
+
+            // After each update, adjust playing icon
+            cell.itemProperty().addListener((o, oldPl, newPl) -> {
+                cell.updatePlaying(newPl != null && newPl.equals(playingPlaylist) && audioPlayerService.isPlaying());
+            });
+            // Also update when playing state changes
+            audioPlayerService.playingProperty().addListener((o, ov, nv) -> {
+                Playlist item = cell.getItem();
+                if (item != null) {
+                    cell.updatePlaying(item.equals(playingPlaylist) && nv);
+                }
+            });
             return cell;
         });
         
@@ -619,6 +632,8 @@ public class MainController implements Initializable {
                     songs.clear();
                     songs.addAll(newPlaylist.getSongs());
                     audioPlayerService.setPlaylist(songs);
+                    playingPlaylist = newPlaylist; // mark as playing
+                    refreshPlaylistCells();
                 }
             }
         );
@@ -794,5 +809,9 @@ public class MainController implements Initializable {
                 handleSelectMusicFolder();
             }
         });
+    }
+
+    private void refreshPlaylistCells() {
+        playlistsListView.refresh();
     }
 }
