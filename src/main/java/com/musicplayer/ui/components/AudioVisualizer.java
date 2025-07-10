@@ -33,6 +33,9 @@ public class AudioVisualizer extends Canvas {
     private double currentHue = 120; // Start with green (120 degrees)
     private static final double HUE_SHIFT_SPEED = 10; // Degrees per second
     private final Color peakColor = Color.rgb(255, 255, 255, 0.9); // White peak caps
+    
+    // Track if visualizer is paused
+    private boolean isPaused = false;
 
     public AudioVisualizer(int numBands) {
         this.numBands = numBands;
@@ -59,7 +62,8 @@ public class AudioVisualizer extends Canvas {
      * This should be called from the JavaFX Application Thread.
      */
     public void update(float[] newMagnitudes) {
-        if (newMagnitudes == null) {
+        // Ignore updates when paused to prevent any backlog
+        if (isPaused || newMagnitudes == null) {
             return;
         }
         int len = Math.min(newMagnitudes.length, numBands);
@@ -82,45 +86,62 @@ public class AudioVisualizer extends Canvas {
         peakAnimator = new AnimationTimer() {
             @Override
             public void handle(long now) {
-                if (lastUpdate == 0) {
-                    lastUpdate = now;
-                    return;
-                }
-                
-                // Calculate delta time in seconds
-                double deltaTime = (now - lastUpdate) / 1_000_000_000.0;
-                lastUpdate = now;
-                
-                // Update hue for color animation
-                currentHue += HUE_SHIFT_SPEED * deltaTime;
-                if (currentHue >= 360) {
-                    currentHue -= 360;
-                }
-                
-                // Update peak positions
-                boolean needsRedraw = false;
-                for (int i = 0; i < numBands; i++) {
-                    if (peakValues[i] > displayMagnitudes[i]) {
-                        // Apply gravity to velocity
-                        peakVelocities[i] += PEAK_FALL_SPEED;
-                        
-                        // Apply hang time (slow initial fall)
-                        float effectiveVelocity = peakVelocities[i] * (1.0f - (float)PEAK_HANG_TIME);
-                        
-                        // Update peak position
-                        peakValues[i] -= effectiveVelocity;
-                        
-                        // Don't let peak go below current bar
-                        if (peakValues[i] < displayMagnitudes[i]) {
-                            peakValues[i] = displayMagnitudes[i];
-                            peakVelocities[i] = 0.0f;
-                        }
-                        needsRedraw = true;
+                try {
+                    // Skip if paused
+                    if (isPaused) {
+                        return;
                     }
-                }
-                
-                if (needsRedraw) {
-                    draw();
+                    
+                    if (lastUpdate == 0) {
+                        lastUpdate = now;
+                        return;
+                    }
+                    
+                    // Calculate delta time in seconds
+                    double deltaTime = (now - lastUpdate) / 1_000_000_000.0;
+                    
+                    // Prevent huge time jumps (e.g., after minimizing)
+                    if (deltaTime > 1.0) {
+                        lastUpdate = now;
+                        return;
+                    }
+                    
+                    lastUpdate = now;
+                    
+                    // Update hue for color animation
+                    currentHue += HUE_SHIFT_SPEED * deltaTime;
+                    if (currentHue >= 360) {
+                        currentHue -= 360;
+                    }
+                    
+                    // Update peak positions
+                    boolean needsRedraw = false;
+                    for (int i = 0; i < numBands; i++) {
+                        if (peakValues[i] > displayMagnitudes[i]) {
+                            // Apply gravity to velocity
+                            peakVelocities[i] += PEAK_FALL_SPEED;
+                            
+                            // Apply hang time (slow initial fall)
+                            float effectiveVelocity = peakVelocities[i] * (1.0f - (float)PEAK_HANG_TIME);
+                            
+                            // Update peak position
+                            peakValues[i] -= effectiveVelocity;
+                            
+                            // Don't let peak go below current bar
+                            if (peakValues[i] < displayMagnitudes[i]) {
+                                peakValues[i] = displayMagnitudes[i];
+                                peakVelocities[i] = 0.0f;
+                            }
+                            needsRedraw = true;
+                        }
+                    }
+                    
+                    if (needsRedraw) {
+                        draw();
+                    }
+                } catch (Exception e) {
+                    // Log but don't crash - prevent UI freezing
+                    System.err.println("Error in visualizer animation: " + e.getMessage());
                 }
             }
         };
@@ -191,11 +212,62 @@ public class AudioVisualizer extends Canvas {
     }
     
     /**
+     * Pause the visualizer animation.
+     * This should be called when the window is minimized to save CPU resources.
+     */
+    public void pause() {
+        if (!isPaused && peakAnimator != null) {
+            peakAnimator.stop();
+            isPaused = true;
+        }
+    }
+    
+    /**
+     * Force clear and refresh the visualizer.
+     * Useful when restoring from minimized state to ensure clean rendering.
+     */
+    public void forceRefresh() {
+        // Clear all data
+        for (int i = 0; i < numBands; i++) {
+            displayMagnitudes[i] = -60.0f;
+            peakValues[i] = -60.0f;
+            peakVelocities[i] = 0.0f;
+        }
+        // Force a redraw
+        draw();
+    }
+    
+    /**
+     * Resume the visualizer animation.
+     * This should be called when the window is restored from minimized state.
+     */
+    public void resume() {
+        if (isPaused && peakAnimator != null) {
+            // Reset the last update time to prevent huge time deltas
+            lastUpdate = 0;
+            peakAnimator.start();
+            isPaused = false;
+            // Force clear and redraw to ensure UI is refreshed
+            forceRefresh();
+        }
+    }
+    
+    /**
+     * Check if the visualizer is currently paused.
+     * @return true if paused, false otherwise
+     */
+    public boolean isPaused() {
+        return isPaused;
+    }
+    
+    /**
      * Clean up resources when the visualizer is no longer needed.
      */
     public void dispose() {
+        isPaused = true; // Ensure updates are ignored
         if (peakAnimator != null) {
             peakAnimator.stop();
+            peakAnimator = null;
         }
     }
 } 

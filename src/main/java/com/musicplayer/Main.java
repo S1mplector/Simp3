@@ -40,6 +40,9 @@ public class Main extends Application {
         
         primaryStage.setScene(scene);
         
+        // Set up window state monitoring for audio visualizer
+        mainController.setupWindowStateMonitoring(primaryStage);
+        
         // Handle application close event to cleanup resources
         primaryStage.setOnCloseRequest(event -> {
             if (mainController != null) {

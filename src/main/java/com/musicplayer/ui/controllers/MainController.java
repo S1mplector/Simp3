@@ -69,6 +69,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
+import javafx.application.Platform;
+import javafx.stage.Stage;
 
 public class MainController implements Initializable {
     
@@ -124,6 +126,9 @@ public class MainController implements Initializable {
     private PinboardPanel pinboardPanel;
     private NowPlayingBar nowPlayingBar;
     @FXML private HBox controlBar;
+    
+    // Store the spectrum listener to enable/disable it
+    private javafx.scene.media.AudioSpectrumListener spectrumListener;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -934,20 +939,93 @@ public class MainController implements Initializable {
         SearchManager.bindPlaylistSearch(playlistSearchField, filteredPlaylists);
     }
 
+    /**
+     * Set up window state monitoring to pause/resume visualizer when minimized.
+     * This should be called from Main.java after the controller is loaded.
+     * @param stage The primary stage of the application
+     */
+    public void setupWindowStateMonitoring(javafx.stage.Stage stage) {
+        if (stage != null) {
+            // Monitor the iconified (minimized) state of the window
+            stage.iconifiedProperty().addListener((obs, wasMinimized, isMinimized) -> {
+                if (isMinimized) {
+                    // Window is minimized - completely disable visualizer
+                    if (audioVisualizer != null) {
+                        audioVisualizer.pause();
+                    }
+                    // Remove spectrum listener to stop data flow
+                    if (audioPlayerService != null && spectrumListener != null) {
+                        audioPlayerService.setAudioSpectrumListener(null);
+                    }
+                    System.out.println("Window minimized - visualizer and spectrum updates disabled");
+                } else {
+                    // Window is restored - re-enable if music is playing
+                    // Use Platform.runLater to ensure UI is ready
+                    Platform.runLater(() -> {
+                        if (audioPlayerService != null && audioPlayerService.isPlaying()) {
+                            // Re-add spectrum listener
+                            if (spectrumListener != null) {
+                                audioPlayerService.setAudioSpectrumListener(spectrumListener);
+                            }
+                            // Resume visualizer
+                            if (audioVisualizer != null) {
+                                audioVisualizer.resume();
+                            }
+                            System.out.println("Window restored - visualizer and spectrum updates re-enabled");
+                        } else {
+                            System.out.println("Window restored - music not playing, visualizer remains inactive");
+                        }
+                        
+                        // Force refresh UI components to ensure they're properly rendered
+                        if (songsTableView != null) {
+                            songsTableView.refresh();
+                        }
+                        if (playlistsListView != null) {
+                            playlistsListView.refresh();
+                        }
+                    });
+                }
+            });
+        }
+    }
+    
     private void setupAudioVisualizer() {
         audioVisualizer = new AudioVisualizer(64);
         audioVisualizer.setMouseTransparent(true);
         audioVisualizer.setVisible(false);
-
-        // Register spectrum listener so visualizer gets live data
-        audioPlayerService.setAudioSpectrumListener((timestamp, duration, magnitudes, phases) -> {
-            // MediaPlayer invokes this on JavaFX thread already
+        
+        // Create and store the spectrum listener
+        spectrumListener = (timestamp, duration, magnitudes, phases) -> {
+            // MediaPlayer already invokes this on JavaFX thread
             audioVisualizer.update(magnitudes);
-        });
-
-        // Show/hide based on playing state
-        audioPlayerService.playingProperty().addListener((obs, oldVal, isPlaying) -> {
+        };
+        
+        // Set up spectrum data listener with audio player
+        audioPlayerService.setAudioSpectrumListener(spectrumListener);
+        
+        // Show/hide visualizer based on playing state
+        audioPlayerService.playingProperty().addListener((obs, wasPlaying, isPlaying) -> {
             audioVisualizer.setVisible(isPlaying);
+            
+            // Get the current window state (scene might not be available yet)
+            Stage stage = null;
+            if (playPauseButton.getScene() != null) {
+                stage = (Stage) playPauseButton.getScene().getWindow();
+            }
+            boolean isMinimized = stage != null && stage.isIconified();
+            
+            if (isPlaying && !isMinimized) {
+                // Music started and window is visible - enable everything
+                if (spectrumListener != null) {
+                    audioPlayerService.setAudioSpectrumListener(spectrumListener);
+                }
+                if (!audioVisualizer.isPaused()) {
+                    audioVisualizer.resume();
+                }
+            } else if (!isPlaying && spectrumListener != null) {
+                // Music stopped - disable spectrum listener to save resources
+                audioPlayerService.setAudioSpectrumListener(null);
+            }
         });
 
         // Defer layout changes until scene is ready
