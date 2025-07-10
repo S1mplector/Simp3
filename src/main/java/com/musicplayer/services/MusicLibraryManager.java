@@ -261,7 +261,7 @@ public class MusicLibraryManager {
                 // Also add the current music folder if set
                 if (currentMusicFolder != null && currentMusicFolder.exists()) {
                     directoriesToScan.add(currentMusicFolder);
-                }
+        }
                 
                 // Find common root directories to avoid scanning subdirectories multiple times
                 java.util.Set<File> rootDirectories = findRootDirectories(directoriesToScan);

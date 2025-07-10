@@ -1066,12 +1066,12 @@ public class MainController implements Initializable {
             });
         }
     }
-    
+
     private void setupAudioVisualizer() {
         audioVisualizer = new AudioVisualizer(64);
         audioVisualizer.setMouseTransparent(true);
         audioVisualizer.setVisible(false);
-        
+
         // Create and store the spectrum listener
         spectrumListener = (timestamp, duration, magnitudes, phases) -> {
             // MediaPlayer already invokes this on JavaFX thread
@@ -1080,7 +1080,7 @@ public class MainController implements Initializable {
         
         // Set up spectrum data listener with audio player
         audioPlayerService.setAudioSpectrumListener(spectrumListener);
-        
+
         // Show/hide visualizer based on playing state and settings
         audioPlayerService.playingProperty().addListener((obs, wasPlaying, isPlaying) -> {
             boolean visualizerEnabled = settingsService.getSettings().isVisualizerEnabled();

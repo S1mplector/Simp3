@@ -46,10 +46,10 @@ public class PinboardItem extends HBox {
             iconPath = "/images/icons/fav.png";
         } else {
             iconPath = switch (type) {
-                case ALBUM -> "/images/icons/album_placeholder.png";
-                case PLAYLIST -> "/images/icons/song.png";
-                case ARTIST -> "/images/icons/app.png";
-            };
+            case ALBUM -> "/images/icons/album_placeholder.png";
+            case PLAYLIST -> "/images/icons/song.png";
+            case ARTIST -> "/images/icons/app.png";
+        };
         }
         
         ImageView icon = new ImageView(new Image(getClass().getResourceAsStream(iconPath)));
