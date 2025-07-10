@@ -23,7 +23,7 @@ public class AlbumCard extends StackPane {
 
     public AlbumCard(Album album) {
         this.album = album;
-        setPrefSize(120, 140);
+        setPrefSize(110, 130);
         setPadding(new Insets(5));
         setCursor(Cursor.HAND);
         setFocusTraversable(false);

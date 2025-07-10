@@ -40,12 +40,17 @@ public class PinboardItem extends HBox {
         setCursor(Cursor.HAND);
         setMaxWidth(Double.MAX_VALUE);
         
-        // Icon based on type
-        String iconPath = switch (type) {
-            case ALBUM -> "/images/icons/album_placeholder.png";
-            case PLAYLIST -> "/images/icons/song.png";
-            case ARTIST -> "/images/icons/app.png";
-        };
+        // Icon based on type and special cases
+        String iconPath;
+        if ("favorites".equals(id)) {
+            iconPath = "/images/icons/fav.png";
+        } else {
+            iconPath = switch (type) {
+                case ALBUM -> "/images/icons/album_placeholder.png";
+                case PLAYLIST -> "/images/icons/song.png";
+                case ARTIST -> "/images/icons/app.png";
+            };
+        }
         
         ImageView icon = new ImageView(new Image(getClass().getResourceAsStream(iconPath)));
         icon.setFitHeight(20);

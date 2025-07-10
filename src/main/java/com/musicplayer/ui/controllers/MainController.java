@@ -3,6 +3,7 @@ package com.musicplayer.ui.controllers;
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.ResourceBundle;
 
 import com.musicplayer.data.models.Album;
@@ -15,6 +16,7 @@ import com.musicplayer.data.repositories.SongRepository;
 import com.musicplayer.data.storage.JsonLibraryStorage;
 import com.musicplayer.data.storage.LibraryStorage;
 import com.musicplayer.services.AudioPlayerService;
+import com.musicplayer.services.FavoritesService;
 import com.musicplayer.services.LibraryService;
 import com.musicplayer.services.ListeningStatsService;
 import com.musicplayer.services.MusicLibraryManager;
@@ -51,6 +53,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Slider;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
@@ -72,6 +75,7 @@ public class MainController implements Initializable {
     @FXML private ListView<String> libraryListView;
     @FXML private ListView<Playlist> playlistsListView;
     @FXML private TableView<Song> songsTableView;
+    @FXML private TableColumn<Song, Boolean> favoriteColumn;
     @FXML private TableColumn<Song, String> titleColumn;
     @FXML private TableColumn<Song, String> artistColumn;
     @FXML private TableColumn<Song, String> albumColumn;
@@ -86,6 +90,8 @@ public class MainController implements Initializable {
     @FXML private Label totalTimeLabel;
     @FXML private Slider timeSlider;
     @FXML private Slider volumeSlider;
+    @FXML private ImageView volumeIcon;
+    @FXML private Label volumePercentageLabel;
     
     // Icons for play/pause button
     private Image playIcon;
@@ -98,6 +104,7 @@ public class MainController implements Initializable {
     private PlaylistManager playlistManager;
     private AudioPlayerService audioPlayerService;
     private ListeningStatsService listeningStatsService;
+    private FavoritesService favoritesService;
     private ObservableList<Song> songs;
     private ObservableList<Playlist> playlists;
 
@@ -139,6 +146,9 @@ public class MainController implements Initializable {
         // Initialize listening stats service
         listeningStatsService = new ListeningStatsService(songRepository);
         
+        // Initialize favorites service
+        favoritesService = new FavoritesService();
+        
         // Set up error handling for missing files
         audioPlayerService.setOnError(() -> handleMissingFiles());
         
@@ -152,6 +162,9 @@ public class MainController implements Initializable {
         
         // Set up callback to update UI when library changes
         musicLibraryManager.setLibraryUpdateCallback(updatedSongs -> {
+            // Update favorite status for all songs
+            favoritesService.updateFavoriteStatus(updatedSongs);
+            
             songs.clear();
             songs.addAll(updatedSongs);
             // Update audio player playlist when library changes
@@ -204,6 +217,7 @@ public class MainController implements Initializable {
         setupKeyboardShortcuts();
         
         // Set up table columns
+        setupFavoriteColumn();
         titleColumn.setCellValueFactory(new PropertyValueFactory<>("title"));
         artistColumn.setCellValueFactory(new PropertyValueFactory<>("artist"));
         albumColumn.setCellValueFactory(new PropertyValueFactory<>("album"));
@@ -330,6 +344,30 @@ public class MainController implements Initializable {
         volumeSlider.valueProperty().bindBidirectional(audioPlayerService.volumeProperty());
         volumeSlider.setMax(1.0); // Volume range 0.0 to 1.0
         volumeSlider.setValue(0.5); // Default volume
+        
+        // Set up volume icon and percentage display
+        Image volIcon = new Image(getClass().getResourceAsStream("/images/icons/vol.png"));
+        Image muteIcon = new Image(getClass().getResourceAsStream("/images/icons/mute.png"));
+        
+        // Update volume icon and percentage based on volume value
+        audioPlayerService.volumeProperty().addListener((obs, oldVol, newVol) -> {
+            double volume = newVol.doubleValue();
+            int percentage = (int) Math.round(volume * 100);
+            
+            // Update percentage label
+            volumePercentageLabel.setText(percentage + "%");
+            
+            // Update icon based on volume
+            if (volume == 0) {
+                volumeIcon.setImage(muteIcon);
+            } else {
+                volumeIcon.setImage(volIcon);
+            }
+        });
+        
+        // Set initial percentage
+        int initialPercentage = (int) Math.round(volumeSlider.getValue() * 100);
+        volumePercentageLabel.setText(initialPercentage + "%");
         
         // Bind time labels
         currentTimeLabel.textProperty().bind(
@@ -612,6 +650,18 @@ public class MainController implements Initializable {
             System.out.println("Playlist data saved to storage");
         }
         
+        // Save favorites data to persistent storage
+        if (favoritesService != null) {
+            favoritesService.forceSave();
+            System.out.println("Favorites data saved to storage");
+        }
+        
+        // Dispose of audio visualizer
+        if (audioVisualizer != null) {
+            audioVisualizer.dispose();
+            System.out.println("Audio visualizer disposed");
+        }
+        
         // Dispose of audio resources
         if (audioPlayerService != null) {
             audioPlayerService.dispose();
@@ -754,6 +804,8 @@ public class MainController implements Initializable {
             () -> showAllSongs());
         pinboardPanel.addPinnedItem("albums", "Albums", PinboardItem.ItemType.ALBUM, 
              () -> showAlbumsOnly());
+        pinboardPanel.addPinnedItem("favorites", "Favorites", PinboardItem.ItemType.PLAYLIST,
+            () -> showFavorites());
         
         // Initialize library stats
         int totalSongs = musicLibraryManager.getSongCount();
@@ -778,6 +830,20 @@ public class MainController implements Initializable {
     
     private void showAlbumsOnly() {
         showAlbumsView();
+    }
+    
+    private void showFavorites() {
+        List<Song> favoriteSongs = favoritesService.getFavoriteSongs(musicLibraryManager.getAllSongs());
+        songs.clear();
+        songs.addAll(favoriteSongs);
+        audioPlayerService.setPlaylist(songs);
+        playlistsListView.getSelectionModel().clearSelection();
+        
+        // Hide album view when showing favorites
+        if (albumGridView != null) {
+            albumGridView.setVisible(false);
+        }
+        songsTableView.setVisible(true);
     }
     
     private void updateListeningStats() {
@@ -954,5 +1020,70 @@ public class MainController implements Initializable {
         // Update now playing bar on song change / play state
         audioPlayerService.currentSongProperty().addListener((obs, oldS, newS) -> nowPlayingBar.update(newS, audioPlayerService.isPlaying()));
         audioPlayerService.playingProperty().addListener((obs, ov, nv) -> nowPlayingBar.update(audioPlayerService.getCurrentSong(), nv));
+    }
+    
+    private void setupFavoriteColumn() {
+        // Set up the favorite column with a custom cell factory
+        favoriteColumn.setCellValueFactory(cellData -> 
+            new javafx.beans.property.SimpleBooleanProperty(cellData.getValue().isFavorite()));
+        
+        favoriteColumn.setCellFactory(column -> new TableCell<Song, Boolean>() {
+            private final Button favoriteButton = new Button();
+            private final Image favIcon = new Image(getClass().getResourceAsStream("/images/icons/fav.png"));
+            private final ImageView imageView = new ImageView(favIcon);
+            
+            {
+                // Set up button appearance
+                favoriteButton.setGraphic(imageView);
+                favoriteButton.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; " +
+                                      "-fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;");
+                favoriteButton.setPrefWidth(24);
+                favoriteButton.setPrefHeight(24);
+                imageView.setFitWidth(20);
+                imageView.setFitHeight(20);
+                imageView.setPreserveRatio(true);
+                
+                // Handle button click
+                favoriteButton.setOnAction(event -> {
+                    Song song = getTableView().getItems().get(getIndex());
+                    if (song != null) {
+                        boolean isFavorite = favoritesService.toggleFavorite(song);
+                        updateButtonAppearance(isFavorite);
+                        
+                        // Update pinboard if showing favorites
+                        if (pinboardPanel != null) {
+                            pinboardPanel.addActivity(ActivityFeedItem.ActivityType.PLAYLIST_SAVED,
+                                isFavorite ? "Added to favorites: " + song.getTitle() 
+                                           : "Removed from favorites: " + song.getTitle());
+                        }
+                        
+                        // Refresh table to update favorite icon states
+                        songsTableView.refresh();
+                    }
+                });
+            }
+            
+            @Override
+            protected void updateItem(Boolean isFavorite, boolean empty) {
+                super.updateItem(isFavorite, empty);
+                
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setGraphic(null);
+                } else {
+                    Song song = getTableRow().getItem();
+                    updateButtonAppearance(song.isFavorite());
+                    setGraphic(favoriteButton);
+                    setAlignment(Pos.CENTER);
+                }
+            }
+            
+            private void updateButtonAppearance(boolean isFavorite) {
+                if (isFavorite) {
+                    imageView.setOpacity(1.0);
+                } else {
+                    imageView.setOpacity(0.3);
+                }
+            }
+        });
     }
 }

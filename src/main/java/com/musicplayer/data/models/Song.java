@@ -64,6 +64,11 @@ public class Song {
     private long lastPlayed;
 
     /**
+     * Whether this song is marked as a favorite.
+     */
+    private boolean favorite;
+
+    /**
      * Default constructor.
      */
     public Song() {
@@ -187,6 +192,14 @@ public class Song {
     public void incrementPlayCount() {
         this.playCount++;
         this.lastPlayed = System.currentTimeMillis();
+    }
+
+    public boolean isFavorite() {
+        return favorite;
+    }
+
+    public void setFavorite(boolean favorite) {
+        this.favorite = favorite;
     }
 
     /**

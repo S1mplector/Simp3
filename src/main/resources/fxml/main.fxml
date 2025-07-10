@@ -109,6 +109,7 @@
                         </HBox>
                         <TableView fx:id="songsTableView" VBox.vgrow="ALWAYS">
                             <columns>
+                                <TableColumn fx:id="favoriteColumn" prefWidth="50.0" text=" " />
                                 <TableColumn fx:id="titleColumn" prefWidth="200.0" text="Title" />
                                 <TableColumn fx:id="artistColumn" prefWidth="150.0" text="Artist" />
                                 <TableColumn fx:id="albumColumn" prefWidth="150.0" text="Album" />
@@ -159,7 +160,12 @@
                         <Label fx:id="currentTimeLabel" text="0:00" />
                         <Slider fx:id="timeSlider" HBox.hgrow="ALWAYS" />
                         <Label fx:id="totalTimeLabel" text="0:00" />
-                        <Label text="Volume:" />
+                        <ImageView fx:id="volumeIcon" fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true">
+                            <image>
+                                <Image url="@../images/icons/vol.png" />
+                            </image>
+                        </ImageView>
+                        <Label fx:id="volumePercentageLabel" text="50%" />
                         <Slider fx:id="volumeSlider" value="50.0" />
                     </children>
                     <padding>
