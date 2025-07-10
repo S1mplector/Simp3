@@ -54,6 +54,16 @@ public class Song {
     private int year;
 
     /**
+     * Number of times this song has been played.
+     */
+    private int playCount;
+
+    /**
+     * Timestamp of when this song was last played (milliseconds since epoch).
+     */
+    private long lastPlayed;
+
+    /**
      * Default constructor.
      */
     public Song() {
@@ -156,6 +166,27 @@ public class Song {
 
     public void setYear(int year) {
         this.year = year;
+    }
+
+    public int getPlayCount() {
+        return playCount;
+    }
+
+    public void setPlayCount(int playCount) {
+        this.playCount = playCount;
+    }
+
+    public long getLastPlayed() {
+        return lastPlayed;
+    }
+
+    public void setLastPlayed(long lastPlayed) {
+        this.lastPlayed = lastPlayed;
+    }
+
+    public void incrementPlayCount() {
+        this.playCount++;
+        this.lastPlayed = System.currentTimeMillis();
     }
 
     /**

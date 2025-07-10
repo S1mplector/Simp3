@@ -35,7 +35,7 @@
             <items>
                 <VBox spacing="10.0">
                     <children>
-                        <HBox alignment="CENTER" spacing="5.0">
+                        <HBox alignment="CENTER_LEFT" spacing="5.0">
                             <children>
                                 <Label text="Library" styleClass="sidebar-header" />
                                 <Button fx:id="selectMusicFolderButton" mnemonicParsing="false" onAction="#handleSelectMusicFolder" prefHeight="28.0" prefWidth="28.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">

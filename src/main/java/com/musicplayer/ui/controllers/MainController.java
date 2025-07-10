@@ -16,6 +16,7 @@ import com.musicplayer.data.storage.JsonLibraryStorage;
 import com.musicplayer.data.storage.LibraryStorage;
 import com.musicplayer.services.AudioPlayerService;
 import com.musicplayer.services.LibraryService;
+import com.musicplayer.services.ListeningStatsService;
 import com.musicplayer.services.MusicLibraryManager;
 import com.musicplayer.services.PlaylistManager;
 import com.musicplayer.services.PlaylistService;
@@ -95,6 +96,7 @@ public class MainController implements Initializable {
     private PlaylistService playlistService;
     private PlaylistManager playlistManager;
     private AudioPlayerService audioPlayerService;
+    private ListeningStatsService listeningStatsService;
     private ObservableList<Song> songs;
     private ObservableList<Playlist> playlists;
 
@@ -133,6 +135,9 @@ public class MainController implements Initializable {
         // Initialize audio player service
         audioPlayerService = new AudioPlayerService();
         
+        // Initialize listening stats service
+        listeningStatsService = new ListeningStatsService(songRepository);
+        
         // Set up error handling for missing files
         audioPlayerService.setOnError(() -> handleMissingFiles());
         
@@ -158,8 +163,12 @@ public class MainController implements Initializable {
                     albumGridView.refresh(libraryService.getAllAlbums());
                 });
             }
-            // Add activity notification
-            if (pinboardPanel != null && !updatedSongs.isEmpty()) {
+            // Update library stats in pinboard panel
+            if (pinboardPanel != null) {
+                int totalAlbums = libraryService.getAllAlbums().size();
+                File musicFolderFile = musicLibraryManager.getCurrentMusicFolder();
+                String musicFolder = musicFolderFile != null ? musicFolderFile.getAbsolutePath() : null;
+                pinboardPanel.updateLibraryStats(updatedSongs.size(), totalAlbums, musicFolder);
                 pinboardPanel.addActivity(ActivityFeedItem.ActivityType.SCAN_COMPLETE, 
                     "Library updated: " + updatedSongs.size() + " songs");
             }
@@ -265,9 +274,27 @@ public class MainController implements Initializable {
         // Set initial icon
         playPauseImageView.setImage(playIcon);
         
-        // Bind play/pause button icon to playing state
+        // Bind play/pause button icon to playing state and track plays
         audioPlayerService.playingProperty().addListener((obs, oldPlaying, newPlaying) -> {
             playPauseImageView.setImage(newPlaying ? pauseIcon : playIcon);
+            
+            // Track when play starts (not when pausing)
+            if (newPlaying && !oldPlaying) {
+                Song currentSong = audioPlayerService.getCurrentSong();
+                if (currentSong != null) {
+                    listeningStatsService.recordPlay(currentSong);
+                    updateListeningStats();
+                }
+            }
+        });
+        
+        // Track when songs change while playing
+        audioPlayerService.currentSongProperty().addListener((obs, oldSong, newSong) -> {
+            if (newSong != null && newSong != oldSong && audioPlayerService.isPlaying()) {
+                // Only record if it's a different song and already playing
+                listeningStatsService.recordPlay(newSong);
+                updateListeningStats();
+            }
         });
         
         // After play/pause, icon setup and before other bindings we can add buttons by inserting to control bar
@@ -498,6 +525,14 @@ public class MainController implements Initializable {
                 // No existing data, just scan normally
                 musicLibraryManager.scanMusicFolder(selectedDirectory, true);
             }
+            
+            // Update library stats after scanning
+            if (pinboardPanel != null) {
+                int totalSongs = musicLibraryManager.getSongCount();
+                int totalAlbums = libraryService.getAllAlbums().size();
+                String musicFolder = selectedDirectory.getAbsolutePath();
+                pinboardPanel.updateLibraryStats(totalSongs, totalAlbums, musicFolder);
+            }
         }
     }
     
@@ -697,6 +732,16 @@ public class MainController implements Initializable {
         pinboardPanel.addPinnedItem("albums", "Albums", PinboardItem.ItemType.ALBUM, 
              () -> showAlbumsOnly());
         
+        // Initialize library stats
+        int totalSongs = musicLibraryManager.getSongCount();
+        int totalAlbums = libraryService.getAllAlbums().size();
+        File musicFolderFile = musicLibraryManager.getCurrentMusicFolder();
+        String musicFolder = musicFolderFile != null ? musicFolderFile.getAbsolutePath() : null;
+        pinboardPanel.updateLibraryStats(totalSongs, totalAlbums, musicFolder);
+        
+        // Initialize listening stats with real data
+        updateListeningStats();
+        
         // Show all songs by default
         showAllSongs();
     }
@@ -710,6 +755,17 @@ public class MainController implements Initializable {
     
     private void showAlbumsOnly() {
         showAlbumsView();
+    }
+    
+    private void updateListeningStats() {
+        if (pinboardPanel != null && listeningStatsService != null) {
+            int todayCount = listeningStatsService.getSongsPlayedToday();
+            int weeklyCount = listeningStatsService.getSongsPlayedThisWeek();
+            int monthlyCount = listeningStatsService.getSongsPlayedThisMonth();
+            String mostPlayedDisplay = listeningStatsService.getMostPlayedSongDisplay();
+            
+            pinboardPanel.updateListeningStats(todayCount, weeklyCount, monthlyCount, mostPlayedDisplay);
+        }
     }
 
     private void showSongsWithAlbums() {
