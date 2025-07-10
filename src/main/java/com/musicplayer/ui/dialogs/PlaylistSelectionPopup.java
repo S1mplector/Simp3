@@ -111,6 +111,10 @@ public final class PlaylistSelectionPopup {
         root.getChildren().addAll(header, searchBox, listView, buttonBar);
 
         Scene scene = new Scene(root, 300, 400);
+        
+        // Apply CSS to remove focus highlighting from the ListView
+        scene.getStylesheets().add(PlaylistSelectionPopup.class.getResource("/css/app.css").toExternalForm());
+        
         stage.setScene(scene);
 
         final Playlist[] selected = new Playlist[1];

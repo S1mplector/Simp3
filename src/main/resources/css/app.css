@@ -1,9 +1,17 @@
+/* Set the global focus color to light transparent green */
+.root {
+    -fx-focus-color: #32cd3266;
+    -fx-accent: #32cd3246;
+    -fx-selection-bar: #32cd3246;
+    -fx-selection-bar-non-focused: #32cd3246;
+}
+
 .album-card:hover {
-    -fx-background-color: #2595be87;
+    -fx-background-color: #32cd3246;
 }
 
 .list-cell:hover {
-    -fx-background-color: #2596be87;
+    -fx-background-color: #32cd3246;
 }
 
 .sidebar-header {
@@ -18,4 +26,4 @@
 
 .table-cell {
     -fx-alignment: CENTER_LEFT;
-} 
+}

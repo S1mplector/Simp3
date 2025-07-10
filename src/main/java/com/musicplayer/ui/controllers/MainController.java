@@ -2,14 +2,14 @@ package com.musicplayer.ui.controllers;
 
 import java.io.File;
 import java.net.URL;
-import java.util.ResourceBundle;
 import java.util.ArrayList;
+import java.util.ResourceBundle;
 
-import com.musicplayer.data.models.Song;
+import com.musicplayer.data.models.Album;
 import com.musicplayer.data.models.Playlist;
-import com.musicplayer.data.repositories.InMemoryPlaylistRepository;
-import com.musicplayer.data.repositories.PersistentSongRepository;
+import com.musicplayer.data.models.Song;
 import com.musicplayer.data.repositories.PersistentPlaylistRepository;
+import com.musicplayer.data.repositories.PersistentSongRepository;
 import com.musicplayer.data.repositories.PlaylistRepository;
 import com.musicplayer.data.repositories.SongRepository;
 import com.musicplayer.data.storage.JsonLibraryStorage;
@@ -17,54 +17,53 @@ import com.musicplayer.data.storage.LibraryStorage;
 import com.musicplayer.services.AudioPlayerService;
 import com.musicplayer.services.LibraryService;
 import com.musicplayer.services.MusicLibraryManager;
-import com.musicplayer.services.PlaylistService;
 import com.musicplayer.services.PlaylistManager;
-import com.musicplayer.ui.components.PlaylistCell;
-import com.musicplayer.ui.util.SongContextMenuProvider;
-import com.musicplayer.ui.dialogs.PlaylistSelectionPopup;
+import com.musicplayer.services.PlaylistService;
+import com.musicplayer.ui.components.ActivityFeedItem;
+import com.musicplayer.ui.components.AlbumGridView;
 import com.musicplayer.ui.components.AudioVisualizer;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.StackPane;
-import javafx.scene.Node;
+import com.musicplayer.ui.components.NowPlayingBar;
+import com.musicplayer.ui.components.PinboardItem;
+import com.musicplayer.ui.components.PinboardPanel;
+import com.musicplayer.ui.components.PlaybackModeButtons;
+import com.musicplayer.ui.components.PlaylistCell;
+import com.musicplayer.ui.components.RescanButtonFactory;
+import com.musicplayer.ui.dialogs.FirstRunWizard;
+import com.musicplayer.ui.dialogs.MissingFilesDialog;
+import com.musicplayer.ui.dialogs.PlaylistSelectionPopup;
+import com.musicplayer.ui.util.SearchManager;
+import com.musicplayer.ui.util.SongContextMenuProvider;
 
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.stage.DirectoryChooser;
-import javafx.collections.transformation.FilteredList;
-import javafx.scene.control.TextField;
-import com.musicplayer.ui.util.SearchManager;
-import javafx.scene.input.TransferMode;
-import javafx.scene.input.Dragboard;
 import javafx.scene.input.ClipboardContent;
-import javafx.scene.control.SelectionMode;
-import com.musicplayer.ui.components.PlaybackModeButtons;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.TransferMode;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
-import com.musicplayer.ui.components.RescanButtonFactory;
-import com.musicplayer.ui.components.AlbumGridView;
-import com.musicplayer.data.models.Album;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import com.musicplayer.ui.dialogs.FirstRunWizard;
-import com.musicplayer.ui.dialogs.MissingFilesDialog;
-import com.musicplayer.ui.components.PinboardPanel;
-import com.musicplayer.ui.components.PinboardItem;
-import com.musicplayer.ui.components.ActivityFeedItem;
-import com.musicplayer.ui.components.NowPlayingBar;
-import javafx.geometry.Pos;
+import javafx.stage.DirectoryChooser;
 
 public class MainController implements Initializable {
     
@@ -329,9 +328,9 @@ public class MainController implements Initializable {
                     // Highlight currently playing song
                     if (song != null && !empty) {
                         if (song.equals(audioPlayerService.getCurrentSong()) && audioPlayerService.isPlaying()) {
-                            setStyle("-fx-background-color: lightblue;");
+                            setStyle("-fx-background-color:rgba(50, 205, 50, 0.21);");
                         } else if (song.equals(audioPlayerService.getCurrentSong())) {
-                            setStyle("-fx-background-color: lightgray;");
+                            setStyle("-fx-background-color:rgba(50, 205, 50, 0.21);");
                         } else {
                             setStyle("");
                         }
