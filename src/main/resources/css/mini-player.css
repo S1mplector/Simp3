@@ -1,0 +1,82 @@
+/* Mini Player Styles */
+
+.root {
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+/* Progress Slider Styling */
+.slider {
+    -fx-pref-height: 5px;
+    -fx-background-color: transparent;
+}
+
+.slider .track {
+    -fx-background-color: #e0e0e0;
+    -fx-background-radius: 2.5px;
+    -fx-pref-height: 5px;
+}
+
+.slider .thumb {
+    -fx-background-color: #4CAF50;
+    -fx-background-radius: 50%;
+    -fx-pref-width: 12px;
+    -fx-pref-height: 12px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 3, 0, 0, 1);
+}
+
+.slider:hover .thumb {
+    -fx-background-color: #45a049;
+    -fx-pref-width: 14px;
+    -fx-pref-height: 14px;
+}
+
+/* Volume Slider - Smaller */
+.slider:vertical {
+    -fx-pref-width: 5px;
+}
+
+/* Button hover effects */
+.button:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 5, 0, 0, 1);
+}
+
+/* Label styles */
+.label {
+    -fx-text-overrun: ellipsis;
+}
+
+/* Window shadow effect */
+.mini-player-root {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 2);
+}
+
+/* Context Menu Styling */
+.context-menu {
+    -fx-background-color: #f8f8f8;
+    -fx-background-radius: 5;
+    -fx-padding: 5;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 2);
+}
+
+.context-menu .menu-item {
+    -fx-padding: 5 20 5 20;
+    -fx-background-radius: 3;
+}
+
+.context-menu .menu-item:hover {
+    -fx-background-color: #e0e0e0;
+}
+
+.context-menu .separator {
+    -fx-padding: 2 0 2 0;
+}
+
+/* Tooltip styling */
+.tooltip {
+    -fx-background-color: #333333;
+    -fx-text-fill: white;
+    -fx-background-radius: 3;
+    -fx-padding: 5;
+    -fx-font-size: 11px;
+}

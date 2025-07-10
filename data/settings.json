@@ -1,5 +1,5 @@
 {
   "visualizerEnabled" : true,
-  "visualizerColorMode" : "SOLID_COLOR",
+  "visualizerColorMode" : "GRADIENT_CYCLING",
   "visualizerSolidColor" : "#FF8080"
 }

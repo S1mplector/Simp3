@@ -40,6 +40,7 @@ import com.musicplayer.ui.util.SearchManager;
 import com.musicplayer.ui.util.SongContextMenuProvider;
 import com.musicplayer.ui.components.PlaylistCell.RenameRequest;
 import com.musicplayer.ui.controllers.SettingsController;
+import com.musicplayer.ui.windows.MiniPlayerWindow;
 
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
@@ -138,6 +139,8 @@ public class MainController implements Initializable {
     
     // Store the spectrum listener to enable/disable it
     private javafx.scene.media.AudioSpectrumListener spectrumListener;
+
+    private MiniPlayerWindow miniPlayerWindow;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -1245,4 +1248,37 @@ public class MainController implements Initializable {
             }
         });
     }
+
+            /**
+             * Handles the mini player functionality.
+             * Creates and shows a mini player window, or hides it if already showing.
+             */
+            @FXML
+            private void handleMiniPlayer() {
+                if (miniPlayerWindow == null) {
+                    // Get the main stage from any UI component
+                    Stage mainStage = (Stage) playPauseButton.getScene().getWindow();
+                    
+                    // Create the mini player window
+                    miniPlayerWindow = new MiniPlayerWindow(audioPlayerService, mainStage);
+                    
+                    // When mini player is closed, set reference to null
+                    miniPlayerWindow.getStage().setOnHidden(e -> {
+                        // Don't null the reference, just hide it
+                    });
+                }
+                
+                if (miniPlayerWindow.isShowing()) {
+                    // If already showing, hide it
+                    miniPlayerWindow.hide();
+                } else {
+                    // Show the mini player
+                    miniPlayerWindow.show();
+                    
+                    // Optionally minimize the main window
+                    Stage mainStage = (Stage) playPauseButton.getScene().getWindow();
+                    mainStage.setIconified(true);
+                }
+            }
+
 }
