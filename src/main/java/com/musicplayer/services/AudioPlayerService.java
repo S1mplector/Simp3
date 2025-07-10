@@ -19,6 +19,7 @@ import javafx.beans.property.ObjectProperty;
 public class AudioPlayerService {
     private final AudioEngine audioEngine;
     private final PlaylistEngine playlistEngine;
+    private Runnable customErrorCallback;
     
     public AudioPlayerService() {
         this.audioEngine = new JavaFXAudioEngine();
@@ -28,6 +29,9 @@ public class AudioPlayerService {
         audioEngine.setOnSongEnded(this::handleSongEnded);
         audioEngine.setOnError(() -> {
             System.err.println("Audio playback error occurred");
+            if (customErrorCallback != null) {
+                customErrorCallback.run();
+            }
             handleSongEnded();
         });
     }
@@ -271,5 +275,9 @@ public class AudioPlayerService {
 
     public void setAudioSpectrumListener(javafx.scene.media.AudioSpectrumListener listener) {
         audioEngine.setAudioSpectrumListener(listener);
+    }
+
+    public void setOnError(Runnable callback) {
+        this.customErrorCallback = callback;
     }
 }

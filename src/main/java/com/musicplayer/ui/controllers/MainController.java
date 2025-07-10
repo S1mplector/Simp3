@@ -58,6 +58,8 @@ import com.musicplayer.ui.components.RescanButtonFactory;
 import com.musicplayer.ui.components.AlbumGridView;
 import com.musicplayer.data.models.Album;
 import javafx.scene.layout.VBox;
+import com.musicplayer.ui.dialogs.FirstRunWizard;
+import com.musicplayer.ui.dialogs.MissingFilesDialog;
 
 public class MainController implements Initializable {
     
@@ -121,6 +123,9 @@ public class MainController implements Initializable {
         // Initialize audio player service
         audioPlayerService = new AudioPlayerService();
         
+        // Set up error handling for missing files
+        audioPlayerService.setOnError(() -> handleMissingFiles());
+        
         // Initialize the songs and playlists lists
         songs = FXCollections.observableArrayList();
         playlists = FXCollections.observableArrayList();
@@ -139,7 +144,9 @@ public class MainController implements Initializable {
             libraryService.refreshLibrary();
             // Refresh album view if it exists
             if (albumGridView != null) {
-                albumGridView.refresh(libraryService.getAllAlbums());
+                javafx.application.Platform.runLater(() -> {
+                    albumGridView.refresh(libraryService.getAllAlbums());
+                });
             }
         });
         
@@ -212,9 +219,22 @@ public class MainController implements Initializable {
             if ("All Songs".equals(libraryListView.getSelectionModel().getSelectedItem())) {
                 showSongsWithAlbums();
             }
+            
+            // Check for first run
+            checkFirstRun();
         });
         
         System.out.println("MainController initialized.");
+    }
+    
+    private void checkFirstRun() {
+        // Check if this is first run (no songs in library and no music folder set)
+        if (musicLibraryManager.getSongCount() == 0 && musicLibraryManager.getCurrentMusicFolder() == null) {
+            File selectedFolder = FirstRunWizard.show(selectMusicFolderButton.getScene().getWindow());
+            if (selectedFolder != null) {
+                musicLibraryManager.scanMusicFolder(selectedFolder, true);
+            }
+        }
     }
     
     private void setupAudioControls() {
@@ -762,6 +782,17 @@ public class MainController implements Initializable {
             audioVisualizer.heightProperty().bind(stack.heightProperty());
 
             root.setBottom(stack);
+        });
+    }
+
+    private void handleMissingFiles() {
+        javafx.application.Platform.runLater(() -> {
+            boolean shouldClear = MissingFilesDialog.show(playPauseButton.getScene().getWindow());
+            if (shouldClear) {
+                // Clear library and show folder selection
+                musicLibraryManager.clearLibrary();
+                handleSelectMusicFolder();
+            }
         });
     }
 }

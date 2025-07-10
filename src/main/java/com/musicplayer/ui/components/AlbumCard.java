@@ -51,9 +51,18 @@ public class AlbumCard extends StackPane {
 
         content.getChildren().addAll(coverView, titleLbl);
         getChildren().add(content);
+        getStyleClass().add("album-card");
         setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
 
         setOnMouseClicked(e -> toggleSelected());
+
+        // Hover visual cue
+        setOnMouseEntered(e -> {
+            if (!isSelected()) setStyle("-fx-background-color: #444444; -fx-background-radius: 5;");
+        });
+        setOnMouseExited(e -> {
+            if (!isSelected()) setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
+        });
     }
 
     private ImageView placeholder() {

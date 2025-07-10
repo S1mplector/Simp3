@@ -1,0 +1,21 @@
+.album-card:hover {
+    -fx-background-color: #2595be87;
+}
+
+.list-cell:hover {
+    -fx-background-color: #2596be87;
+}
+
+.sidebar-header {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: rgb(77, 77, 77);
+}
+
+.table-row-cell {
+    -fx-cell-size: 30px; /* increased row height */
+}
+
+.table-cell {
+    -fx-alignment: CENTER_LEFT;
+} 

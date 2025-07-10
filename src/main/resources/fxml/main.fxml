@@ -18,7 +18,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.musicplayer.ui.controllers.MainController">
+<BorderPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.musicplayer.ui.controllers.MainController" stylesheets="@../css/app.css">
     <top>
         <MenuBar BorderPane.alignment="CENTER">
             <menus>
@@ -35,9 +35,9 @@
             <items>
                 <VBox spacing="10.0">
                     <children>
-                        <HBox alignment="CENTER_LEFT" spacing="5.0">
+                        <HBox alignment="CENTER" spacing="5.0">
                             <children>
-                                <Label text="Library" />
+                                <Label text="Library" styleClass="sidebar-header" />
                                 <Button fx:id="selectMusicFolderButton" mnemonicParsing="false" onAction="#handleSelectMusicFolder" prefHeight="28.0" prefWidth="28.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
                                     <graphic>
                                         <ImageView fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true">
@@ -50,9 +50,9 @@
                             </children>
                         </HBox>
                         <ListView fx:id="libraryListView" />
-                        <HBox alignment="CENTER_LEFT" spacing="5.0">
+                        <HBox alignment="CENTER" spacing="5.0">
                             <children>
-                                <Label text="Playlists" />
+                                <Label text="Playlists" styleClass="sidebar-header" />
                                 <TextField fx:id="playlistSearchField" promptText="Search" prefWidth="120.0" />
                                 <Button fx:id="playlistSearchButton" mnemonicParsing="false" prefHeight="28.0" prefWidth="28.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
                                     <graphic>

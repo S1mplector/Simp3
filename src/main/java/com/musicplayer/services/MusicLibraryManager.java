@@ -30,8 +30,35 @@ public class MusicLibraryManager {
             PersistentSongRepository persistentRepo = (PersistentSongRepository) songRepository;
             if (persistentRepo.size() > 0) {
                 System.out.println("Found existing library with " + persistentRepo.size() + " songs");
+                // Try to restore last music folder from first song's path
+                List<Song> songs = persistentRepo.findAll();
+                if (!songs.isEmpty() && songs.get(0).getFilePath() != null) {
+                    File songFile = new File(songs.get(0).getFilePath());
+                    if (songFile.exists()) {
+                        this.currentMusicFolder = songFile.getParentFile();
+                        while (currentMusicFolder != null && !isMusicFolder(currentMusicFolder)) {
+                            currentMusicFolder = currentMusicFolder.getParentFile();
+                        }
+                    }
+                }
             }
         }
+    }
+    
+    private boolean isMusicFolder(File folder) {
+        // Simple heuristic: folder contains music files
+        if (folder == null || !folder.isDirectory()) return false;
+        File[] files = folder.listFiles();
+        if (files == null) return false;
+        
+        for (File file : files) {
+            String name = file.getName().toLowerCase();
+            if (name.endsWith(".mp3") || name.endsWith(".m4a") || 
+                name.endsWith(".wav") || name.endsWith(".flac")) {
+                return true;
+            }
+        }
+        return false;
     }
     
     /**
