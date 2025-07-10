@@ -3,12 +3,14 @@ package com.musicplayer.ui.util;
 import com.musicplayer.data.models.Playlist;
 import com.musicplayer.data.models.Song;
 import com.musicplayer.services.PlaylistManager;
+import com.musicplayer.ui.components.PinboardItem;
+import com.musicplayer.ui.components.PinboardPanel;
+import com.musicplayer.ui.dialogs.PlaylistSelectionPopup;
 
 import javafx.beans.binding.Bindings;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
-import com.musicplayer.ui.dialogs.PlaylistSelectionPopup;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.ListView;
 import javafx.scene.control.MenuItem;
@@ -40,6 +42,12 @@ public final class SongContextMenuProvider {
                                          PlaylistManager playlistManager,
                                          ListView<Playlist> playlistsListView,
                                          ObservableList<Song> songsObservable) {
+        attachContextMenu(row, playlists, playlistManager, playlistsListView, songsObservable, null);
+    }
+
+    public static void attachContextMenu(TableRow<Song> row, ObservableList<Playlist> playlists,
+                                       PlaylistManager playlistManager, ListView<Playlist> playlistsListView,
+                                       ObservableList<Song> songsObservable, PinboardPanel pinboard) {
 
         ContextMenu contextMenu = new ContextMenu();
 
@@ -85,6 +93,21 @@ public final class SongContextMenuProvider {
         });
 
         contextMenu.getItems().addAll(addToPlaylistItem, removeFromPlaylistItem);
+
+        // Pin album option
+        Song song = row.getItem();
+        if (pinboard != null && song != null && song.getAlbum() != null && !song.getAlbum().isEmpty()) {
+            MenuItem pinAlbumItem = new MenuItem("Pin Album");
+            pinAlbumItem.setOnAction(e -> {
+                String albumId = "album-" + song.getAlbum().toLowerCase().replace(" ", "-");
+                if (!pinboard.isPinned(albumId)) {
+                    pinboard.addPinnedItem(albumId, song.getAlbum(), PinboardItem.ItemType.ALBUM, () -> {
+                        // TODO: Navigate to album when clicked
+                    });
+                }
+            });
+            contextMenu.getItems().add(pinAlbumItem);
+        }
 
         // Only show context menu for non-empty rows
         row.contextMenuProperty().bind(

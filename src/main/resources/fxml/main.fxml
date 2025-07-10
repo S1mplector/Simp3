@@ -121,7 +121,7 @@
     <bottom>
         <VBox alignment="CENTER" spacing="5.0" BorderPane.alignment="CENTER">
             <children>
-                <HBox alignment="CENTER" spacing="10.0">
+                <HBox alignment="CENTER" spacing="10.0" fx:id="controlBar">
                     <children>
                         <Button fx:id="previousButton" mnemonicParsing="false" onAction="#handlePrevious" prefHeight="40.0" prefWidth="40.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
                             <graphic>

@@ -60,6 +60,11 @@ import com.musicplayer.data.models.Album;
 import javafx.scene.layout.VBox;
 import com.musicplayer.ui.dialogs.FirstRunWizard;
 import com.musicplayer.ui.dialogs.MissingFilesDialog;
+import com.musicplayer.ui.components.PinboardPanel;
+import com.musicplayer.ui.components.PinboardItem;
+import com.musicplayer.ui.components.ActivityFeedItem;
+import com.musicplayer.ui.components.NowPlayingBar;
+import javafx.geometry.Pos;
 
 public class MainController implements Initializable {
     
@@ -106,6 +111,10 @@ public class MainController implements Initializable {
 
     private AudioVisualizer audioVisualizer;
     private AlbumGridView albumGridView;
+    @FXML private VBox libraryContainer; // parent VBox containing library section
+    private PinboardPanel pinboardPanel;
+    private NowPlayingBar nowPlayingBar;
+    @FXML private HBox controlBar;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -150,12 +159,21 @@ public class MainController implements Initializable {
                     albumGridView.refresh(libraryService.getAllAlbums());
                 });
             }
+            // Add activity notification
+            if (pinboardPanel != null && !updatedSongs.isEmpty()) {
+                pinboardPanel.addActivity(ActivityFeedItem.ActivityType.SCAN_COMPLETE, 
+                    "Library updated: " + updatedSongs.size() + " songs");
+            }
         });
         
         // Set up callback to update UI when playlists change
         playlistManager.setPlaylistUpdateCallback(updatedPlaylists -> {
             playlists.clear();
             playlists.addAll(updatedPlaylists);
+            if (pinboardPanel != null) {
+                pinboardPanel.addActivity(ActivityFeedItem.ActivityType.PLAYLIST_SAVED, 
+                    "Playlist updated");
+            }
         });
         
         // Load existing library data if available
@@ -166,6 +184,9 @@ public class MainController implements Initializable {
         
         // Set up playlist controls
         setupPlaylistControls();
+        
+        // Now playing bar under playlists
+        setupNowPlayingBar();
         
         // Set up audio controls
         setupAudioControls();
@@ -200,12 +221,7 @@ public class MainController implements Initializable {
         });
 
         // Initialize library list
-        ObservableList<String> libraryItems = FXCollections.observableArrayList("All Songs", "Artists", "Albums");
-        libraryListView.setItems(libraryItems);
-        libraryListView.getSelectionModel().select(0); // Select "All Songs" by default
-
-        // Set up library controls (e.g., selection handling)
-        setupLibraryControls();
+        setupPinboardPanel();
         
         setupSearchControls();
 
@@ -333,7 +349,7 @@ public class MainController implements Initializable {
             });
             
             // Attach context menu for playlist operations
-            SongContextMenuProvider.attachContextMenu(row, playlists, playlistManager, playlistsListView, songs);
+            SongContextMenuProvider.attachContextMenu(row, playlists, playlistManager, playlistsListView, songs, pinboardPanel);
             
             // Enable drag-and-drop reordering when a playlist is selected
             row.setOnDragDetected(event -> {
@@ -668,18 +684,33 @@ public class MainController implements Initializable {
      * Configures behavior of the library list ("All Songs", "Artists", etc.).
      * Currently handles showing all songs when the user selects "All Songs".
      */
-    private void setupLibraryControls() {
-        libraryListView.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
-            if ("All Songs".equals(newSelection)) {
-                songs.setAll(musicLibraryManager.getAllSongs());
-                audioPlayerService.setPlaylist(songs);
-                playlistsListView.getSelectionModel().clearSelection();
-                showSongsWithAlbums();
-            } else if ("Albums".equals(newSelection)) {
-                showAlbumsView();
-            }
-            // TODO: Artists handling
-        });
+    private void setupPinboardPanel() {
+        pinboardPanel = new PinboardPanel();
+        
+        // Replace libraryListView with pinboard
+        VBox parentBox = (VBox) libraryListView.getParent();
+        int index = parentBox.getChildren().indexOf(libraryListView);
+        parentBox.getChildren().set(index, pinboardPanel);
+        
+        // Add default pins for quick access
+        pinboardPanel.addPinnedItem("all-songs", "All Songs", PinboardItem.ItemType.PLAYLIST, 
+            () -> showAllSongs());
+        pinboardPanel.addPinnedItem("albums", "Albums", PinboardItem.ItemType.ALBUM, 
+             () -> showAlbumsOnly());
+        
+        // Show all songs by default
+        showAllSongs();
+    }
+    
+    private void showAllSongs() {
+        songs.setAll(musicLibraryManager.getAllSongs());
+        audioPlayerService.setPlaylist(songs);
+        playlistsListView.getSelectionModel().clearSelection();
+        showSongsWithAlbums();
+    }
+    
+    private void showAlbumsOnly() {
+        showAlbumsView();
     }
 
     private void showSongsWithAlbums() {
@@ -802,6 +833,10 @@ public class MainController implements Initializable {
 
     private void handleMissingFiles() {
         javafx.application.Platform.runLater(() -> {
+            if (pinboardPanel != null) {
+                pinboardPanel.addActivity(ActivityFeedItem.ActivityType.FILES_MISSING, 
+                    "Music files not found");
+            }
             boolean shouldClear = MissingFilesDialog.show(playPauseButton.getScene().getWindow());
             if (shouldClear) {
                 // Clear library and show folder selection
@@ -813,5 +848,33 @@ public class MainController implements Initializable {
 
     private void refreshPlaylistCells() {
         playlistsListView.refresh();
+    }
+
+    /**
+     * Sets up the now playing bar at the bottom of the playlists list.
+     */
+    private void setupNowPlayingBar() {
+        nowPlayingBar = new NowPlayingBar();
+        
+        // Get the parent VBox and replace control bar with a StackPane
+        VBox bottomVBox = (VBox) controlBar.getParent();
+        int index = bottomVBox.getChildren().indexOf(controlBar);
+        bottomVBox.getChildren().remove(controlBar);
+        
+        // Create StackPane to overlay now playing on control bar
+        StackPane stackPane = new StackPane();
+        stackPane.getChildren().addAll(controlBar, nowPlayingBar);
+        StackPane.setAlignment(nowPlayingBar, Pos.CENTER_LEFT);
+        StackPane.setAlignment(controlBar, Pos.CENTER);
+        
+        bottomVBox.getChildren().add(index, stackPane);
+        
+        // Set size constraints
+        nowPlayingBar.setPrefWidth(250);
+        nowPlayingBar.setMaxWidth(350);
+        
+        // Update now playing bar on song change / play state
+        audioPlayerService.currentSongProperty().addListener((obs, oldS, newS) -> nowPlayingBar.update(newS, audioPlayerService.isPlaying()));
+        audioPlayerService.playingProperty().addListener((obs, ov, nv) -> nowPlayingBar.update(audioPlayerService.getCurrentSong(), nv));
     }
 }

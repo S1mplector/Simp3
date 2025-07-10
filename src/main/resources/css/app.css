@@ -9,7 +9,7 @@
 .sidebar-header {
     -fx-font-size: 14px;
     -fx-font-weight: bold;
-    -fx-text-fill: rgb(77, 77, 77);
+    -fx-text-fill: #444444;
 }
 
 .table-row-cell {
