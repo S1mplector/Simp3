@@ -36,6 +36,11 @@ public class AudioVisualizer extends Canvas {
     
     // Track if visualizer is paused
     private boolean isPaused = false;
+    
+    // Color mode settings
+    private boolean gradientCyclingEnabled = true;
+    private Color solidColor = Color.LIMEGREEN;
+    private boolean enabled = true;
 
     public AudioVisualizer(int numBands) {
         this.numBands = numBands;
@@ -58,12 +63,41 @@ public class AudioVisualizer extends Canvas {
     }
 
     /**
+     * Set whether the visualizer is enabled.
+     * @param enabled True to enable visualization, false to disable
+     */
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        if (!enabled) {
+            // Clear the canvas when disabled
+            GraphicsContext gc = getGraphicsContext2D();
+            gc.clearRect(0, 0, getWidth(), getHeight());
+        }
+    }
+    
+    /**
+     * Set whether gradient cycling is enabled.
+     * @param enabled True for gradient cycling, false for solid color
+     */
+    public void setGradientCyclingEnabled(boolean enabled) {
+        this.gradientCyclingEnabled = enabled;
+    }
+    
+    /**
+     * Set the solid color to use when gradient cycling is disabled.
+     * @param color The color to use
+     */
+    public void setSolidColor(Color color) {
+        this.solidColor = color;
+    }
+
+    /**
      * Update the visualizer with the latest magnitude data.
      * This should be called from the JavaFX Application Thread.
      */
     public void update(float[] newMagnitudes) {
-        // Ignore updates when paused to prevent any backlog
-        if (isPaused || newMagnitudes == null) {
+        // Ignore updates when paused, disabled, or no data
+        if (isPaused || !enabled || newMagnitudes == null) {
             return;
         }
         int len = Math.min(newMagnitudes.length, numBands);
@@ -108,10 +142,12 @@ public class AudioVisualizer extends Canvas {
                     
                     lastUpdate = now;
                     
-                    // Update hue for color animation
-                    currentHue += HUE_SHIFT_SPEED * deltaTime;
-                    if (currentHue >= 360) {
-                        currentHue -= 360;
+                    // Update hue for color animation only if gradient cycling is enabled
+                    if (gradientCyclingEnabled) {
+                        currentHue += HUE_SHIFT_SPEED * deltaTime;
+                        if (currentHue >= 360) {
+                            currentHue -= 360;
+                        }
                     }
                     
                     // Update peak positions
@@ -149,6 +185,11 @@ public class AudioVisualizer extends Canvas {
     }
 
     private void draw() {
+        // Skip drawing if disabled
+        if (!enabled) {
+            return;
+        }
+        
         double width = getWidth();
         double height = getHeight();
         if (width <= 0 || height <= 0) {
@@ -162,8 +203,13 @@ public class AudioVisualizer extends Canvas {
         double barWidth = bandWidth * 0.8; // 80% width for bars, 20% for spacing
         double spacing = bandWidth * 0.2;
 
-        // Create base color from current hue
-        Color baseColor = Color.hsb(currentHue, 0.8, 1.0); // High saturation and brightness
+        // Create base color from current hue or solid color
+        Color baseColor;
+        if (gradientCyclingEnabled) {
+            baseColor = Color.hsb(currentHue, 0.8, 1.0); // High saturation and brightness
+        } else {
+            baseColor = solidColor;
+        }
 
         // Apply glow effect to the entire canvas
         DropShadow glow = new DropShadow();

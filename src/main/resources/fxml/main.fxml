@@ -105,6 +105,15 @@
                                         </ImageView>
                                     </graphic>
                                 </Button>
+                                <Button fx:id="settingsButton" mnemonicParsing="false" onAction="#handleSettings" prefHeight="28.0" prefWidth="28.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
+                                    <graphic>
+                                        <ImageView fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true">
+                                            <image>
+                                                <Image url="@../images/icons/settings.png" />
+                                            </image>
+                                        </ImageView>
+                                    </graphic>
+                                </Button>
                             </children>
                         </HBox>
                         <TableView fx:id="songsTableView" VBox.vgrow="ALWAYS">

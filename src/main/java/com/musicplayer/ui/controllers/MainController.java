@@ -22,6 +22,7 @@ import com.musicplayer.services.ListeningStatsService;
 import com.musicplayer.services.MusicLibraryManager;
 import com.musicplayer.services.PlaylistManager;
 import com.musicplayer.services.PlaylistService;
+import com.musicplayer.services.SettingsService;
 import com.musicplayer.ui.components.ActivityFeedItem;
 import com.musicplayer.ui.components.AlbumGridView;
 import com.musicplayer.ui.components.AudioVisualizer;
@@ -37,12 +38,15 @@ import com.musicplayer.ui.dialogs.PlaylistSelectionPopup;
 import com.musicplayer.ui.handlers.PlaylistActionHandler;
 import com.musicplayer.ui.util.SearchManager;
 import com.musicplayer.ui.util.SongContextMenuProvider;
+import com.musicplayer.ui.components.PlaylistCell.RenameRequest;
+import com.musicplayer.ui.controllers.SettingsController;
 
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -71,6 +75,9 @@ import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.application.Platform;
 import javafx.stage.Stage;
+import javafx.scene.paint.Color;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
 
 public class MainController implements Initializable {
     
@@ -88,6 +95,7 @@ public class MainController implements Initializable {
     @FXML private Button selectMusicFolderButton;
     @FXML private Button addPlaylistButton;
     @FXML private Button addToPlaylistButton;
+    @FXML private Button settingsButton;
     @FXML private Label currentTimeLabel;
     @FXML private Label totalTimeLabel;
     @FXML private Slider timeSlider;
@@ -107,6 +115,7 @@ public class MainController implements Initializable {
     private AudioPlayerService audioPlayerService;
     private ListeningStatsService listeningStatsService;
     private FavoritesService favoritesService;
+    private SettingsService settingsService;
     private ObservableList<Song> songs;
     private ObservableList<Playlist> playlists;
 
@@ -153,6 +162,9 @@ public class MainController implements Initializable {
         
         // Initialize favorites service
         favoritesService = new FavoritesService();
+        
+        // Initialize settings service
+        settingsService = new SettingsService();
         
         // Set up error handling for missing files
         audioPlayerService.setOnError(() -> handleMissingFiles());
@@ -255,6 +267,9 @@ public class MainController implements Initializable {
 
         // Set up audio visualizer (behind bottom controls)
         setupAudioVisualizer();
+        
+        // Apply settings to visualizer
+        applyVisualizerSettings();
         
         // After setting up library controls or right after selectMusicFolderButton creation finish insert rescan button
         HBox libraryHeader = (HBox) selectMusicFolderButton.getParent();
@@ -925,6 +940,68 @@ public class MainController implements Initializable {
                     }
                 });
     }
+    
+    /**
+     * Handle the settings button click.
+     */
+    @FXML
+    private void handleSettings() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/settings.fxml"));
+            DialogPane dialogPane = loader.load();
+            SettingsController controller = loader.getController();
+            controller.setSettingsService(settingsService);
+            
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setDialogPane(dialogPane);
+            dialog.setTitle("Settings");
+            dialog.initOwner(settingsButton.getScene().getWindow());
+            
+            dialog.showAndWait().ifPresent(response -> {
+                if (response == ButtonType.OK) {
+                    controller.saveSettings();
+                    applyVisualizerSettings();
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText("Could not open settings");
+            alert.setContentText("An error occurred while opening the settings dialog.");
+            alert.showAndWait();
+        }
+    }
+    
+    /**
+     * Apply the current visualizer settings.
+     */
+    private void applyVisualizerSettings() {
+        if (audioVisualizer != null && settingsService != null) {
+            var settings = settingsService.getSettings();
+            
+            // Apply enabled state
+            audioVisualizer.setEnabled(settings.isVisualizerEnabled());
+            
+            // Apply color mode
+            boolean gradientCycling = settings.getVisualizerColorMode() == 
+                com.musicplayer.data.models.Settings.VisualizerColorMode.GRADIENT_CYCLING;
+            audioVisualizer.setGradientCyclingEnabled(gradientCycling);
+            
+            // Apply solid color
+            try {
+                audioVisualizer.setSolidColor(Color.web(settings.getVisualizerSolidColor()));
+            } catch (Exception e) {
+                // Default to green if color parsing fails
+                audioVisualizer.setSolidColor(Color.LIMEGREEN);
+            }
+            
+            // Update visibility based on playing state and enabled setting
+            if (audioPlayerService != null) {
+                audioVisualizer.setVisible(audioPlayerService.isPlaying() && settings.isVisualizerEnabled());
+            }
+        }
+    }
 
     private void setupSearchControls() {
         if (songSearchButton != null) {
@@ -959,10 +1036,11 @@ public class MainController implements Initializable {
                     }
                     System.out.println("Window minimized - visualizer and spectrum updates disabled");
                 } else {
-                    // Window is restored - re-enable if music is playing
+                    // Window is restored - re-enable if music is playing and visualizer is enabled
                     // Use Platform.runLater to ensure UI is ready
                     Platform.runLater(() -> {
-                        if (audioPlayerService != null && audioPlayerService.isPlaying()) {
+                        boolean visualizerEnabled = settingsService.getSettings().isVisualizerEnabled();
+                        if (audioPlayerService != null && audioPlayerService.isPlaying() && visualizerEnabled) {
                             // Re-add spectrum listener
                             if (spectrumListener != null) {
                                 audioPlayerService.setAudioSpectrumListener(spectrumListener);
@@ -973,7 +1051,7 @@ public class MainController implements Initializable {
                             }
                             System.out.println("Window restored - visualizer and spectrum updates re-enabled");
                         } else {
-                            System.out.println("Window restored - music not playing, visualizer remains inactive");
+                            System.out.println("Window restored - music not playing or visualizer disabled, visualizer remains inactive");
                         }
                         
                         // Force refresh UI components to ensure they're properly rendered
@@ -1003,9 +1081,10 @@ public class MainController implements Initializable {
         // Set up spectrum data listener with audio player
         audioPlayerService.setAudioSpectrumListener(spectrumListener);
         
-        // Show/hide visualizer based on playing state
+        // Show/hide visualizer based on playing state and settings
         audioPlayerService.playingProperty().addListener((obs, wasPlaying, isPlaying) -> {
-            audioVisualizer.setVisible(isPlaying);
+            boolean visualizerEnabled = settingsService.getSettings().isVisualizerEnabled();
+            audioVisualizer.setVisible(isPlaying && visualizerEnabled);
             
             // Get the current window state (scene might not be available yet)
             Stage stage = null;
@@ -1014,17 +1093,19 @@ public class MainController implements Initializable {
             }
             boolean isMinimized = stage != null && stage.isIconified();
             
-            if (isPlaying && !isMinimized) {
-                // Music started and window is visible - enable everything
+            if (isPlaying && !isMinimized && visualizerEnabled) {
+                // Music started and window is visible and visualizer enabled - enable everything
                 if (spectrumListener != null) {
                     audioPlayerService.setAudioSpectrumListener(spectrumListener);
                 }
                 if (!audioVisualizer.isPaused()) {
                     audioVisualizer.resume();
                 }
-            } else if (!isPlaying && spectrumListener != null) {
-                // Music stopped - disable spectrum listener to save resources
-                audioPlayerService.setAudioSpectrumListener(null);
+            } else if (!isPlaying || !visualizerEnabled) {
+                // Music stopped or visualizer disabled - disable spectrum listener to save resources
+                if (spectrumListener != null) {
+                    audioPlayerService.setAudioSpectrumListener(null);
+                }
             }
         });
 
