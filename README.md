@@ -1,6 +1,6 @@
 # SiMP3 - Simple Music Player
 
-A modular Java-based music player application built with JavaFX and following clean architecture principles.
+A simple and resource friendly Java-based music player application built with JavaFX.
 
 ## Project Structure
 

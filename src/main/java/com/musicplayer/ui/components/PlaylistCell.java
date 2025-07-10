@@ -20,7 +20,7 @@ import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
 /**
- * Custom ListCell for displaying playlists with rename and delete functionality.
+ * Custom ListCell for displaying playlists with play, shuffle, and delete functionality.
  */
 public class PlaylistCell extends ListCell<Playlist> {
     
@@ -28,6 +28,8 @@ public class PlaylistCell extends ListCell<Playlist> {
     private final Label nameLabel;
     private final TextField nameField;
     private final Region spacer;
+    private final Button playButton;
+    private final Button shuffleButton;
     private final Button removeButton;
     private final ImageView playingIcon;
     private FadeTransition fade;
@@ -35,6 +37,8 @@ public class PlaylistCell extends ListCell<Playlist> {
     private boolean isEditing = false;
     private Consumer<Playlist> onDelete;
     private Consumer<RenameRequest> onRename;
+    private Consumer<Playlist> onPlay;
+    private Consumer<Playlist> onShuffle;
     
     public PlaylistCell() {
         // Create UI components
@@ -55,30 +59,65 @@ public class PlaylistCell extends ListCell<Playlist> {
         spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         
+        // Play button
+        playButton = new Button();
+        playButton.setPrefHeight(24.0);
+        playButton.setPrefWidth(24.0);
+        playButton.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; " +
+                            "-fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;");
+        
+        try {
+            ImageView playIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/icons/playplaylist.png")));
+            playIcon.setFitHeight(20.0);
+            playIcon.setFitWidth(20.0);
+            playIcon.setPreserveRatio(true);
+            playButton.setGraphic(playIcon);
+        } catch (Exception e) {
+            playButton.setText("▶"); // Fallback
+        }
+        
+        // Shuffle button
+        shuffleButton = new Button();
+        shuffleButton.setPrefHeight(24.0);
+        shuffleButton.setPrefWidth(24.0);
+        shuffleButton.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; " +
+                              "-fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;");
+        
+        try {
+            ImageView shuffleIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/icons/shuffle.png")));
+            shuffleIcon.setFitHeight(20.0);
+            shuffleIcon.setFitWidth(20.0);
+            shuffleIcon.setPreserveRatio(true);
+            shuffleButton.setGraphic(shuffleIcon);
+        } catch (Exception e) {
+            shuffleButton.setText("🔀"); // Fallback
+        }
+        
+        // Delete button with trash icon
         removeButton = new Button();
-        removeButton.setPrefHeight(20.0);
-        removeButton.setPrefWidth(20.0);
+        removeButton.setPrefHeight(24.0);
+        removeButton.setPrefWidth(24.0);
         removeButton.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; " +
                             "-fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;");
         
-        // Load remove icon
+        // Load trash icon
         try {
-            ImageView removeIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/icons/remove.png")));
-            removeIcon.setFitHeight(16.0);
-            removeIcon.setFitWidth(16.0);
+            ImageView removeIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/icons/trash.png")));
+            removeIcon.setFitHeight(20.0);
+            removeIcon.setFitWidth(20.0);
             removeIcon.setPreserveRatio(true);
             removeButton.setGraphic(removeIcon);
         } catch (Exception e) {
-            removeButton.setText("×"); // Fallback text
+            removeButton.setText("🗑"); // Fallback text
         }
         
         playingIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/icons/playing.png")));
-        playingIcon.setFitHeight(16);
-        playingIcon.setFitWidth(16);
+        playingIcon.setFitHeight(20);
+        playingIcon.setFitWidth(20);
         playingIcon.setOpacity(0);
         
         content.getChildren().add(0, playingIcon);
-        content.getChildren().addAll(nameLabel, nameField, spacer, removeButton);
+        content.getChildren().addAll(nameLabel, nameField, spacer, playButton, shuffleButton, removeButton);
         
         setupEventHandlers();
     }
@@ -88,6 +127,20 @@ public class PlaylistCell extends ListCell<Playlist> {
         nameLabel.setOnMouseClicked(event -> {
             if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
                 startEditing();
+            }
+        });
+        
+        // Play button action
+        playButton.setOnAction(event -> {
+            if (getItem() != null && onPlay != null) {
+                onPlay.accept(getItem());
+            }
+        });
+        
+        // Shuffle button action
+        shuffleButton.setOnAction(event -> {
+            if (getItem() != null && onShuffle != null) {
+                onShuffle.accept(getItem());
             }
         });
         
@@ -210,6 +263,20 @@ public class PlaylistCell extends ListCell<Playlist> {
      */
     public void setOnRename(Consumer<RenameRequest> onRename) {
         this.onRename = onRename;
+    }
+
+    /**
+     * Sets the callback for playing the playlist.
+     */
+    public void setOnPlay(Consumer<Playlist> onPlay) {
+        this.onPlay = onPlay;
+    }
+
+    /**
+     * Sets the callback for shuffling the playlist.
+     */
+    public void setOnShuffle(Consumer<Playlist> onShuffle) {
+        this.onShuffle = onShuffle;
     }
     
     /**

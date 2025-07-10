@@ -32,6 +32,7 @@ import com.musicplayer.ui.components.RescanButtonFactory;
 import com.musicplayer.ui.dialogs.FirstRunWizard;
 import com.musicplayer.ui.dialogs.MissingFilesDialog;
 import com.musicplayer.ui.dialogs.PlaylistSelectionPopup;
+import com.musicplayer.ui.handlers.PlaylistActionHandler;
 import com.musicplayer.ui.util.SearchManager;
 import com.musicplayer.ui.util.SongContextMenuProvider;
 
@@ -627,9 +628,31 @@ public class MainController implements Initializable {
         // Set up the playlist ListView
         playlistsListView.setItems(filteredPlaylists);
         
+        // Create playlist action handler
+        PlaylistActionHandler playlistActionHandler = new PlaylistActionHandler(audioPlayerService, songs);
+        playlistActionHandler.setOnPlaylistSelected(() -> {
+            // Clear selection to show we're playing from a direct action
+            playlistsListView.getSelectionModel().clearSelection();
+            refreshPlaylistCells();
+        });
+        
         // Create custom cell factory for playlists
         playlistsListView.setCellFactory(listView -> {
             PlaylistCell cell = new PlaylistCell();
+            
+            // Set up play callback
+            cell.setOnPlay(playlist -> {
+                playlistActionHandler.playPlaylist(playlist);
+                playingPlaylist = playlist;
+                refreshPlaylistCells();
+            });
+            
+            // Set up shuffle callback
+            cell.setOnShuffle(playlist -> {
+                playlistActionHandler.shufflePlaylist(playlist);
+                playingPlaylist = playlist;
+                refreshPlaylistCells();
+            });
             
             // Set up delete callback
             cell.setOnDelete(playlist -> {

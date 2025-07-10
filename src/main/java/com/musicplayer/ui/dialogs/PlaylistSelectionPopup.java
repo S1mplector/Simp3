@@ -47,7 +47,20 @@ public final class PlaylistSelectionPopup {
         VBox root = new VBox(10);
         root.setPadding(new Insets(10));
 
+        // Header with icon
+        HBox headerBox = new HBox(10);
+        headerBox.setAlignment(Pos.CENTER_LEFT);
+        
+        // Playlist icon
+        Image playlistIconImg = new Image(PlaylistSelectionPopup.class.getResourceAsStream("/images/icons/playlist.png"));
+        ImageView playlistIcon = new ImageView(playlistIconImg);
+        playlistIcon.setFitWidth(40);
+        playlistIcon.setFitHeight(40);
+        
         Label header = new Label("Select a playlist:");
+        header.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+        
+        headerBox.getChildren().addAll(playlistIcon, header);
 
         FilteredList<Playlist> filtered = new FilteredList<>(playlists, p -> true);
 
@@ -108,7 +121,7 @@ public final class PlaylistSelectionPopup {
         listView.getSelectionModel().selectedItemProperty().addListener((obs, oldSel, newSel) -> ok.setDisable(newSel == null));
 
         buttonBar.getChildren().addAll(ok, cancel);
-        root.getChildren().addAll(header, searchBox, listView, buttonBar);
+        root.getChildren().addAll(headerBox, searchBox, listView, buttonBar);
 
         Scene scene = new Scene(root, 300, 400);
         
