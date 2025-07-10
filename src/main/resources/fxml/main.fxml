@@ -17,6 +17,7 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.Region?>
 
 <BorderPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.musicplayer.ui.controllers.MainController" stylesheets="@../css/app.css">
     <top>
@@ -82,9 +83,8 @@
                 </VBox>
                 <VBox spacing="5.0">
                     <children>
-                        <HBox alignment="CENTER_RIGHT" spacing="5.0">
+                        <HBox alignment="CENTER_LEFT" spacing="5.0">
                             <children>
-                                <TextField fx:id="songSearchField" promptText="Search" prefWidth="150.0" />
                                 <Button fx:id="songSearchButton" mnemonicParsing="false" prefHeight="28.0" prefWidth="28.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
                                     <graphic>
                                         <ImageView fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true">
@@ -94,6 +94,8 @@
                                         </ImageView>
                                     </graphic>
                                 </Button>
+                                <TextField fx:id="songSearchField" promptText="Search songs..." prefWidth="200.0" />
+                                <Region HBox.hgrow="ALWAYS" />
                                 <Button fx:id="addToPlaylistButton" mnemonicParsing="false" onAction="#handleAddSongToPlaylist" prefHeight="28.0" prefWidth="28.0" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;">
                                     <graphic>
                                         <ImageView fitHeight="20.0" fitWidth="20.0" pickOnBounds="true" preserveRatio="true">

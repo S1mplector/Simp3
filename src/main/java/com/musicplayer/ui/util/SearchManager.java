@@ -4,7 +4,6 @@ import com.musicplayer.data.models.Playlist;
 import com.musicplayer.data.models.Song;
 
 import javafx.collections.transformation.FilteredList;
-import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 
 /**
@@ -15,21 +14,21 @@ public final class SearchManager {
     private SearchManager() {}
 
     public static void bindSongSearch(TextField searchField,
-                                      FilteredList<Song> filteredSongs,
-                                      ListView<String> libraryView) {
+                                      FilteredList<Song> filteredSongs) {
         searchField.textProperty().addListener((obs, oldVal, newVal) -> {
             String filter = newVal == null ? "" : newVal.toLowerCase().trim();
             filteredSongs.setPredicate(song -> {
                 if (song == null) return false;
-
-                // Only filter when viewing "All Songs"
-                boolean inAllSongs = "All Songs".equals(libraryView.getSelectionModel().getSelectedItem());
-                if (!inAllSongs) return true;
-
                 if (filter.isEmpty()) return true;
-                return song.getTitle().toLowerCase().contains(filter) ||
-                       song.getArtist().toLowerCase().contains(filter) ||
-                       song.getAlbum().toLowerCase().contains(filter);
+                
+                // Check if the search term matches title, artist, or album
+                String title = song.getTitle() != null ? song.getTitle().toLowerCase() : "";
+                String artist = song.getArtist() != null ? song.getArtist().toLowerCase() : "";
+                String album = song.getAlbum() != null ? song.getAlbum().toLowerCase() : "";
+                
+                return title.contains(filter) ||
+                       artist.contains(filter) ||
+                       album.contains(filter);
             });
         });
     }

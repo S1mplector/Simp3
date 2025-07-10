@@ -864,7 +864,7 @@ public class MainController implements Initializable {
         }
 
         // Delegate predicate logic to SearchManager
-        SearchManager.bindSongSearch(songSearchField, filteredSongs, libraryListView);
+        SearchManager.bindSongSearch(songSearchField, filteredSongs);
         SearchManager.bindPlaylistSearch(playlistSearchField, filteredPlaylists);
     }
 
