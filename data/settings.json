@@ -2,9 +2,13 @@
   "visualizerEnabled" : true,
   "visualizerColorMode" : "GRADIENT_CYCLING",
   "visualizerSolidColor" : "#32CD32",
-  "miniPlayerX" : 1194.0,
-  "miniPlayerY" : 513.3333333333334,
+  "miniPlayerX" : 731.3333333333334,
+  "miniPlayerY" : 478.66666666666663,
   "miniPlayerPinned" : true,
   "autoCheckForUpdates" : true,
   "updateCheckIntervalHours" : 24,
-  "lastUpdateCheck"
+  "lastUpdateCheck" : null,
+  "skippedUpdateVersion" : null,
+  "downloadUpdatesInBackground" : true,
+  "showPreReleaseVersions" : false
+}
