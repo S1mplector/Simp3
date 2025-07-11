@@ -7,8 +7,4 @@
   "miniPlayerPinned" : true,
   "autoCheckForUpdates" : true,
   "updateCheckIntervalHours" : 24,
-  "lastUpdateCheck" : null,
-  "skippedUpdateVersion" : null,
-  "downloadUpdatesInBackground" : true,
-  "showPreReleaseVersions" : false
-}
+  "lastUpdateCheck"

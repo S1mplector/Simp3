@@ -56,7 +56,49 @@
                         
                     </VBox>
                     
-                    <!-- Add more sections here in the future -->
+                    <!-- Updates Section -->
+                    <VBox spacing="10">
+                        <Label text="Updates" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                        <Separator/>
+                        
+                        <!-- Auto-check for updates -->
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <CheckBox fx:id="autoCheckUpdatesCheckBox" text="Automatically check for updates"/>
+                        </HBox>
+                        
+                        <!-- Update check interval -->
+                        <HBox alignment="CENTER_LEFT" spacing="10" fx:id="updateIntervalSection">
+                            <Label text="Check for updates every:"/>
+                            <Spinner fx:id="updateIntervalSpinner" prefWidth="80">
+                                <valueFactory>
+                                    <SpinnerValueFactory.IntegerSpinnerValueFactory min="1" max="168" initialValue="24"/>
+                                </valueFactory>
+                            </Spinner>
+                            <Label text="hours"/>
+                        </HBox>
+                        
+                        <!-- Show pre-release versions -->
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <CheckBox fx:id="showPreReleaseCheckBox" text="Show pre-release versions"/>
+                        </HBox>
+                        
+                        <!-- Download in background -->
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <CheckBox fx:id="downloadInBackgroundCheckBox" text="Download updates in background"/>
+                        </HBox>
+                        
+                        <!-- Last update check info -->
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <Label text="Last checked:"/>
+                            <Label fx:id="lastUpdateCheckLabel" text="Never" style="-fx-text-fill: #666666;"/>
+                        </HBox>
+                        
+                        <!-- Check now button -->
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <Button fx:id="checkNowButton" text="Check for Updates Now" onAction="#onCheckForUpdates"/>
+                        </HBox>
+                        
+                    </VBox>
                     
                 </VBox>
             </content>

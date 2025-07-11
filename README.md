@@ -1,130 +1,240 @@
-# SiMP3 - Simple Music Player
+<div align="center">
+  
+# 🎵 SiMP3 - Simple Music Player
 
-A simple and resource friendly Java-based music player application built with JavaFX.
+[![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://www.oracle.com/java/)
+[![JavaFX](https://img.shields.io/badge/JavaFX-17%2B-blue.svg)](https://openjfx.io/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/yourusername/simp3?include_prereleases)](https://github.com/yourusername/simp3/releases)
 
-## Project Structure
+**A lightweight, modern music player built with JavaFX that puts simplicity first.**
 
-```
-simp3/
-├── src/
-│   ├── main/
-│   │   ├── java/com/musicplayer/
-│   │   │   ├── core/                    # Core business logic
-│   │   │   │   ├── audio/              # Audio processing and playback
-│   │   │   │   ├── playlist/           # Playlist management
-│   │   │   │   └── library/            # Music library management
-│   │   │   ├── data/                   # Data layer
-│   │   │   │   ├── models/             # Data models (Song, Artist, Album, etc.)
-│   │   │   │   ├── repositories/       # Data access layer
-│   │   │   │   └── storage/            # File I/O and persistence
-│   │   │   ├── ui/                     # User interface layer
-│   │   │   │   ├── controllers/        # JavaFX controllers
-│   │   │   │   ├── views/              # Custom view components
-│   │   │   │   └── components/         # Reusable UI components
-│   │   │   ├── services/               # Business services
-│   │   │   ├── utils/                  # Utility classes
-│   │   │   └── config/                 # Configuration management
-│   │   └── resources/
-│   │       ├── css/                    # Stylesheets
-│   │       ├── images/                 # Icons and images
-│   │       └── fxml/                   # FXML layout files
-│   └── test/
-│       └── java/com/musicplayer/       # Unit and integration tests
-├── lib/                                # External libraries
-├── docs/                               # Documentation
-└── README.md
-```
+[Features](#-features) • [Screenshots](#-screenshots) • [Installation](#-installation) • [Usage](#-usage) • [Development](#-development) • [Contributing](#-contributing)
 
-## Architecture Overview
+</div>
 
-### Core Layer (`core/`)
-- **Audio**: Handles audio file processing, playback control, and format support
-- **Playlist**: Manages playlist creation, modification, and persistence
-- **Library**: Manages the music library, scanning, and metadata extraction
+---
 
-### Data Layer (`data/`)
-- **Models**: Domain objects (Song, Artist, Album, Playlist)
-- **Repositories**: Data access interfaces and implementations
-- **Storage**: File system operations and database persistence
+## 🎯 Overview
 
-### UI Layer (`ui/`)
-- **Controllers**: JavaFX controllers implementing MVP pattern
-- **Views**: Custom view components for complex UI elements
-- **Components**: Reusable UI components (buttons, sliders, etc.)
+SiMP3 is a resource-friendly music player designed for users who want a clean, efficient way to manage and enjoy their music collection. Built with JavaFX, it offers a modern interface while maintaining excellent performance on modest hardware.
 
-### Service Layer (`services/`)
-- Business logic services that coordinate between core and data layers
-- External service integrations (metadata fetching, lyrics, etc.)
+### Why SiMP3?
 
-### Utilities (`utils/`)
-- File format utilities
-- Audio format converters
-- Common helper functions
+- **🚀 Lightweight**: Minimal resource usage, perfect for older systems
+- **🎨 Modern UI**: Clean, intuitive interface built with JavaFX
+- **🔄 Auto-Updates**: Stay current with automatic update checking via GitHub
+- **📚 Smart Library**: Automatic music scanning and organization
+- **🎧 Quality Playback**: Support for MP3, WAV, FLAC, and more
 
-### Configuration (`config/`)
-- Application settings
-- User preferences
-- Theme configuration
+## ✨ Features
 
-## Features
+### 🎵 Core Features
+- **Multi-Format Support**: Play MP3, WAV, FLAC, and other common audio formats
+- **Library Management**: Automatic scanning and organization of your music collection
+- **Playlist Creation**: Create, edit, and manage custom playlists
+- **Smart Search**: Find songs quickly with advanced search and filtering
+- **Favorites System**: Mark and access your favorite tracks easily
+- **Activity Tracking**: Monitor your listening history and statistics
 
-### Implemented
-- **Audio Playback**: Support for MP3, WAV, FLAC, and other common formats
-- **Library Management**: Automatic music library scanning and organization
-- **Playlist Support**: Create, edit, and manage playlists
-- **Search & Filter**: Advanced search and filtering capabilities
-- **Mini Player**: Compact player mode for minimal screen usage
-- **Auto-Update**: Automatic update checking and installation via GitHub Releases
-- **Favorites**: Mark and manage favorite songs
-- **Activity Feed**: Track listening history and activities
-- **Pinboard**: Pin important songs and playlists
+### 🎨 User Interface
+- **Mini Player Mode**: Compact player for minimal screen usage
+- **Audio Visualizer**: Real-time audio visualization with customizable colors
+- **Album Art Display**: Automatic album artwork extraction and display
+- **Pinboard**: Pin important songs and playlists for quick access
+- **Dark Theme**: Easy on the eyes during late-night listening sessions
 
-### Planned
-- **Metadata Support**: ID3 tag reading and editing
-- **Equalizer**: Built-in audio equalizer
-- **Themes**: Customizable UI themes
-- **Shortcuts**: More keyboard shortcuts and hotkeys
+### 🔧 Advanced Features
+- **Auto-Update System**: Automatic checking and installation of updates
+- **Keyboard Shortcuts**: Control playback without touching the mouse
+- **Shuffle & Repeat**: Multiple playback modes for any listening style
+- **Volume Normalization**: Consistent volume across your library
+- **Listening Statistics**: Track your most played songs and listening habits
 
-## Technologies
+## 📸 Screenshots
 
-- **Java 17+**: Core language
-- **JavaFX**: UI framework
-- **Maven**: Build tool and dependency management
-- **JUnit 5**: Testing framework
-- **Jackson**: JSON processing for configuration
-- **Apache Commons**: Utility libraries
+<div align="center">
+  <img src="docs/images/main-interface.png" alt="Main Interface" width="600">
+  <p><i>Main player interface with library and playlists</i></p>
+  
+  <img src="docs/images/mini-player.png" alt="Mini Player" width="300">
+  <p><i>Compact mini player mode</i></p>
+</div>
 
-## Getting Started
+## 🚀 Installation
 
-1. Ensure Java 17+ is installed
-2. Clone the repository
-3. Run `mvn clean compile` to build the project
-4. Run `mvn javafx:run` to start the application
+### Prerequisites
+- Java 17 or higher
+- Windows, macOS, or Linux
 
-## Auto-Update Feature
+### Quick Start
 
-SiMP3 includes an automatic update system that checks for new releases on GitHub:
-
-- **Automatic Checks**: The application checks for updates on startup (can be disabled in settings)
-- **Manual Checks**: Use Help → Check for Updates to manually check
-- **Background Downloads**: Updates download in the background with progress indication
-- **Safe Installation**: Updates are verified with SHA-256 checksums before installation
-
-### Setting Up Auto-Updates
-
-1. Update `src/main/java/com/musicplayer/config/UpdateConfig.java` with your GitHub repository:
-   ```java
-   public static final String GITHUB_OWNER = "your-github-username";
-   public static final String GITHUB_REPO = "your-repository-name";
+1. **Download the latest release**
+   ```bash
+   # Visit the releases page
+   https://github.com/yourusername/simp3/releases/latest
    ```
 
-2. Create releases on GitHub with:
-   - Semantic version tags (e.g., `v1.0.1`)
-   - Windows executable as a release asset
-   - SHA-256 checksum in the release description
+2. **Run the installer** (Windows)
+   ```bash
+   SiMP3-Setup-1.0.0.exe
+   ```
 
-See [docs/AUTO_UPDATE.md](docs/AUTO_UPDATE.md) for detailed documentation.
+3. **Or run from JAR** (All platforms)
+   ```bash
+   java -jar simp3-1.0.0.jar
+   ```
 
-## License
+### Building from Source
 
-MIT License
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/simp3.git
+cd simp3
+
+# Build with Maven
+mvn clean compile
+
+# Run the application
+mvn javafx:run
+
+# Create executable
+mvn clean package
+```
+
+## 📖 Usage
+
+### First Run
+1. Launch SiMP3
+2. Select your music folder when prompted
+3. Wait for the initial library scan to complete
+4. Start enjoying your music!
+
+### Keyboard Shortcuts
+| Action | Shortcut |
+|--------|----------|
+| Play/Pause | `Space` |
+| Next Track | `Ctrl + →` |
+| Previous Track | `Ctrl + ←` |
+| Volume Up | `Ctrl + ↑` |
+| Volume Down | `Ctrl + ↓` |
+| Search | `Ctrl + F` |
+| Mini Player | `Ctrl + M` |
+
+### Managing Your Library
+- **Add Music**: Click "Select Music Folder" or drag & drop files
+- **Create Playlists**: Click the "+" button in the playlist section
+- **Mark Favorites**: Click the heart icon next to any song
+- **Search**: Use the search bar to find songs, artists, or albums
+
+## 🛠️ Development
+
+### Project Structure
+```
+simp3/
+├── src/main/java/com/musicplayer/
+│   ├── core/                    # Core audio and library logic
+│   ├── data/                    # Models and data persistence
+│   ├── services/                # Business logic services
+│   ├── ui/                      # JavaFX UI components
+│   └── utils/                   # Utility classes
+├── src/main/resources/
+│   ├── css/                     # Stylesheets
+│   ├── fxml/                    # FXML layouts
+│   └── images/                  # Icons and assets
+└── docs/                        # Documentation
+```
+
+### Technologies
+- **Java 17+**: Core language
+- **JavaFX 17+**: UI framework
+- **Maven**: Build and dependency management
+- **SLF4J + Logback**: Logging
+- **Jackson**: JSON processing
+- **JUnit 5**: Testing framework
+
+### Setting Up Development Environment
+
+1. **Install Prerequisites**
+   - JDK 17 or higher
+   - Maven 3.6+
+   - Your favorite IDE (IntelliJ IDEA, Eclipse, VS Code)
+
+2. **Clone and Import**
+   ```bash
+   git clone https://github.com/yourusername/simp3.git
+   cd simp3
+   # Open in your IDE
+   ```
+
+3. **Configure Auto-Updates** (Optional)
+   
+   Edit `src/main/java/com/musicplayer/utils/UpdateConfig.java`:
+   ```java
+   public static final String GITHUB_OWNER = "your-github-username";
+   public static final String GITHUB_REPO = "simp3";
+   ```
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how you can help:
+
+### Ways to Contribute
+- 🐛 Report bugs and issues
+- 💡 Suggest new features
+- 🔧 Submit pull requests
+- 📖 Improve documentation
+- 🌍 Add translations
+
+### Development Process
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Code Style
+- Follow Java naming conventions
+- Use meaningful variable and method names
+- Add JavaDoc comments for public methods
+- Write unit tests for new features
+
+## 📋 Roadmap
+
+### Version 1.1 (Coming Soon)
+- [ ] Equalizer with presets
+- [ ] Lyrics display and sync
+- [ ] Last.fm scrobbling
+- [ ] Theme customization
+
+### Version 1.2 (Future)
+- [ ] Cloud sync for playlists
+- [ ] Mobile remote control
+- [ ] Podcast support
+- [ ] Music recommendations
+
+## 🐛 Known Issues
+
+- Audio visualizer may impact performance on older systems (can be disabled in settings)
+- Some FLAC files with unusual encoding may not play correctly
+- Playlist reordering via drag & drop can be finicky
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- JavaFX community for the excellent UI framework
+- Contributors and testers who helped shape SiMP3
+- Open source projects that inspired our design
+
+---
+
+<div align="center">
+  
+**Made with ❤️ by the SiMP3 team**
+
+[Report Bug](https://github.com/yourusername/simp3/issues) • [Request Feature](https://github.com/yourusername/simp3/issues) • [Discussions](https://github.com/yourusername/simp3/discussions)
+
+</div>

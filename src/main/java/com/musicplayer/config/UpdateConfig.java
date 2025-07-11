@@ -10,13 +10,13 @@ public class UpdateConfig {
      * GitHub username or organization name.
      * TODO: Replace with your actual GitHub username
      */
-    public static final String GITHUB_OWNER = "your-github-username";
+    public static final String GITHUB_OWNER = "S1mplector";
     
     /**
      * GitHub repository name.
      * TODO: Replace with your actual repository name
      */
-    public static final String GITHUB_REPO = "simp3";
+    public static final String GITHUB_REPO = "Simp3";
     
     /**
      * Whether to check for updates on application startup.
@@ -25,9 +25,9 @@ public class UpdateConfig {
     
     /**
      * Delay in seconds before checking for updates on startup.
-     * This prevents slowing down the initial application launch.
+     * Set to 0 to check immediately on launch.
      */
-    public static final int STARTUP_CHECK_DELAY = 30;
+    public static final int STARTUP_CHECK_DELAY = 0;
     
     /**
      * Connection timeout in milliseconds for update checks.

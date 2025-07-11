@@ -305,6 +305,9 @@ public class MainController implements Initializable {
             checkFirstRun();
         });
         
+        // Start auto-update check after initialization
+        updateService.startAutoUpdateCheck();
+        
         System.out.println("MainController initialized.");
     }
     
@@ -978,6 +981,7 @@ public class MainController implements Initializable {
             DialogPane dialogPane = loader.load();
             SettingsController controller = loader.getController();
             controller.setSettingsService(settingsService);
+            controller.setUpdateService(updateService);
             
             Dialog<ButtonType> dialog = new Dialog<>();
             dialog.setDialogPane(dialogPane);

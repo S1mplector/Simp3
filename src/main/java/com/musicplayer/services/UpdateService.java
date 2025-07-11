@@ -92,15 +92,27 @@ public class UpdateService {
     public void startAutoUpdateCheck() {
         Settings settings = settingsService.getSettings();
         if (!settings.isAutoCheckForUpdates()) {
-            logger.info("Auto-update checking is disabled");
+            logger.info("Auto-update checking is disabled in settings");
             return;
         }
         
+        logger.info("Starting auto-update check service");
+        logger.info("Current version: {}", currentVersion);
+        logger.info("GitHub repository: {}/{}", UpdateConfig.GITHUB_OWNER, UpdateConfig.GITHUB_REPO);
+        
         // Schedule periodic update checks
         int intervalHours = settings.getUpdateCheckIntervalHours();
+        int initialDelay = UpdateConfig.STARTUP_CHECK_DELAY;
+        
+        if (initialDelay == 0) {
+            logger.info("Checking for updates immediately on startup");
+        } else {
+            logger.info("First update check will run in {} seconds", initialDelay);
+        }
+        
         scheduler.scheduleWithFixedDelay(
             this::checkForUpdatesInBackground,
-            UpdateConfig.STARTUP_CHECK_DELAY, // Initial delay
+            initialDelay,
             intervalHours * 60 * 60, // Convert hours to seconds
             TimeUnit.SECONDS
         );
@@ -112,16 +124,25 @@ public class UpdateService {
      * Check for updates in the background.
      */
     private void checkForUpdatesInBackground() {
+        logger.info("Starting background update check");
         checkForUpdates().thenAccept(updateInfo -> {
             if (updateInfo != null) {
+                logger.info("Update available: version {} (current: {})",
+                    updateInfo.getVersion(), currentVersion);
+                logger.info("Download URL: {}", updateInfo.getDownloadUrl());
+                logger.info("File size: {}", updateInfo.getFileSizeFormatted());
+                logger.info("Mandatory: {}", updateInfo.isMandatory());
+                
                 Platform.runLater(() -> {
                     // Notify UI about available update
-                    logger.info("Update available: {}", updateInfo.getVersion());
+                    logger.info("Notifying UI about available update");
                     // The UI will handle showing the update dialog
                 });
+            } else {
+                logger.info("No updates available - current version {} is up to date", currentVersion);
             }
         }).exceptionally(e -> {
-            logger.error("Background update check failed", e);
+            logger.error("Background update check failed: {}", e.getMessage(), e);
             return null;
         });
     }
@@ -134,14 +155,17 @@ public class UpdateService {
     public CompletableFuture<UpdateInfo> checkForUpdates() {
         return CompletableFuture.supplyAsync(() -> {
             try {
+                logger.info("Checking for updates...");
                 Settings settings = settingsService.getSettings();
                 settings.setLastUpdateCheck(LocalDateTime.now());
                 settingsService.saveSettings();
                 
                 // Query GitHub API
-                URL url = new URL(settings.isShowPreReleaseVersions() ? 
-                    GITHUB_RELEASES_URL : GITHUB_RELEASES_URL + "/latest");
+                String apiUrl = settings.isShowPreReleaseVersions() ?
+                    GITHUB_RELEASES_URL : GITHUB_RELEASES_URL + "/latest";
+                logger.info("Querying GitHub API: {}", apiUrl);
                 
+                URL url = new URL(apiUrl);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("Accept", "application/vnd.github.v3+json");
@@ -149,8 +173,12 @@ public class UpdateService {
                 conn.setConnectTimeout(UpdateConfig.CONNECTION_TIMEOUT);
                 conn.setReadTimeout(UpdateConfig.READ_TIMEOUT);
                 
-                if (conn.getResponseCode() != 200) {
-                    logger.warn("GitHub API returned status: {}", conn.getResponseCode());
+                logger.debug("Sending request to GitHub API...");
+                int responseCode = conn.getResponseCode();
+                logger.info("GitHub API response code: {}", responseCode);
+                
+                if (responseCode != 200) {
+                    logger.warn("GitHub API returned non-200 status: {}", responseCode);
                     return null;
                 }
                 
@@ -173,10 +201,12 @@ public class UpdateService {
                 }
                 
                 if (latestUpdate != null && shouldConsiderUpdate(latestUpdate, settings)) {
+                    logger.info("Found newer version: {} (current: {})",
+                        latestUpdate.getVersion(), currentVersion);
                     return latestUpdate;
                 }
                 
-                logger.info("No updates available");
+                logger.info("No updates available - already on latest version");
                 return null;
                 
             } catch (Exception e) {
@@ -194,8 +224,11 @@ public class UpdateService {
             String tagName = release.get("tag_name").asText();
             String version = tagName.startsWith("v") ? tagName.substring(1) : tagName;
             
+            logger.debug("Parsing release: {} (version: {})", tagName, version);
+            
             // Skip if not a valid version
             if (!VersionComparator.isValidVersion(version)) {
+                logger.debug("Skipping invalid version format: {}", version);
                 return null;
             }
             
@@ -234,7 +267,13 @@ public class UpdateService {
                 }
             }
             
-            return info.getDownloadUrl() != null ? info : null;
+            if (info.getDownloadUrl() != null) {
+                logger.debug("Successfully parsed release info for version {}", version);
+                return info;
+            } else {
+                logger.debug("No Windows executable found for version {}", version);
+                return null;
+            }
             
         } catch (Exception e) {
             logger.error("Failed to parse release info", e);
@@ -257,17 +296,21 @@ public class UpdateService {
      */
     private boolean shouldConsiderUpdate(UpdateInfo info, Settings settings) {
         // Check if version is newer
-        if (!VersionComparator.isNewer(info.getVersion(), currentVersion)) {
+        boolean isNewer = VersionComparator.isNewer(info.getVersion(), currentVersion);
+        if (!isNewer) {
+            logger.debug("Version {} is not newer than current version {}",
+                info.getVersion(), currentVersion);
             return false;
         }
         
         // Check if version is skipped
         String skippedVersion = settings.getSkippedUpdateVersion();
         if (skippedVersion != null && skippedVersion.equals(info.getVersion()) && !info.isMandatory()) {
-            logger.info("Version {} is skipped by user", info.getVersion());
+            logger.info("Version {} is skipped by user preference", info.getVersion());
             return false;
         }
         
+        logger.debug("Version {} should be considered for update", info.getVersion());
         return true;
     }
     
@@ -280,23 +323,31 @@ public class UpdateService {
     public CompletableFuture<File> downloadUpdate(UpdateInfo updateInfo) {
         return CompletableFuture.supplyAsync(() -> {
             try {
+                logger.info("Starting download of version {}", updateInfo.getVersion());
+                
                 // Create temp directory for downloads
                 Path tempDir = Paths.get(System.getProperty("java.io.tmpdir"), "simp3-updates");
                 Files.createDirectories(tempDir);
+                logger.info("Download directory: {}", tempDir);
                 
                 // Determine file name from URL
                 String fileName = updateInfo.getDownloadUrl().substring(
                     updateInfo.getDownloadUrl().lastIndexOf('/') + 1);
                 Path targetFile = tempDir.resolve(fileName);
+                logger.info("Target file: {}", targetFile);
                 
                 // Download file
                 downloadFile(updateInfo.getDownloadUrl(), targetFile, updateInfo.getFileSize());
                 
                 // Verify checksum if available
                 if (updateInfo.getChecksum() != null && updateInfo.getChecksum().startsWith("http")) {
+                    logger.info("Verifying checksum...");
                     verifyChecksum(targetFile, updateInfo.getChecksum());
+                } else {
+                    logger.info("No checksum available for verification");
                 }
                 
+                logger.info("Download completed successfully: {}", targetFile);
                 return targetFile.toFile();
                 
             } catch (Exception e) {
@@ -310,9 +361,12 @@ public class UpdateService {
      * Download a file with progress tracking.
      */
     private void downloadFile(String urlStr, Path targetFile, long expectedSize) throws IOException {
+        logger.info("Downloading from: {}", urlStr);
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestProperty("User-Agent", "SiMP3-Updater");
+        
+        long startTime = System.currentTimeMillis();
         
         try (InputStream in = new BufferedInputStream(conn.getInputStream());
              OutputStream out = new BufferedOutputStream(Files.newOutputStream(targetFile))) {
@@ -320,6 +374,7 @@ public class UpdateService {
             byte[] buffer = new byte[8192];
             long downloaded = 0;
             int bytesRead;
+            long lastLogTime = System.currentTimeMillis();
             
             while ((bytesRead = in.read(buffer)) != -1) {
                 out.write(buffer, 0, bytesRead);
@@ -335,9 +390,21 @@ public class UpdateService {
                             currentDownloaded / (1024.0 * 1024.0),
                             expectedSize / (1024.0 * 1024.0)));
                     });
+                    
+                    // Log progress every 5 seconds
+                    if (System.currentTimeMillis() - lastLogTime > 5000) {
+                        logger.info("Download progress: {:.1f}% ({:.1f} MB / {:.1f} MB)",
+                            progress * 100,
+                            currentDownloaded / (1024.0 * 1024.0),
+                            expectedSize / (1024.0 * 1024.0));
+                        lastLogTime = System.currentTimeMillis();
+                    }
                 }
             }
         }
+        
+        long duration = System.currentTimeMillis() - startTime;
+        logger.info("Download completed in {} seconds", duration / 1000.0);
         
         Platform.runLater(() -> {
             downloadProgress.set(1.0);
@@ -394,22 +461,26 @@ public class UpdateService {
      */
     public boolean applyUpdate(File updateFile) {
         try {
+            logger.info("Staging update for installation: {}", updateFile.getName());
+            
             // Create update directory
             Path updateDir = Paths.get("update");
             Files.createDirectories(updateDir);
+            logger.info("Created update directory: {}", updateDir.toAbsolutePath());
             
             // Copy update file
             Path stagedUpdate = updateDir.resolve(updateFile.getName());
             Files.copy(updateFile.toPath(), stagedUpdate, StandardCopyOption.REPLACE_EXISTING);
+            logger.info("Staged update file: {}", stagedUpdate.toAbsolutePath());
             
             // Create update script
             createUpdateScript(stagedUpdate);
             
-            // The actual update will be applied on next restart
+            logger.info("Update staged successfully - will be applied on next restart");
             return true;
             
         } catch (Exception e) {
-            logger.error("Failed to stage update", e);
+            logger.error("Failed to stage update: {}", e.getMessage(), e);
             return false;
         }
     }
