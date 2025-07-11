@@ -1260,7 +1260,7 @@ public class MainController implements Initializable {
                     Stage mainStage = (Stage) playPauseButton.getScene().getWindow();
                     
                     // Create the mini player window
-                    miniPlayerWindow = new MiniPlayerWindow(audioPlayerService, mainStage);
+                    miniPlayerWindow = new MiniPlayerWindow(audioPlayerService, mainStage, settingsService, favoritesService, playlistManager);
                     
                     // When mini player is closed, set reference to null
                     miniPlayerWindow.getStage().setOnHidden(e -> {

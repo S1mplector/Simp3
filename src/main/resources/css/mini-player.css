@@ -1,82 +1,228 @@
-/* Mini Player Styles */
+/* Mini Player Styles - Enhanced Visual Design */
 
 .root {
     -fx-font-family: "Segoe UI", Arial, sans-serif;
 }
 
-/* Progress Slider Styling */
+/* Main container with glass/blur effect */
+.mini-player-root {
+    -fx-background-color: linear-gradient(to bottom, rgba(248, 248, 248, 0.95), rgba(240, 240, 240, 0.95));
+    -fx-border-color: rgba(200, 200, 200, 0.8);
+    -fx-border-width: 1px;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 15, 0, 0, 3);
+}
+
+/* Control buttons with smooth animations */
+.control-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 5;
+    -fx-cursor: hand;
+    -fx-background-radius: 20;
+    -fx-border-radius: 20;
+}
+
+.control-button:hover {
+    -fx-background-color: linear-gradient(to bottom, rgba(230, 230, 230, 0.8), rgba(220, 220, 220, 0.8));
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 8, 0, 0, 2);
+}
+
+.control-button:pressed {
+    -fx-background-color: linear-gradient(to bottom, rgba(210, 210, 210, 0.9), rgba(200, 200, 200, 0.9));
+}
+
+/* Window control buttons */
+.window-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 2;
+    -fx-cursor: hand;
+    -fx-background-radius: 3;
+}
+
+.window-button:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Mode buttons (shuffle/repeat) with state indicators */
+.mode-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 3;
+    -fx-cursor: hand;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+}
+
+.mode-button:hover {
+    -fx-background-color: rgba(76, 175, 80, 0.2);
+}
+
+.mode-button-active {
+    -fx-background-color: rgba(76, 175, 80, 0.3);
+    -fx-border-color: rgba(76, 175, 80, 0.5);
+    -fx-border-width: 1px;
+}
+
+.mode-button-inactive {
+    -fx-opacity: 0.5;
+}
+
+.mode-button-repeat-one {
+    -fx-background-color: rgba(255, 152, 0, 0.3);
+    -fx-border-color: rgba(255, 152, 0, 0.5);
+}
+
+/* Progress Slider Styling with gradient */
 .slider {
     -fx-pref-height: 5px;
     -fx-background-color: transparent;
 }
 
 .slider .track {
-    -fx-background-color: #e0e0e0;
+    -fx-background-color: linear-gradient(to right, #e0e0e0, #d0d0d0);
     -fx-background-radius: 2.5px;
     -fx-pref-height: 5px;
 }
 
 .slider .thumb {
-    -fx-background-color: #4CAF50;
+    -fx-background-color: linear-gradient(to bottom, #5cb85c, #4cae4c);
     -fx-background-radius: 50%;
     -fx-pref-width: 12px;
     -fx-pref-height: 12px;
     -fx-cursor: hand;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 3, 0, 0, 1);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 4, 0, 0, 1);
 }
 
 .slider:hover .thumb {
-    -fx-background-color: #45a049;
+    -fx-background-color: linear-gradient(to bottom, #6ec06e, #5cb85c);
     -fx-pref-width: 14px;
     -fx-pref-height: 14px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 6, 0, 0, 2);
 }
 
-/* Volume Slider - Smaller */
-.slider:vertical {
-    -fx-pref-width: 5px;
+/* Volume Slider - Smaller with gradient */
+.volume-slider {
+    -fx-pref-width: 60px;
+    -fx-pref-height: 5px;
 }
 
-/* Button hover effects */
-.button:hover {
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 5, 0, 0, 1);
+.volume-slider .track {
+    -fx-background-color: linear-gradient(to right, #d0d0d0, #c0c0c0);
+    -fx-pref-height: 4px;
 }
 
-/* Label styles */
+.volume-slider .thumb {
+    -fx-pref-width: 10px;
+    -fx-pref-height: 10px;
+}
+
+/* Label styles with subtle text shadows */
 .label {
     -fx-text-overrun: ellipsis;
+    -fx-effect: dropshadow(gaussian, rgba(255, 255, 255, 0.8), 1, 0, 0, 1);
 }
 
-/* Window shadow effect */
-.mini-player-root {
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0, 0, 2);
-}
-
-/* Context Menu Styling */
-.context-menu {
-    -fx-background-color: #f8f8f8;
-    -fx-background-radius: 5;
+/* Context Menu and More Options Menu Styling */
+.context-menu, .more-options-menu {
+    -fx-background-color: linear-gradient(to bottom, rgba(255, 255, 255, 0.98), rgba(248, 248, 248, 0.98));
+    -fx-background-radius: 8;
     -fx-padding: 5;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 15, 0, 0, 3);
+    -fx-border-color: rgba(200, 200, 200, 0.5);
+    -fx-border-width: 1px;
+    -fx-border-radius: 8;
 }
 
-.context-menu .menu-item {
-    -fx-padding: 5 20 5 20;
-    -fx-background-radius: 3;
+.context-menu .menu-item, .more-options-menu .menu-item {
+    -fx-padding: 8 20 8 20;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
 }
 
-.context-menu .menu-item:hover {
-    -fx-background-color: #e0e0e0;
+.context-menu .menu-item:hover, .more-options-menu .menu-item:hover {
+    -fx-background-color: linear-gradient(to bottom, rgba(76, 175, 80, 0.2), rgba(76, 175, 80, 0.15));
 }
 
-.context-menu .separator {
-    -fx-padding: 2 0 2 0;
+.context-menu .menu-item:focused, .more-options-menu .menu-item:focused {
+    -fx-background-color: linear-gradient(to bottom, rgba(76, 175, 80, 0.25), rgba(76, 175, 80, 0.2));
 }
 
-/* Tooltip styling */
+.context-menu .separator .line, .more-options-menu .separator .line {
+    -fx-border-color: rgba(200, 200, 200, 0.5);
+    -fx-border-width: 0.5px 0 0 0;
+    -fx-padding: 4 0 4 0;
+}
+
+/* Submenu styling */
+.context-menu .menu:hover > .label, .more-options-menu .menu:hover > .label {
+    -fx-text-fill: #4CAF50;
+}
+
+.context-menu .menu .menu-item, .more-options-menu .menu .menu-item {
+    -fx-padding: 6 15 6 15;
+}
+
+/* Tooltip styling with glass effect */
 .tooltip {
-    -fx-background-color: #333333;
+    -fx-background-color: linear-gradient(to bottom, rgba(50, 50, 50, 0.95), rgba(40, 40, 40, 0.95));
     -fx-text-fill: white;
-    -fx-background-radius: 3;
-    -fx-padding: 5;
+    -fx-background-radius: 4;
+    -fx-padding: 6 10 6 10;
     -fx-font-size: 11px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 8, 0, 0, 2);
+}
+
+/* Album art container with enhanced shadow */
+.album-art-container {
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.4), 10, 0, 2, 2);
+}
+
+/* Time label styling */
+.time-label {
+    -fx-font-size: 10px;
+    -fx-text-fill: #666666;
+    -fx-font-weight: normal;
+}
+
+/* Song info labels */
+.song-title {
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-text-fill: #333333;
+}
+
+.song-artist {
+    -fx-font-size: 11px;
+    -fx-text-fill: #666666;
+}
+
+/* Smooth transitions for all interactive elements */
+.control-button, .mode-button, .window-button, .slider .thumb {
+    -fx-transition: all 0.2s ease-in-out;
+}
+
+/* Focus indicators */
+.button:focused {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+/* Custom scrollbar for menus */
+.context-menu .scroll-bar:vertical .track,
+.more-options-menu .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+.context-menu .scroll-bar:vertical .thumb,
+.more-options-menu .scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(0, 0, 0, 0.2);
+    -fx-background-radius: 4;
+}
+
+.context-menu .scroll-bar:vertical .thumb:hover,
+.more-options-menu .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.3);
 }

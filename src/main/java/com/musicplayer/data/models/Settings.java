@@ -10,6 +10,10 @@ public class Settings {
     private VisualizerColorMode visualizerColorMode = VisualizerColorMode.GRADIENT_CYCLING;
     private String visualizerSolidColor = "#32CD32"; // Default lime green
     
+    // Mini player settings
+    private double miniPlayerX = -1; // -1 means use default position
+    private double miniPlayerY = -1; // -1 means use default position
+    
     /**
      * Enum for visualizer color modes.
      */
@@ -52,4 +56,20 @@ public class Settings {
     public void setVisualizerSolidColor(String visualizerSolidColor) {
         this.visualizerSolidColor = visualizerSolidColor;
     }
-} 
+    
+    public double getMiniPlayerX() {
+        return miniPlayerX;
+    }
+    
+    public void setMiniPlayerX(double miniPlayerX) {
+        this.miniPlayerX = miniPlayerX;
+    }
+    
+    public double getMiniPlayerY() {
+        return miniPlayerY;
+    }
+    
+    public void setMiniPlayerY(double miniPlayerY) {
+        this.miniPlayerY = miniPlayerY;
+    }
+}

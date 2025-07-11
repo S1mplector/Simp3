@@ -93,4 +93,31 @@ public class SettingsService {
         settings.setVisualizerSolidColor(color);
         saveSettings();
     }
-} 
+    
+    /**
+     * Update mini player position.
+     * @param x The X coordinate
+     * @param y The Y coordinate
+     */
+    public void setMiniPlayerPosition(double x, double y) {
+        settings.setMiniPlayerX(x);
+        settings.setMiniPlayerY(y);
+        saveSettings();
+    }
+    
+    /**
+     * Get mini player X position.
+     * @return X coordinate or -1 if not set
+     */
+    public double getMiniPlayerX() {
+        return settings.getMiniPlayerX();
+    }
+    
+    /**
+     * Get mini player Y position.
+     * @return Y coordinate or -1 if not set
+     */
+    public double getMiniPlayerY() {
+        return settings.getMiniPlayerY();
+    }
+}
