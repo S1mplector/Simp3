@@ -14,6 +14,7 @@ public class UpdateInfo {
     private boolean isMandatory;
     private LocalDateTime releaseDate;
     private String htmlUrl; // GitHub release page URL
+    private DistributionType distributionType = DistributionType.UNKNOWN;
 
     public UpdateInfo() {
     }
@@ -94,6 +95,14 @@ public class UpdateInfo {
 
     public void setHtmlUrl(String htmlUrl) {
         this.htmlUrl = htmlUrl;
+    }
+
+    public DistributionType getDistributionType() {
+        return distributionType;
+    }
+
+    public void setDistributionType(DistributionType distributionType) {
+        this.distributionType = distributionType;
     }
 
     /**

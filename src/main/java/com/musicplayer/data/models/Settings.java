@@ -27,6 +27,10 @@ public class Settings {
     private boolean downloadUpdatesInBackground = true;
     private boolean showPreReleaseVersions = false;
     
+    // Distribution type preferences
+    private DistributionType preferredDistributionType = DistributionType.UNKNOWN;
+    private boolean rememberDistributionChoice = false;
+    
     /**
      * Enum for visualizer color modes.
      */
@@ -141,5 +145,22 @@ public class Settings {
     
     public void setShowPreReleaseVersions(boolean showPreReleaseVersions) {
         this.showPreReleaseVersions = showPreReleaseVersions;
+    }
+    
+    // Distribution type preference getters and setters
+    public DistributionType getPreferredDistributionType() {
+        return preferredDistributionType;
+    }
+    
+    public void setPreferredDistributionType(DistributionType preferredDistributionType) {
+        this.preferredDistributionType = preferredDistributionType;
+    }
+    
+    public boolean isRememberDistributionChoice() {
+        return rememberDistributionChoice;
+    }
+    
+    public void setRememberDistributionChoice(boolean rememberDistributionChoice) {
+        this.rememberDistributionChoice = rememberDistributionChoice;
     }
 }

@@ -3,10 +3,13 @@ package com.musicplayer.ui.dialogs;
 import java.awt.Desktop;
 import java.io.File;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.musicplayer.data.models.DistributionType;
 import com.musicplayer.data.models.UpdateInfo;
 import com.musicplayer.services.UpdateService;
 
@@ -19,10 +22,13 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -42,7 +48,8 @@ public class UpdateDialog extends Stage {
     private static final Logger logger = LoggerFactory.getLogger(UpdateDialog.class);
     
     private final UpdateService updateService;
-    private final UpdateInfo updateInfo;
+    private final List<UpdateInfo> availableUpdates;
+    private UpdateInfo selectedUpdate;
     
     private Button updateButton;
     private Button skipButton;
@@ -51,9 +58,32 @@ public class UpdateDialog extends Stage {
     private Label statusLabel;
     private TextArea releaseNotesArea;
     
+    // Distribution selection components
+    private VBox distributionChoiceBox;
+    private ToggleGroup distributionGroup;
+    private CheckBox rememberChoiceCheckBox;
+    private RadioButton portableRadio;
+    private RadioButton installerRadio;
+    
     public UpdateDialog(UpdateService updateService, UpdateInfo updateInfo) {
         this.updateService = updateService;
-        this.updateInfo = updateInfo;
+        this.availableUpdates = new ArrayList<>();
+        this.availableUpdates.add(updateInfo);
+        this.selectedUpdate = updateInfo;
+        
+        initializeDialog();
+    }
+    
+    public UpdateDialog(UpdateService updateService, List<UpdateInfo> availableUpdates) {
+        this.updateService = updateService;
+        this.availableUpdates = availableUpdates;
+        
+        // Pre-select based on user preference or default to first available
+        DistributionType preferred = updateService.getSettingsService().getSettings().getPreferredDistributionType();
+        this.selectedUpdate = availableUpdates.stream()
+            .filter(update -> update.getDistributionType() == preferred)
+            .findFirst()
+            .orElse(availableUpdates.get(0));
         
         initializeDialog();
     }
@@ -82,6 +112,9 @@ public class UpdateDialog extends Stage {
         // Version info
         VBox versionInfo = createVersionInfo();
         
+        // Distribution choice (if multiple options available)
+        distributionChoiceBox = createDistributionChoice();
+        
         // Release notes
         VBox releaseNotes = createReleaseNotes();
         
@@ -93,7 +126,15 @@ public class UpdateDialog extends Stage {
         // Buttons
         HBox buttons = createButtons(progressSection);
         
-        root.getChildren().addAll(header, versionInfo, releaseNotes, progressSection, buttons);
+        // Add components to root
+        root.getChildren().addAll(header, versionInfo);
+        
+        // Only show distribution choice if multiple options are available
+        if (hasMultipleDistributionTypes()) {
+            root.getChildren().add(distributionChoiceBox);
+        }
+        
+        root.getChildren().addAll(releaseNotes, progressSection, buttons);
         
         Scene scene = new Scene(root, 500, 600);
         scene.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
@@ -149,7 +190,7 @@ public class UpdateDialog extends Stage {
         newVersion.setAlignment(Pos.CENTER_LEFT);
         Label newLabel = new Label("New version:");
         newLabel.setMinWidth(100);
-        Label newValue = new Label(updateInfo.getVersion());
+        Label newValue = new Label(selectedUpdate.getVersion());
         newValue.setStyle("-fx-font-weight: bold; -fx-text-fill: #2ecc71;");
         newVersion.getChildren().addAll(newLabel, newValue);
         
@@ -157,18 +198,129 @@ public class UpdateDialog extends Stage {
         fileSize.setAlignment(Pos.CENTER_LEFT);
         Label sizeLabel = new Label("Download size:");
         sizeLabel.setMinWidth(100);
-        Label sizeValue = new Label(updateInfo.getFileSizeFormatted());
+        Label sizeValue = new Label(selectedUpdate.getFileSizeFormatted());
         fileSize.getChildren().addAll(sizeLabel, sizeValue);
         
         versionBox.getChildren().addAll(currentVersion, newVersion, fileSize);
         
-        if (updateInfo.isMandatory()) {
+        if (selectedUpdate.isMandatory()) {
             Label mandatoryLabel = new Label("⚠ This is a mandatory update");
             mandatoryLabel.setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
             versionBox.getChildren().add(mandatoryLabel);
         }
         
         return versionBox;
+    }
+    
+    private VBox createDistributionChoice() {
+        VBox choiceBox = new VBox(15);
+        choiceBox.setAlignment(Pos.TOP_LEFT);
+        choiceBox.setPadding(new Insets(15));
+        choiceBox.setStyle("-fx-background-color: #f9f9f9; -fx-background-radius: 5; -fx-border-color: #e0e0e0; -fx-border-radius: 5;");
+        
+        Label choiceLabel = new Label("Choose Distribution Type:");
+        choiceLabel.setFont(Font.font("System", FontWeight.BOLD, 14));
+        
+        distributionGroup = new ToggleGroup();
+        
+        // Portable option
+        VBox portableBox = new VBox(5);
+        portableRadio = new RadioButton("Portable Version");
+        portableRadio.setToggleGroup(distributionGroup);
+        portableRadio.setFont(Font.font("System", FontWeight.BOLD, 12));
+        
+        Label portableDesc = new Label("• No installation required\n• Can run from USB drive\n• Settings stored locally");
+        portableDesc.setStyle("-fx-text-fill: #666666; -fx-font-size: 11px;");
+        portableDesc.setPadding(new Insets(0, 0, 0, 20));
+        
+        portableBox.getChildren().addAll(portableRadio, portableDesc);
+        
+        // Installer option
+        VBox installerBox = new VBox(5);
+        installerRadio = new RadioButton("Installer Version");
+        installerRadio.setToggleGroup(distributionGroup);
+        installerRadio.setFont(Font.font("System", FontWeight.BOLD, 12));
+        
+        Label installerDesc = new Label("• System-wide installation\n• Start menu integration\n• Automatic uninstaller");
+        installerDesc.setStyle("-fx-text-fill: #666666; -fx-font-size: 11px;");
+        installerDesc.setPadding(new Insets(0, 0, 0, 20));
+        
+        installerBox.getChildren().addAll(installerRadio, installerDesc);
+        
+        // Pre-select based on current selection
+        if (selectedUpdate.getDistributionType() == DistributionType.PORTABLE) {
+            portableRadio.setSelected(true);
+        } else if (selectedUpdate.getDistributionType() == DistributionType.INSTALLER) {
+            installerRadio.setSelected(true);
+        }
+        
+        // Add listener to update selected update when radio selection changes
+        distributionGroup.selectedToggleProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == portableRadio) {
+                updateSelectedDistribution(DistributionType.PORTABLE);
+            } else if (newVal == installerRadio) {
+                updateSelectedDistribution(DistributionType.INSTALLER);
+            }
+        });
+        
+        // Remember choice checkbox
+        rememberChoiceCheckBox = new CheckBox("Remember my choice");
+        rememberChoiceCheckBox.setSelected(updateService.getSettingsService().getSettings().isRememberDistributionChoice());
+        rememberChoiceCheckBox.setPadding(new Insets(10, 0, 0, 0));
+        
+        choiceBox.getChildren().addAll(choiceLabel, portableBox, installerBox, rememberChoiceCheckBox);
+        
+        return choiceBox;
+    }
+    
+    private void updateSelectedDistribution(DistributionType type) {
+        selectedUpdate = availableUpdates.stream()
+            .filter(update -> update.getDistributionType() == type)
+            .findFirst()
+            .orElse(selectedUpdate);
+        
+        // Update UI elements that depend on the selected update
+        updateVersionInfo();
+        updateReleaseNotes();
+    }
+    
+    private void updateVersionInfo() {
+        // Find the file size label and update it
+        Scene scene = getScene();
+        if (scene != null) {
+            VBox root = (VBox) scene.getRoot();
+            VBox versionBox = (VBox) root.getChildren().stream()
+                .filter(node -> node instanceof VBox && node.getStyle().contains("-fx-background-color: #f0f0f0"))
+                .findFirst()
+                .orElse(null);
+            
+            if (versionBox != null) {
+                HBox fileSizeBox = (HBox) versionBox.getChildren().stream()
+                    .filter(node -> node instanceof HBox)
+                    .skip(2) // Skip current version and new version boxes
+                    .findFirst()
+                    .orElse(null);
+                
+                if (fileSizeBox != null && fileSizeBox.getChildren().size() > 1) {
+                    Label sizeValue = (Label) fileSizeBox.getChildren().get(1);
+                    sizeValue.setText(selectedUpdate.getFileSizeFormatted());
+                }
+            }
+        }
+    }
+    
+    private void updateReleaseNotes() {
+        if (releaseNotesArea != null) {
+            releaseNotesArea.setText(selectedUpdate.getReleaseNotes());
+        }
+    }
+    
+    private boolean hasMultipleDistributionTypes() {
+        return availableUpdates.size() > 1 &&
+               availableUpdates.stream()
+                   .map(UpdateInfo::getDistributionType)
+                   .distinct()
+                   .count() > 1;
     }
     
     private VBox createReleaseNotes() {
@@ -179,14 +331,14 @@ public class UpdateDialog extends Stage {
         Label notesLabel = new Label("What's New:");
         notesLabel.setFont(Font.font("System", FontWeight.BOLD, 14));
         
-        releaseNotesArea = new TextArea(updateInfo.getReleaseNotes());
+        releaseNotesArea = new TextArea(selectedUpdate.getReleaseNotes());
         releaseNotesArea.setEditable(false);
         releaseNotesArea.setWrapText(true);
         releaseNotesArea.setPrefRowCount(10);
         VBox.setVgrow(releaseNotesArea, Priority.ALWAYS);
         
         Hyperlink viewOnGitHub = new Hyperlink("View on GitHub");
-        viewOnGitHub.setOnAction(e -> openInBrowser(updateInfo.getHtmlUrl()));
+        viewOnGitHub.setOnAction(e -> openInBrowser(selectedUpdate.getHtmlUrl()));
         
         notesBox.getChildren().addAll(notesLabel, releaseNotesArea, viewOnGitHub);
         return notesBox;
@@ -224,7 +376,7 @@ public class UpdateDialog extends Stage {
         
         skipButton = new Button("Skip This Version");
         skipButton.setOnAction(e -> handleSkip());
-        if (updateInfo.isMandatory()) {
+        if (selectedUpdate.isMandatory()) {
             skipButton.setDisable(true);
             skipButton.setTooltip(new Tooltip("This is a mandatory update and cannot be skipped"));
         }
@@ -237,20 +389,32 @@ public class UpdateDialog extends Stage {
     }
     
     private void handleUpdate(VBox progressSection) {
+        // Save distribution preference if remember choice is checked
+        if (hasMultipleDistributionTypes() && rememberChoiceCheckBox.isSelected()) {
+            updateService.getSettingsService().getSettings()
+                .setPreferredDistributionType(selectedUpdate.getDistributionType());
+            updateService.getSettingsService().getSettings()
+                .setRememberDistributionChoice(true);
+            updateService.getSettingsService().saveSettings();
+        }
+        
         // Show progress section
         progressSection.setVisible(true);
         progressSection.setManaged(true);
         
-        // Disable buttons
+        // Disable buttons and distribution choice
         updateButton.setDisable(true);
         skipButton.setDisable(true);
         laterButton.setDisable(true);
+        if (distributionChoiceBox != null) {
+            distributionChoiceBox.setDisable(true);
+        }
         
         // Start download task
         Task<File> downloadTask = new Task<>() {
             @Override
             protected File call() throws Exception {
-                return updateService.downloadUpdate(updateInfo).get();
+                return updateService.downloadUpdate(selectedUpdate).get();
             }
         };
         
@@ -277,8 +441,8 @@ public class UpdateDialog extends Stage {
             statusLabel.textProperty().unbind();
             statusLabel.setText("Download complete! Preparing update...");
             
-            // Apply the update
-            boolean staged = updateService.applyUpdate(updateFile);
+            // Apply the update with the selected update info
+            boolean staged = updateService.applyUpdate(updateFile, selectedUpdate);
             
             if (staged) {
                 showUpdateReadyDialog();
@@ -333,7 +497,7 @@ public class UpdateDialog extends Stage {
     private void handleSkip() {
         // Save skipped version
         updateService.getSettingsService().getSettings()
-            .setSkippedUpdateVersion(updateInfo.getVersion());
+            .setSkippedUpdateVersion(selectedUpdate.getVersion());
         updateService.getSettingsService().saveSettings();
         
         close();
@@ -342,8 +506,11 @@ public class UpdateDialog extends Stage {
     private void resetButtons() {
         Platform.runLater(() -> {
             updateButton.setDisable(false);
-            skipButton.setDisable(updateInfo.isMandatory());
+            skipButton.setDisable(selectedUpdate.isMandatory());
             laterButton.setDisable(false);
+            if (distributionChoiceBox != null) {
+                distributionChoiceBox.setDisable(false);
+            }
             statusLabel.textProperty().unbind();
             progressBar.progressProperty().unbind();
         });
@@ -365,5 +532,29 @@ public class UpdateDialog extends Stage {
         } catch (Exception e) {
             logger.error("Failed to open browser", e);
         }
+    }
+    
+    /**
+     * Show distribution choice dialog when multiple distribution types are available.
+     * This method can be called from UpdateService when it detects multiple distribution options.
+     *
+     * @param updateService The update service instance
+     * @param availableUpdates List of available updates with different distribution types
+     * @return The created UpdateDialog instance, or null if no updates available
+     */
+    public static UpdateDialog showDistributionChoice(UpdateService updateService, List<UpdateInfo> availableUpdates) {
+        if (availableUpdates == null || availableUpdates.isEmpty()) {
+            return null;
+        }
+        
+        // If only one update available, show regular dialog
+        if (availableUpdates.size() == 1) {
+            return new UpdateDialog(updateService, availableUpdates.get(0));
+        }
+        
+        // Show dialog with distribution choice
+        UpdateDialog dialog = new UpdateDialog(updateService, availableUpdates);
+        dialog.show();
+        return dialog;
     }
 }

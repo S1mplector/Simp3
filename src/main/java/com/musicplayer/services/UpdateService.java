@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.musicplayer.config.UpdateConfig;
+import com.musicplayer.data.models.DistributionType;
 import com.musicplayer.data.models.Settings;
 import com.musicplayer.data.models.UpdateInfo;
 import com.musicplayer.utils.VersionComparator;
@@ -217,7 +218,51 @@ public class UpdateService {
     }
     
     /**
+     * Detect the distribution type of the current running application.
+     *
+     * @return The detected distribution type
+     */
+    private DistributionType detectDistributionType() {
+        try {
+            // Check if running from a typical installer location
+            String userHome = System.getProperty("user.home");
+            String currentPath = new File(".").getCanonicalPath().toLowerCase();
+            
+            // Common installer paths
+            if (currentPath.contains("program files") ||
+                currentPath.contains("programdata") ||
+                currentPath.contains("appdata\\local") ||
+                currentPath.contains("appdata\\roaming")) {
+                logger.info("Detected installer distribution based on path: {}", currentPath);
+                return DistributionType.INSTALLER;
+            }
+            
+            // Check for portable indicators
+            if (currentPath.contains("portable") ||
+                currentPath.contains("desktop") ||
+                currentPath.contains("downloads") ||
+                currentPath.contains("documents")) {
+                logger.info("Detected portable distribution based on path: {}", currentPath);
+                return DistributionType.PORTABLE;
+            }
+            
+            // Check for update directory (portable versions often have this)
+            if (Files.exists(Paths.get("update")) || Files.exists(Paths.get("data"))) {
+                logger.info("Detected portable distribution based on directory structure");
+                return DistributionType.PORTABLE;
+            }
+            
+        } catch (Exception e) {
+            logger.error("Failed to detect distribution type", e);
+        }
+        
+        logger.info("Could not determine distribution type");
+        return DistributionType.UNKNOWN;
+    }
+    
+    /**
      * Parse release information from GitHub API response.
+     * This method now handles multiple assets and detects their distribution types.
      */
     private UpdateInfo parseReleaseInfo(JsonNode release) {
         try {
@@ -232,6 +277,15 @@ public class UpdateService {
                 return null;
             }
             
+            // Get user's distribution preference
+            Settings settings = settingsService.getSettings();
+            DistributionType preferredType = settings.getPreferredDistributionType();
+            
+            // If no preference, detect current distribution type
+            if (preferredType == DistributionType.UNKNOWN) {
+                preferredType = detectDistributionType();
+            }
+            
             UpdateInfo info = new UpdateInfo();
             info.setVersion(version);
             info.setReleaseNotes(release.get("body").asText(""));
@@ -240,40 +294,53 @@ public class UpdateService {
             
             // Parse release date
             String publishedAt = release.get("published_at").asText();
-            LocalDateTime releaseDate = LocalDateTime.parse(publishedAt, 
+            LocalDateTime releaseDate = LocalDateTime.parse(publishedAt,
                 DateTimeFormatter.ISO_DATE_TIME);
             info.setReleaseDate(releaseDate);
             
-            // Find Windows executable asset
+            // Find Windows executable assets
             JsonNode assets = release.get("assets");
             if (assets != null && assets.isArray()) {
+                UpdateInfo preferredAsset = null;
+                UpdateInfo fallbackAsset = null;
+                
+                // First pass: look for preferred distribution type
                 for (JsonNode asset : assets) {
                     String name = asset.get("name").asText();
                     if (isWindowsExecutable(name)) {
-                        info.setDownloadUrl(asset.get("browser_download_url").asText());
-                        info.setFileSize(asset.get("size").asLong());
+                        DistributionType assetType = DistributionType.fromFilename(name);
                         
-                        // Look for checksum file
-                        String checksumName = name + ".sha256";
-                        for (JsonNode checksumAsset : assets) {
-                            if (checksumAsset.get("name").asText().equals(checksumName)) {
-                                // We'll download and read the checksum later
-                                info.setChecksum(checksumAsset.get("browser_download_url").asText());
-                                break;
-                            }
+                        if (assetType == preferredType) {
+                            preferredAsset = createUpdateInfoFromAsset(info, asset, assetType, assets);
+                            logger.debug("Found preferred {} asset: {}", assetType, name);
+                            break;
+                        } else if (fallbackAsset == null && assetType != DistributionType.UNKNOWN) {
+                            fallbackAsset = createUpdateInfoFromAsset(info, asset, assetType, assets);
+                            logger.debug("Found fallback {} asset: {}", assetType, name);
                         }
-                        break;
+                    }
+                }
+                
+                // Use preferred asset if found, otherwise use fallback
+                if (preferredAsset != null) {
+                    return preferredAsset;
+                } else if (fallbackAsset != null) {
+                    logger.info("Preferred {} version not found, using {} version",
+                        preferredType, fallbackAsset.getDistributionType());
+                    return fallbackAsset;
+                }
+                
+                // Last resort: find any Windows executable
+                for (JsonNode asset : assets) {
+                    String name = asset.get("name").asText();
+                    if (isWindowsExecutable(name)) {
+                        return createUpdateInfoFromAsset(info, asset, DistributionType.UNKNOWN, assets);
                     }
                 }
             }
             
-            if (info.getDownloadUrl() != null) {
-                logger.debug("Successfully parsed release info for version {}", version);
-                return info;
-            } else {
-                logger.debug("No Windows executable found for version {}", version);
-                return null;
-            }
+            logger.debug("No Windows executable found for version {}", version);
+            return null;
             
         } catch (Exception e) {
             logger.error("Failed to parse release info", e);
@@ -282,13 +349,71 @@ public class UpdateService {
     }
     
     /**
+     * Create UpdateInfo from a specific asset.
+     */
+    private UpdateInfo createUpdateInfoFromAsset(UpdateInfo baseInfo, JsonNode asset,
+                                                 DistributionType distributionType,
+                                                 JsonNode allAssets) {
+        UpdateInfo info = new UpdateInfo();
+        info.setVersion(baseInfo.getVersion());
+        info.setReleaseNotes(baseInfo.getReleaseNotes());
+        info.setHtmlUrl(baseInfo.getHtmlUrl());
+        info.setMandatory(baseInfo.isMandatory());
+        info.setReleaseDate(baseInfo.getReleaseDate());
+        info.setDistributionType(distributionType);
+        
+        String name = asset.get("name").asText();
+        info.setDownloadUrl(asset.get("browser_download_url").asText());
+        info.setFileSize(asset.get("size").asLong());
+        
+        // Look for checksum file
+        String checksumName = name + ".sha256";
+        for (JsonNode checksumAsset : allAssets) {
+            if (checksumAsset.get("name").asText().equals(checksumName)) {
+                info.setChecksum(checksumAsset.get("browser_download_url").asText());
+                break;
+            }
+        }
+        
+        return info;
+    }
+    
+    /**
      * Check if a file name matches Windows executable patterns.
+     * Enhanced to better identify different distribution types.
      */
     private boolean isWindowsExecutable(String fileName) {
         fileName = fileName.toLowerCase();
-        return fileName.endsWith(".exe") || 
-               (fileName.contains("win") && fileName.endsWith(".zip")) ||
-               fileName.contains("portable");
+        
+        // Check for executable files
+        if (fileName.endsWith(".exe")) {
+            return true;
+        }
+        
+        // Check for Windows zip files
+        if (fileName.endsWith(".zip") &&
+            (fileName.contains("win") || fileName.contains("windows"))) {
+            return true;
+        }
+        
+        // Check for MSI installer files
+        if (fileName.endsWith(".msi")) {
+            return true;
+        }
+        
+        // Check for portable versions
+        if (fileName.contains("portable") &&
+            (fileName.endsWith(".zip") || fileName.endsWith(".exe"))) {
+            return true;
+        }
+        
+        // Check for installer/setup files
+        if ((fileName.contains("installer") || fileName.contains("setup")) &&
+            (fileName.endsWith(".exe") || fileName.endsWith(".msi"))) {
+            return true;
+        }
+        
+        return false;
     }
     
     /**
@@ -455,11 +580,12 @@ public class UpdateService {
     
     /**
      * Apply the downloaded update.
-     * 
+     *
      * @param updateFile Downloaded update file
+     * @param updateInfo Update information containing distribution type
      * @return true if update was staged successfully
      */
-    public boolean applyUpdate(File updateFile) {
+    public boolean applyUpdate(File updateFile, UpdateInfo updateInfo) {
         try {
             logger.info("Staging update for installation: {}", updateFile.getName());
             
@@ -473,8 +599,18 @@ public class UpdateService {
             Files.copy(updateFile.toPath(), stagedUpdate, StandardCopyOption.REPLACE_EXISTING);
             logger.info("Staged update file: {}", stagedUpdate.toAbsolutePath());
             
-            // Create update script
-            createUpdateScript(stagedUpdate);
+            // Get distribution type from update info or detect from filename
+            DistributionType updateDistType = updateInfo != null && updateInfo.getDistributionType() != DistributionType.UNKNOWN
+                ? updateInfo.getDistributionType()
+                : DistributionType.fromFilename(updateFile.getName());
+            logger.info("Update distribution type: {}", updateDistType);
+            
+            // Detect current installation type
+            DistributionType currentDistType = detectDistributionType();
+            logger.info("Current installation type: {}", currentDistType);
+            
+            // Create update script with distribution type information
+            createUpdateScript(stagedUpdate, updateDistType, currentDistType);
             
             logger.info("Update staged successfully - will be applied on next restart");
             return true;
@@ -486,48 +622,136 @@ public class UpdateService {
     }
     
     /**
-     * Create update script for Windows.
+     * Apply the downloaded update (backward compatibility).
+     *
+     * @param updateFile Downloaded update file
+     * @return true if update was staged successfully
      */
-    private void createUpdateScript(Path updateFile) throws IOException {
+    public boolean applyUpdate(File updateFile) {
+        return applyUpdate(updateFile, null);
+    }
+    
+    /**
+     * Create update script for Windows.
+     * Enhanced to handle different distribution types and update scenarios.
+     *
+     * @param updateFile The path to the staged update file
+     * @param updateDistType The distribution type of the update file
+     * @param currentDistType The distribution type of the current installation
+     */
+    private void createUpdateScript(Path updateFile, DistributionType updateDistType,
+                                  DistributionType currentDistType) throws IOException {
         Path scriptPath = Paths.get("update", "apply-update.bat");
         
         // Get the update file name only (not full path)
         String updateFileName = updateFile.getFileName().toString();
+        String lowerFileName = updateFileName.toLowerCase();
         
-        String script = String.format("""
+        // Determine if this is an installer or portable update
+        boolean isInstaller = lowerFileName.endsWith(".msi") ||
+                            (lowerFileName.endsWith(".exe") &&
+                             (lowerFileName.contains("setup") || lowerFileName.contains("installer")));
+        
+        String script;
+        
+        if (isInstaller) {
+            // Create installer script
+            script = createInstallerScript(updateFileName, lowerFileName);
+        } else {
+            // Create portable update script
+            script = createPortableScript(updateFileName, lowerFileName);
+        }
+        
+        Files.writeString(scriptPath, script);
+        logger.info("Update script created: {} (type: {})", scriptPath,
+                   isInstaller ? "installer" : "portable");
+    }
+    
+    /**
+     * Create update script for installer-based updates.
+     */
+    private String createInstallerScript(String updateFileName, String lowerFileName) {
+        String silentFlags;
+        
+        if (lowerFileName.endsWith(".msi")) {
+            // MSI installer - use Windows Installer silent flags
+            silentFlags = "/qn /norestart";
+        } else {
+            // EXE installer - try common silent flags
+            // Most installers support /S, /SILENT, or /VERYSILENT
+            silentFlags = "/S /SILENT /VERYSILENT";
+        }
+        
+        return String.format("""
             @echo off
-            echo Applying SiMP3 update...
+            echo Applying SiMP3 update via installer...
             echo.
             
-            :: Change to parent directory (where SiMP3.exe should be)
+            :: Change to parent directory
             cd /d "%%~dp0\\.."
             
-            :: Wait a bit for the application to fully close
-            timeout /t 3 /nobreak > nul
+            :: Set update file path
+            set "updateFile=update\\%s"
             
-            :: Backup current executable
-            if exist "SiMP3.exe" (
-                echo Backing up current version...
-                move /Y "SiMP3.exe" "SiMP3.exe.backup" > nul 2>&1
+            :: Wait for application to close
+            echo Waiting for application to close...
+            timeout /t 5 /nobreak > nul
+            
+            :: Check if we're in a portable installation
+            set "isPortable=0"
+            if not exist "%%ProgramFiles%%\\SiMP3\\SiMP3.exe" (
+                if not exist "%%ProgramFiles(x86)%%\\SiMP3\\SiMP3.exe" (
+                    if not exist "%%LocalAppData%%\\Programs\\SiMP3\\SiMP3.exe" (
+                        set "isPortable=1"
+                    )
+                )
             )
             
-            :: Check if update file is a zip
-            set "updateFile=update\\%s"
-            if /i "%%~x1"==".zip" (
-                echo Extracting update...
-                powershell -Command "Expand-Archive -Path '%%updateFile%%' -DestinationPath '.' -Force"
+            :: Run installer
+            echo Running installer...
+            if /i "%%~x1"==".msi" (
+                :: MSI installer
+                msiexec /i "%%updateFile%%" %s
             ) else (
-                :: Copy new executable
-                echo Installing new version...
-                copy /Y "%%updateFile%%" "SiMP3.exe" > nul
+                :: EXE installer - try different silent flags
+                "%%updateFile%%" /S >nul 2>&1
+                if errorlevel 1 (
+                    "%%updateFile%%" /SILENT >nul 2>&1
+                    if errorlevel 1 (
+                        "%%updateFile%%" /VERYSILENT >nul 2>&1
+                        if errorlevel 1 (
+                            :: If all silent flags fail, run with basic quiet flag
+                            "%%updateFile%%" /q >nul 2>&1
+                        )
+                    )
+                )
             )
             
             :: Clean up update file
+            timeout /t 3 /nobreak > nul
             if exist "%%updateFile%%" del /Q "%%updateFile%%"
             
-            :: Start updated application
-            echo Starting SiMP3...
-            start "" "SiMP3.exe"
+            :: If this was a portable installation, the installer might have installed to Program Files
+            :: In that case, we should inform the user
+            if "%%isPortable%%"=="1" (
+                echo.
+                echo NOTE: The installer may have installed SiMP3 to a different location.
+                echo Please check your Start Menu or Program Files for the updated version.
+                echo.
+                pause
+            ) else (
+                :: Try to start the updated application from common installation paths
+                if exist "%%ProgramFiles%%\\SiMP3\\SiMP3.exe" (
+                    start "" "%%ProgramFiles%%\\SiMP3\\SiMP3.exe"
+                ) else if exist "%%ProgramFiles(x86)%%\\SiMP3\\SiMP3.exe" (
+                    start "" "%%ProgramFiles(x86)%%\\SiMP3\\SiMP3.exe"
+                ) else if exist "%%LocalAppData%%\\Programs\\SiMP3\\SiMP3.exe" (
+                    start "" "%%LocalAppData%%\\Programs\\SiMP3\\SiMP3.exe"
+                ) else (
+                    :: If not found in standard locations, try current directory
+                    if exist "SiMP3.exe" start "" "SiMP3.exe"
+                )
+            )
             
             :: Clean up update directory
             timeout /t 2 /nobreak > nul
@@ -536,11 +760,101 @@ public class UpdateService {
             :: Exit
             exit
             """,
+            updateFileName,
+            silentFlags
+        );
+    }
+    
+    /**
+     * Create update script for portable updates.
+     */
+    private String createPortableScript(String updateFileName, String lowerFileName) {
+        return String.format("""
+            @echo off
+            echo Applying SiMP3 portable update...
+            echo.
+            
+            :: Change to parent directory (where SiMP3.exe should be)
+            cd /d "%%~dp0\\.."
+            
+            :: Wait for the application to fully close
+            echo Waiting for application to close...
+            timeout /t 3 /nobreak > nul
+            
+            :: Kill any remaining SiMP3 processes
+            taskkill /F /IM SiMP3.exe >nul 2>&1
+            timeout /t 2 /nobreak > nul
+            
+            :: Backup current executable
+            if exist "SiMP3.exe" (
+                echo Backing up current version...
+                if exist "SiMP3.exe.backup" del /Q "SiMP3.exe.backup"
+                move /Y "SiMP3.exe" "SiMP3.exe.backup" > nul 2>&1
+            )
+            
+            :: Set update file path
+            set "updateFile=update\\%s"
+            
+            :: Check if update file is a zip
+            if /i "%%updateFile:~-4%%"==".zip" (
+                echo Extracting update...
+                :: Use PowerShell to extract, preserving directory structure
+                powershell -NoProfile -Command "& { Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory('%%CD%%\\%%updateFile%%', '%%CD%%'); }"
+                
+                :: Check if extraction created a subdirectory
+                for /d %%%%D in (*) do (
+                    if exist "%%%%D\\SiMP3.exe" (
+                        echo Moving files from extracted directory...
+                        xcopy /E /Y "%%%%D\\*" "." > nul
+                        rmdir /S /Q "%%%%D"
+                    )
+                )
+            ) else if /i "%%updateFile:~-4%%"==".exe" (
+                :: Check if it's a self-extracting archive or plain executable
+                :: Try to extract first (some portable versions are self-extracting)
+                echo Checking if update is self-extracting...
+                "%%updateFile%%" /extract /quiet >nul 2>&1
+                if errorlevel 1 (
+                    :: Not self-extracting, just copy the executable
+                    echo Installing new version...
+                    copy /Y "%%updateFile%%" "SiMP3.exe" > nul
+                )
+            ) else (
+                :: Unknown file type, try to copy
+                echo Installing new version...
+                copy /Y "%%updateFile%%" "SiMP3.exe" > nul
+            )
+            
+            :: Verify update was successful
+            if not exist "SiMP3.exe" (
+                echo ERROR: Update failed - SiMP3.exe not found!
+                if exist "SiMP3.exe.backup" (
+                    echo Restoring backup...
+                    move /Y "SiMP3.exe.backup" "SiMP3.exe" > nul
+                )
+                pause
+                exit /b 1
+            )
+            
+            :: Clean up update file
+            if exist "%%updateFile%%" del /Q "%%updateFile%%"
+            
+            :: Clean up backup after successful update
+            if exist "SiMP3.exe.backup" del /Q "SiMP3.exe.backup"
+            
+            :: Start updated application
+            echo Starting SiMP3...
+            start "" "SiMP3.exe"
+            
+            :: Clean up update directory
+            timeout /t 2 /nobreak > nul
+            rmdir /S /Q "update" 2>nul
+            
+            :: Exit
+            exit
+            """,
             updateFileName
         );
-        
-        Files.writeString(scriptPath, script);
-        logger.info("Update script created: {}", scriptPath);
     }
     
     /**
