@@ -17,7 +17,7 @@ public class AudioVisualizerPane extends StackPane {
     
     private Canvas canvas;
     private AnimationTimer animationTimer;
-    private CircularSpectrumRenderer renderer;
+    private CompactBarRenderer renderer;
     private double[] spectrumData;
     private boolean isActive = false;
     
@@ -47,7 +47,7 @@ public class AudioVisualizerPane extends StackPane {
         canvas.setMouseTransparent(true);
         
         // Create renderer
-        renderer = new CircularSpectrumRenderer(config);
+        renderer = new CompactBarRenderer(config);
         
         // Add canvas to pane
         getChildren().add(canvas);
@@ -137,11 +137,13 @@ public class AudioVisualizerPane extends StackPane {
             System.out.println("Visualizer started - Canvas size: " + canvas.getWidth() + "x" + canvas.getHeight());
             System.out.println("Visualizer pane size: " + getWidth() + "x" + getHeight());
             
-            // If canvas still has no size, manually set it
-            if (canvas.getWidth() == 0 || canvas.getHeight() == 0) {
-                System.out.println("Canvas has no size, manually setting to parent size");
-                canvas.setWidth(80);
-                canvas.setHeight(80);
+            // If the pane has no size, set a minimum size to ensure canvas gets sized
+            if (getWidth() == 0 || getHeight() == 0) {
+                System.out.println("Pane has no size, setting minimum size");
+                setMinWidth(80);
+                setMinHeight(80);
+                setPrefWidth(80);
+                setPrefHeight(80);
             }
         }
     }

@@ -85,7 +85,6 @@ public class MiniPlayerWindow {
     private ImageView albumArt;
     private ImageView albumArtTransition;
     private AudioVisualizerPane visualizer;
-    private boolean isVisualizerActive = false;
     private Label timeLabel;
     
     // Queue view components
@@ -197,8 +196,9 @@ public class MiniPlayerWindow {
         albumArt.toBack();
         visualizer.toFront();
         
-        // Debug: Log initial visualizer state
-        System.out.println("Visualizer created - initial visibility: " + visualizer.isVisible());
+        // Start visualizer immediately
+        visualizer.start();
+        connectSpectrumListener();
         
         // Song info
         titleLabel = new Label("No song playing");
@@ -303,8 +303,7 @@ public class MiniPlayerWindow {
         // Add context menu
         setupContextMenu(mainLayout);
         
-        // Setup visualizer toggle on album art
-        setupVisualizerToggle();
+        // No longer need visualizer toggle - it's always on
         
         // Setup more options menu
         setupMoreOptionsMenu();
@@ -434,9 +433,7 @@ public class MiniPlayerWindow {
         audioPlayerService.currentSongProperty().addListener((obs, oldSong, newSong) -> {
             updateSongInfo(newSong);
             // Update visualizer state when song changes
-            if (isVisualizerActive) {
-                updateVisualizerState();
-            }
+            updateVisualizerState();
         });
         
         // Progress slider - remove bidirectional binding to prevent conflicts
@@ -510,8 +507,7 @@ public class MiniPlayerWindow {
         MenuItem showMainWindow = new MenuItem("Show Main Window");
         showMainWindow.setOnAction(e -> restoreMainWindow());
         
-        MenuItem toggleVisualizer = new MenuItem("Toggle Visualizer");
-        toggleVisualizer.setOnAction(e -> toggleVisualizer());
+        // Visualizer is always on, no toggle needed
         
         MenuItem alwaysOnTop = new MenuItem("Always on Top");
         alwaysOnTop.setOnAction(e -> togglePin());
@@ -522,27 +518,11 @@ public class MiniPlayerWindow {
         MenuItem close = new MenuItem("Close Mini Player");
         close.setOnAction(e -> hide());
         
-        contextMenu.getItems().addAll(showMainWindow, toggleVisualizer, alwaysOnTop, separator, close);
+        contextMenu.getItems().addAll(showMainWindow, alwaysOnTop, separator, close);
         
         // Set context menu on the main container instead of mainLayout
         mainContainer.setOnContextMenuRequested(event -> {
             alwaysOnTop.setText(isPinned ? "✓ Always on Top" : "Always on Top");
-            toggleVisualizer.setText(isVisualizerActive ? "✓ Show Visualizer" : "Show Visualizer");
-            
-            // Only enable visualizer for supported formats
-            Song currentSong = audioPlayerService.getCurrentSong();
-            if (currentSong != null) {
-                String filePath = currentSong.getFilePath().toLowerCase();
-                boolean isSupported = filePath.endsWith(".mp3") || filePath.endsWith(".m4a") ||
-                                    filePath.endsWith(".mp4") || filePath.endsWith(".aac");
-                toggleVisualizer.setDisable(!isSupported);
-                if (!isSupported) {
-                    toggleVisualizer.setText("Visualizer (Not available for this format)");
-                }
-            } else {
-                toggleVisualizer.setDisable(true);
-            }
-            
             contextMenu.show(mainContainer, event.getScreenX(), event.getScreenY());
         });
     }
@@ -912,24 +892,11 @@ public class MiniPlayerWindow {
             // Load album art asynchronously
             loadAlbumArt(song);
             
-            // Update tooltip based on format support
-            String filePath = song.getFilePath().toLowerCase();
-            boolean supportsVisualizer = filePath.endsWith(".mp3") || filePath.endsWith(".m4a") ||
-                                       filePath.endsWith(".mp4") || filePath.endsWith(".aac");
-            Tooltip visualizerTooltip = new Tooltip(supportsVisualizer ?
-                "Right-click to toggle visualizer" :
-                "Visualizer not available for this format");
-            Tooltip.install(albumArtContainer, visualizerTooltip);
+            // No tooltip needed since visualizer is always on
         } else {
             titleLabel.setText("No song playing");
             artistLabel.setText("");
             transitionToImage(defaultAlbumArt);
-            
-            // If visualizer is active, deactivate it
-            if (isVisualizerActive) {
-                isVisualizerActive = false;
-                showAlbumArt();
-            }
         }
         updateTimeLabel();
     }
@@ -1076,13 +1043,7 @@ public class MiniPlayerWindow {
         return miniStage;
     }
     
-    /**
-     * Check if the visualizer is currently active.
-     * @return true if visualizer is active, false otherwise
-     */
-    public boolean isVisualizerActive() {
-        return isVisualizerActive;
-    }
+    // Visualizer is always active, no need for this method
     
     /**
      * Save the current window position to settings.
@@ -1143,130 +1104,33 @@ public class MiniPlayerWindow {
         return false;
     }
     
-    /**
-     * Setup visualizer toggle functionality.
-     */
-    private void setupVisualizerToggle() {
-        // Right-click on album art to toggle
-        albumArtContainer.setOnMouseClicked(event -> {
-            if (event.getButton() == MouseButton.SECONDARY) {
-                // Check if current format supports visualization
-                Song currentSong = audioPlayerService.getCurrentSong();
-                if (currentSong != null) {
-                    String filePath = currentSong.getFilePath().toLowerCase();
-                    if (filePath.endsWith(".mp3") || filePath.endsWith(".m4a") ||
-                        filePath.endsWith(".mp4") || filePath.endsWith(".aac")) {
-                        toggleVisualizer();
-                    }
-                }
-            }
-        });
-        
-        // Add hover tooltip
-        Tooltip visualizerTooltip = new Tooltip("Right-click to toggle visualizer");
-        Tooltip.install(albumArtContainer, visualizerTooltip);
-    }
+    // No longer need visualizer toggle - it's always on
     
-    /**
-     * Toggle between album art and visualizer.
-     */
-    private void toggleVisualizer() {
-        System.out.println("=== VISUALIZER TOGGLE DEBUG ===");
-        System.out.println("Current state: " + isVisualizerActive);
-        System.out.println("Album art container children: " + albumArtContainer.getChildren().size());
-        for (int i = 0; i < albumArtContainer.getChildren().size(); i++) {
-            javafx.scene.Node child = albumArtContainer.getChildren().get(i);
-            System.out.println("  Child " + i + ": " + child.getClass().getSimpleName() +
-                             " - Visible: " + child.isVisible() +
-                             ", Opacity: " + child.getOpacity());
-        }
-        
-        isVisualizerActive = !isVisualizerActive;
-        System.out.println("New state: " + isVisualizerActive);
-        updateVisualizerState();
-        
-        // Debug after state update
-        System.out.println("After update:");
-        for (int i = 0; i < albumArtContainer.getChildren().size(); i++) {
-            javafx.scene.Node child = albumArtContainer.getChildren().get(i);
-            System.out.println("  Child " + i + ": " + child.getClass().getSimpleName() +
-                             " - Visible: " + child.isVisible() +
-                             ", Opacity: " + child.getOpacity());
-        }
-        System.out.println("=== END DEBUG ===");
-    }
+    // No longer need toggle method - visualizer is always on
     
     /**
      * Update visualizer state based on current settings and song.
      */
     private void updateVisualizerState() {
-        if (isVisualizerActive) {
-            // Check if current format supports visualization
-            Song currentSong = audioPlayerService.getCurrentSong();
-            if (currentSong != null && visualizer.supportsFormat(getFileExtension(currentSong.getFilePath()))) {
-                System.out.println("Starting mini player visualizer for: " + currentSong.getTitle());
-                
-                // Hide album art
-                albumArt.setVisible(false);
-                albumArtTransition.setVisible(false);
-                
-                // Make sure visualizer is visible and on top
-                visualizer.setVisible(true);
-                visualizer.setOpacity(1.0);
-                visualizer.toFront(); // Ensure visualizer is on top
-                
-                // Start visualizer animation
+        // Check if current format supports visualization
+        Song currentSong = audioPlayerService.getCurrentSong();
+        if (currentSong != null && visualizer.supportsFormat(getFileExtension(currentSong.getFilePath()))) {
+            // Visualizer is supported and always on
+            if (!visualizer.isActive()) {
                 visualizer.start();
-                
-                // Apply CSS class for active state
-                visualizer.getStyleClass().add("visualizer-active");
-                
-                // Connect spectrum listener
                 connectSpectrumListener();
-                
-                // Force a layout update
-                albumArtContainer.requestLayout();
-                
-                // Debug: Check visualizer state
-                System.out.println("Visualizer visibility: " + visualizer.isVisible());
-                System.out.println("Visualizer opacity: " + visualizer.getOpacity());
-                System.out.println("Visualizer active: " + visualizer.isActive());
-            } else {
-                // Format not supported, revert to album art
-                System.out.println("Format not supported for visualizer");
-                isVisualizerActive = false;
-                showAlbumArt();
             }
         } else {
-            showAlbumArt();
+            // Format not supported, stop visualizer
+            if (visualizer.isActive()) {
+                visualizer.stop();
+                visualizer.reset();
+                disconnectSpectrumListener();
+            }
         }
     }
     
-    /**
-     * Show album art and hide visualizer.
-     */
-    private void showAlbumArt() {
-        System.out.println("Showing album art, hiding visualizer");
-        
-        // Stop visualizer
-        if (visualizer != null) {
-            visualizer.stop();
-            visualizer.reset();
-            visualizer.setVisible(false);
-            visualizer.getStyleClass().remove("visualizer-active");
-        }
-        
-        // Show album art
-        albumArt.setVisible(true);
-        albumArtTransition.setVisible(true);
-        
-        // Only disconnect spectrum listener if main window is not minimized
-        // This prevents disrupting the main window's visualizer
-        Stage mainStage = this.mainStage;
-        if (mainStage == null || !mainStage.isIconified()) {
-            disconnectSpectrumListener();
-        }
-    }
+    // No longer need showAlbumArt method - visualizer is always visible
     
     /**
      * Connect audio spectrum listener to visualizer.
@@ -1274,14 +1138,7 @@ public class MiniPlayerWindow {
     private void connectSpectrumListener() {
         System.out.println("Connecting spectrum listener for mini player visualizer");
         audioPlayerService.setAudioSpectrumListener((timestamp, duration, magnitudes, phases) -> {
-            if (isVisualizerActive && visualizer != null) {
-                // Debug: Check if we're receiving spectrum data
-                if (magnitudes != null && magnitudes.length > 0) {
-                    // Only log occasionally to avoid spam
-                    if (Math.random() < 0.01) { // 1% chance
-                        System.out.println("Mini player spectrum data received: " + magnitudes.length + " bands, first magnitude: " + magnitudes[0]);
-                    }
-                }
+            if (visualizer != null && visualizer.isActive()) {
                 // Update spectrum data on JavaFX thread if needed
                 javafx.application.Platform.runLater(() -> {
                     visualizer.updateSpectrum(timestamp, duration, magnitudes, phases);
@@ -1317,17 +1174,6 @@ public class MiniPlayerWindow {
     private void setupKeyboardShortcuts() {
         miniStage.getScene().setOnKeyPressed(event -> {
             switch (event.getCode()) {
-                case V:
-                    // Toggle visualizer
-                    Song currentSong = audioPlayerService.getCurrentSong();
-                    if (currentSong != null) {
-                        String filePath = currentSong.getFilePath().toLowerCase();
-                        if (filePath.endsWith(".mp3") || filePath.endsWith(".m4a") ||
-                            filePath.endsWith(".mp4") || filePath.endsWith(".aac")) {
-                            toggleVisualizer();
-                        }
-                    }
-                    break;
                 case T:
                     // Test visualizer with dummy data
                     if (event.isControlDown()) {
@@ -1359,10 +1205,6 @@ public class MiniPlayerWindow {
     private void testVisualizerWithDummyData() {
         System.out.println("=== TESTING VISUALIZER WITH DUMMY DATA ===");
         
-        if (!isVisualizerActive) {
-            toggleVisualizer();
-        }
-        
         // Create an animation timer to continuously send dummy data
         javafx.animation.AnimationTimer dummyDataTimer = new javafx.animation.AnimationTimer() {
             private long lastUpdate = 0;
@@ -1383,7 +1225,7 @@ public class MiniPlayerWindow {
                     }
                     
                     // Send to visualizer
-                    if (visualizer != null && isVisualizerActive) {
+                    if (visualizer != null && visualizer.isActive()) {
                         visualizer.updateSpectrum(0, 0, dummyMagnitudes, null);
                     }
                     
