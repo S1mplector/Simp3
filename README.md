@@ -5,7 +5,7 @@
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://www.oracle.com/java/)
 [![JavaFX](https://img.shields.io/badge/JavaFX-17%2B-blue.svg)](https://openjfx.io/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![GitHub release](https://img.shields.io/github/v/release/yourusername/simp3?include_prereleases)](https://github.com/yourusername/simp3/releases)
+[![GitHub release](https://img.shields.io/github/v/release/yourusername/simp3?include_prereleases)](https://github.com/S1mplector/Simp3/releases)
 
 **A lightweight, modern music player built with JavaFX that puts simplicity first.**
 
@@ -30,7 +30,7 @@ SiMP3 is a resource-friendly music player designed for users who want a clean, e
 ## ✨ Features
 
 ### 🎵 Core Features
-- **Multi-Format Support**: Play MP3, WAV, FLAC, and other common audio formats
+- **Multi-Format Support**: Play MP3, WAV, FLAC, and virtually all other audio formats
 - **Library Management**: Automatic scanning and organization of your music collection
 - **Playlist Creation**: Create, edit, and manage custom playlists
 - **Smart Search**: Find songs quickly with advanced search and filtering
@@ -54,10 +54,10 @@ SiMP3 is a resource-friendly music player designed for users who want a clean, e
 ## 📸 Screenshots
 
 <div align="center">
-  <img src="docs/images/main-interface.png" alt="Main Interface" width="600">
+  <img src="docs/images/main_interface.png" alt="Main Interface" width="600">
   <p><i>Main player interface with library and playlists</i></p>
   
-  <img src="docs/images/mini-player.png" alt="Mini Player" width="300">
+  <img src="docs/images/miniplayer.png" alt="Mini Player" width="300">
   <p><i>Compact mini player mode</i></p>
 </div>
 
