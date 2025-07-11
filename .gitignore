@@ -121,3 +121,6 @@ ENV/
 
 # User-specific files
 local.properties
+
+# devlog folder and files
+/devlog/
