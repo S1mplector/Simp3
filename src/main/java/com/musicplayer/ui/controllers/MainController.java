@@ -1001,6 +1001,10 @@ public class MainController implements Initializable {
             controller.getSaveButton().setOnAction(e -> {
                 controller.saveSettings();
                 applyVisualizerSettings();
+                // Also update mini player visualizer settings if it exists
+                if (miniPlayerWindow != null) {
+                    miniPlayerWindow.updateVisualizerSettings();
+                }
                 dialog.setResult(ButtonType.OK);
                 dialog.close();
             });

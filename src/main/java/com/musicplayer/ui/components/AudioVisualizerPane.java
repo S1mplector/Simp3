@@ -6,6 +6,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
+import com.musicplayer.data.models.Settings;
 
 /**
  * Container component that manages the visualizer canvas and animation loop.
@@ -31,8 +32,14 @@ public class AudioVisualizerPane extends StackPane {
     // Performance tracking
     private long lastFrameTime = 0;
     private final long targetFrameTime;
+    private Settings settings;
     
     public AudioVisualizerPane() {
+        this(null);
+    }
+    
+    public AudioVisualizerPane(Settings settings) {
+        this.settings = settings;
         this.config = new VisualizerConfig();
         this.targetFrameTime = 1_000_000_000L / config.getTargetFPS(); // Nanoseconds per frame
         this.spectrumData = new double[SPECTRUM_BANDS];
@@ -46,8 +53,8 @@ public class AudioVisualizerPane extends StackPane {
         canvas = new Canvas();
         canvas.setMouseTransparent(true);
         
-        // Create renderer
-        renderer = new CompactBarRenderer(config);
+        // Create renderer with settings
+        renderer = new CompactBarRenderer(config, settings);
         
         // Add canvas to pane
         getChildren().add(canvas);
@@ -254,5 +261,15 @@ public class AudioVisualizerPane extends StackPane {
             animationTimer.stop();
         }
         lastFrameTime = 0;
+    }
+    
+    /**
+     * Update the settings for the visualizer.
+     */
+    public void updateSettings(Settings settings) {
+        this.settings = settings;
+        if (renderer instanceof CompactBarRenderer) {
+            ((CompactBarRenderer) renderer).updateSettings(settings);
+        }
     }
 }
