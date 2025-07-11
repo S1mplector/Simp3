@@ -1,179 +1,244 @@
-# SiMP3 Packaging and Distribution Guide
+# SiMP3 Packaging Guide
 
-## Overview
+This guide explains how to package and distribute SiMP3 for Windows users.
 
-SiMP3 can be packaged in several ways, each with different requirements for the end user:
+## Prerequisites
 
-1. **Basic EXE** - Requires Java 17+ installed on target machine
-2. **Self-contained Installer** - Includes Java runtime, no prerequisites needed
-3. **Portable Package** - Includes runtime, can run from USB/folder
+Before packaging SiMP3, ensure you have:
 
-## Current Issue
+1. **Java Development Kit (JDK) 17 or higher**
+   - Download from: https://adoptium.net/
+   - Verify: `java -version` (should show 17 or higher)
+   - Ensure you have JDK, not just JRE (jpackage requires JDK)
 
-The executable created by simply copying from the `target` folder **requires Java to be installed** on the target machine. This is why it works on your development machine but fails on other computers without Java.
+2. **Apache Maven**
+   - Download from: https://maven.apache.org/download.cgi
+   - Add to PATH
+   - Verify: `mvn -version`
 
-## Solution: Proper Build Process
+3. **WiX Toolset v3.14** (for creating MSI installers)
+   - Run: `install-wix.bat`
+   - Or download manually from: https://github.com/wixtoolset/wix3/releases
+   - Verify: `candle.exe -?`
 
-### Option 1: Basic Release (Requires Java)
+## Packaging Options
 
-```powershell
-# This creates an EXE that requires Java 17+ on target machine
-.\scripts\create-release.ps1 -Version "1.0.0"
+SiMP3 provides three packaging options, each with different use cases:
+
+### 1. Windows Installer (.msi/.exe)
+**Best for:** General distribution to end users
+
+Creates a professional Windows installer that:
+- Bundles Java runtime (no Java required on target PC)
+- Creates Start Menu shortcuts
+- Handles proper installation/uninstallation
+- Registers with Windows Programs & Features
+
+**To create:**
+```batch
+scripts\create-installer.bat
 ```
 
-**Pros:**
-- Small file size (~10 MB)
-- Quick to build
+Choose option 1 (exe) or 2 (msi) when prompted. The installer will be created in:
+- `releases\SiMP3-v{version}-installer.exe` or
+- `releases\SiMP3-v{version}-installer.msi`
 
-**Cons:**
-- Requires Java 17+ installed on target machine
-- Will fail silently if Java is not found
+### 2. Portable Version
+**Best for:** USB drives, no-installation scenarios
 
-### Option 2: Self-Contained Installer (Recommended)
+Creates a self-contained folder that:
+- Includes bundled Java runtime
+- Requires no installation
+- Can run from any location
+- Leaves no registry entries
 
-```powershell
-# First, ensure you have JDK 17+ (not just JRE)
-java -version
-jpackage --version
-
-# Create installer with bundled Java runtime
-.\scripts\create-installer.ps1 -Version "1.0.0" -Type exe
+**To create:**
+```batch
+create-portable.bat
 ```
 
-**Pros:**
-- No Java required on target machine
-- Professional installer experience
-- Includes uninstaller
-- File associations for music files
+The portable version will be created in:
+- `releases\SiMP3-v{version}-portable\`
 
-**Cons:**
-- Larger file size (~80-100 MB)
-- Requires JDK with jpackage tool
+To use: Copy the entire folder and run `SiMP3.exe` from within it.
 
-### Option 3: Maven JavaFX Plugin
+### 3. Basic Executable (Not Recommended)
+**Best for:** Development/testing only
 
-```powershell
-# Use Maven's JavaFX plugin for packaging
-.\scripts\package-with-runtime.ps1 -Version "1.0.0"
+Creates a basic .exe that:
+- Requires Java 17+ installed on target PC
+- Will not work without Java
+- Smaller file size but less portable
+
+**To create:**
+```batch
+scripts\create-release.bat
 ```
 
-## Step-by-Step: Creating a Proper Release
+The basic executable will be created in:
+- `releases\SiMP3-v{version}\SiMP3.exe`
 
-### For GitHub Releases (Recommended Approach)
+## Script Features
 
-1. **Build the project properly:**
-   ```powershell
+All packaging scripts now include:
+
+### Error Checking
+- Verifies all prerequisites are installed
+- Checks Java version compatibility
+- Validates script locations
+- Confirms successful operations
+
+### User Guidance
+- Clear error messages with solutions
+- Interactive prompts for options
+- Progress indicators
+- Success confirmations
+
+### Safety Features
+- Confirmation prompts before operations
+- Directory existence checks
+- Clean error handling
+- Detailed logging
+
+## Step-by-Step Guide
+
+### First Time Setup
+
+1. **Install Prerequisites**
+   ```batch
+   # Install WiX Toolset (if not already installed)
+   install-wix.bat
+   ```
+
+2. **Build the Project**
+   ```batch
    mvn clean package
    ```
 
-2. **Create self-contained installer:**
-   ```powershell
-   .\scripts\create-installer.ps1 -Version "1.0.0"
+### Creating a Release
+
+1. **For Distribution (Recommended)**
+   ```batch
+   scripts\create-installer.bat
    ```
+   - Choose installer type (exe or msi)
+   - Enter version number
+   - Wait for completion
 
-3. **Upload to GitHub:**
-   - Go to your GitHub repository
-   - Click "Releases" → "Create a new release"
-   - Tag version: `v1.0.0`
-   - Release title: `SiMP3 v1.0.0`
-   - Upload files:
-     - `releases\installers\SiMP3-v1.0.0-installer.exe` (self-contained)
-     - `releases\SiMP3-v1.0.0\SiMP3.exe` (requires Java)
-   - Add release notes explaining requirements
+2. **For Portable Use**
+   ```batch
+   create-portable.bat
+   ```
+   - Enter version number
+   - Wait for completion
 
-### Release Notes Template
+### Distribution Checklist
 
-```markdown
-## SiMP3 v1.0.0
+Before distributing:
 
-### Downloads
+1. **Test on Clean System**
+   - Test on PC without Java installed
+   - Verify all features work
+   - Check auto-update functionality
 
-#### 🎯 Recommended: Windows Installer
-- **File:** `SiMP3-v1.0.0-installer.exe`
-- **Size:** ~90 MB
-- **Requirements:** Windows 10 or later
-- **Includes:** Java runtime bundled - no installation required!
+2. **Version Management**
+   - Update version in `pom.xml`
+   - Create Git tag
+   - Build with correct version
 
-#### 💾 Standalone Executable
-- **File:** `SiMP3.exe`
-- **Size:** ~10 MB
-- **Requirements:** Java 17+ must be installed
-- **Note:** For advanced users who already have Java
-
-### What's New
-- Auto-update functionality
-- Update checking on startup
-- Comprehensive logging
-- Settings integration
-
-### Installation Instructions
-
-**For Installer (Recommended):**
-1. Download `SiMP3-v1.0.0-installer.exe`
-2. Run the installer
-3. Follow the setup wizard
-4. Launch from Start Menu or Desktop
-
-**For Standalone EXE:**
-1. Ensure Java 17+ is installed: `java -version`
-2. Download `SiMP3.exe`
-3. Double-click to run
-```
+3. **GitHub Release**
+   - Create new release on GitHub
+   - Upload installer/portable version
+   - Update release notes
 
 ## Troubleshooting
 
-### "The application won't start" (No error message)
-- **Cause:** Java is not installed or not in PATH
-- **Solution:** Use the installer version or install Java 17+
+### Common Issues
 
-### "jpackage: command not found"
-- **Cause:** Using JRE instead of JDK
-- **Solution:** Install full JDK from [Adoptium](https://adoptium.net/)
+**"Maven not found"**
+- Install Maven from https://maven.apache.org/
+- Add Maven bin directory to PATH
+- Restart terminal
 
-### Build Failures
-1. Clean everything: `mvn clean`
-2. Delete `target` folder manually
-3. Rebuild: `mvn package`
+**"jpackage not found"**
+- Ensure you have JDK 17+, not just JRE
+- Download JDK from https://adoptium.net/
+- Add JDK bin directory to PATH
 
-## File Structure After Proper Build
+**"WiX not found" when creating MSI**
+- Run `install-wix.bat`
+- Restart terminal after installation
+- Check PATH includes WiX bin directory
 
+**"Build failed"**
+- Run `mvn clean` first
+- Check for compilation errors
+- Ensure all dependencies are downloaded
+
+### Build Requirements
+
+- Minimum 4GB RAM recommended
+- ~500MB free disk space
+- Internet connection (first build)
+- Windows 10/11
+
+## Advanced Options
+
+### Custom Icons
+Place custom icons in `src/main/resources/`:
+- `icon.ico` - Windows icon
+- `icon.png` - General icon
+
+### JVM Options
+Edit `scripts\create-installer.ps1` to modify:
+- Memory settings
+- System properties
+- Runtime options
+
+### Version Numbering
+Follow semantic versioning:
+- MAJOR.MINOR.PATCH
+- Example: 1.2.3
+
+## File Structure
+
+After packaging:
 ```
-simp3/
-├── target/
-│   ├── SiMP3.exe              # Launch4j wrapper (needs Java)
-│   ├── simp3-1.0.0.jar        # Shaded JAR with dependencies
-│   └── jpackage/              # If using jpackage
-├── releases/
-│   ├── SiMP3-v1.0.0/          # Basic release
-│   │   ├── SiMP3.exe
-│   │   └── README.txt
-│   └── installers/            # Self-contained installers
-│       ├── SiMP3-v1.0.0-installer.exe
-│       └── README-installer.txt
+releases/
+├── SiMP3-v1.0.0-installer.exe    # Windows installer
+├── SiMP3-v1.0.0-installer.msi    # MSI installer
+├── SiMP3-v1.0.0-portable/        # Portable version
+│   ├── SiMP3.exe
+│   ├── app/
+│   └── runtime/
+└── SiMP3-v1.0.0/                 # Basic version
+    └── SiMP3.exe
 ```
 
 ## Best Practices
 
-1. **Always test on a clean machine** without Java installed
-2. **Provide both versions** - installer and standalone
-3. **Clear documentation** about requirements
-4. **Use semantic versioning** (1.0.0, 1.0.1, etc.)
-5. **Sign your executables** (optional but recommended)
+1. **Always Test**
+   - Test each package type
+   - Verify on different Windows versions
+   - Check with/without admin rights
 
-## Quick Commands Reference
+2. **Version Consistently**
+   - Update pom.xml version
+   - Tag Git commits
+   - Document changes
 
-```powershell
-# Full build and package
-mvn clean package
+3. **Provide Clear Instructions**
+   - Include README in releases
+   - Document system requirements
+   - Provide troubleshooting guide
 
-# Create basic release (needs Java)
-.\scripts\create-release.ps1
+## Support
 
-# Create installer (self-contained)
-.\scripts\create-installer.ps1
+For issues with packaging:
+1. Check error messages carefully
+2. Verify all prerequisites
+3. Run scripts from project root
+4. Check GitHub issues
+5. Review build logs
 
-# Test without building
-.\scripts\create-installer.ps1 -SkipBuild
-
-# Create MSI instead of EXE
-.\scripts\create-installer.ps1 -Type msi
+Remember: The installer and portable versions are self-contained and don't require Java on the target system, making them the best choice for distribution.
