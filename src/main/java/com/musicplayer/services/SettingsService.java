@@ -120,4 +120,21 @@ public class SettingsService {
     public double getMiniPlayerY() {
         return settings.getMiniPlayerY();
     }
+    
+    /**
+     * Update mini player pinned state.
+     * @param pinned Whether the mini player should be always on top
+     */
+    public void setMiniPlayerPinned(boolean pinned) {
+        settings.setMiniPlayerPinned(pinned);
+        saveSettings();
+    }
+    
+    /**
+     * Get mini player pinned state.
+     * @return true if mini player is pinned (always on top)
+     */
+    public boolean isMiniPlayerPinned() {
+        return settings.isMiniPlayerPinned();
+    }
 }

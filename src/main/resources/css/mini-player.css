@@ -6,7 +6,7 @@
 
 /* Main container with modern gradient background */
 .mini-player-root {
-    -fx-background-color: linear-gradient(135deg,
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%,
         rgba(255, 255, 255, 0.98) 0%,
         rgba(248, 249, 250, 0.95) 50%,
         rgba(241, 243, 245, 0.92) 100%);
@@ -68,6 +68,54 @@
     -fx-scale-y: 0.95;
 }
 
+/* Pin button styling with state indicators */
+.pin-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 2;
+    -fx-cursor: hand;
+    -fx-background-radius: 4;
+    -fx-transition: all 0.2s ease;
+}
+
+.pin-button:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.08);
+    -fx-scale-x: 1.1;
+    -fx-scale-y: 1.1;
+}
+
+.pin-button:pressed {
+    -fx-scale-x: 0.95;
+    -fx-scale-y: 0.95;
+}
+
+/* Pin button pinned state - green glow effect */
+.pin-button-pinned {
+    -fx-effect: dropshadow(gaussian, rgba(76, 175, 80, 0.8), 10, 0, 0, 0);
+}
+
+.pin-button-pinned .image-view {
+    -fx-effect: dropshadow(gaussian, rgba(76, 175, 80, 1.0), 8, 0, 0, 0);
+}
+
+/* Apply green tint to pinned state */
+.pin-button-pinned {
+    -fx-background-color: linear-gradient(to bottom,
+        rgba(76, 175, 80, 0.2),
+        rgba(76, 175, 80, 0.15));
+    -fx-background-radius: 4;
+}
+
+/* Pin button unpinned state - reduced opacity */
+.pin-button-unpinned {
+    -fx-opacity: 0.6;
+}
+
+.pin-button-unpinned:hover {
+    -fx-opacity: 0.8;
+    -fx-background-color: rgba(0, 0, 0, 0.08);
+}
+
 /* Mode buttons (shuffle/repeat) with state indicators */
 .mode-button {
     -fx-background-color: transparent;
@@ -127,7 +175,7 @@
 }
 
 .slider .thumb {
-    -fx-background-color: linear-gradient(135deg, #66bb6a, #4caf50);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #66bb6a, #4caf50);
     -fx-background-radius: 50%;
     -fx-pref-width: 14px;
     -fx-pref-height: 14px;
@@ -137,7 +185,7 @@
 }
 
 .slider:hover .thumb {
-    -fx-background-color: linear-gradient(135deg, #81c784, #66bb6a);
+    -fx-background-color: linear-gradient(from 0% 0% to 100% 100%, #81c784, #66bb6a);
     -fx-pref-width: 16px;
     -fx-pref-height: 16px;
     -fx-effect: dropshadow(gaussian, rgba(76, 175, 80, 0.7), 12, 0, 0, 3);

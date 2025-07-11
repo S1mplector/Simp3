@@ -133,9 +133,9 @@ public class MiniPlayerWindow {
         nextIcon = new Image(getClass().getResourceAsStream("/images/icons/next.png"));
         shuffleIcon = new Image(getClass().getResourceAsStream("/images/icons/shuffle.png"));
         repeatIcon = new Image(getClass().getResourceAsStream("/images/icons/repeat.png"));
-        // For now, use existing icons as placeholders for pin functionality
-        pinIcon = new Image(getClass().getResourceAsStream("/images/icons/ok.png"));
-        unpinIcon = new Image(getClass().getResourceAsStream("/images/icons/cancel.png"));
+        // Use pin icon for both states – we'll rotate it to indicate unpinned
+        pinIcon = new Image(getClass().getResourceAsStream("/images/icons/pin.png"));
+        unpinIcon = pinIcon;
         closeIcon = new Image(getClass().getResourceAsStream("/images/icons/remove.png"));
         defaultAlbumArt = new Image(getClass().getResourceAsStream("/images/icons/album_placeholder.png"));
         
@@ -240,6 +240,8 @@ public class MiniPlayerWindow {
                             "-fx-background-color: transparent; -fx-border-color: transparent; " +
                             "-fx-padding: 2; -fx-cursor: hand;");
         pinButton = createWindowButton(isPinned ? pinIcon : unpinIcon, "Toggle Always on Top");
+        // Rotate to indicate state when not pinned
+        ((ImageView) pinButton.getGraphic()).setRotate(isPinned ? 0 : 45);
         closeButton = createWindowButton(closeIcon, "Close Mini Player");
         
         HBox windowControls = new HBox(5);
@@ -934,7 +936,8 @@ public class MiniPlayerWindow {
         miniStage.setAlwaysOnTop(isPinned);
         
         ImageView imageView = (ImageView) pinButton.getGraphic();
-        imageView.setImage(isPinned ? pinIcon : unpinIcon);
+        imageView.setImage(pinIcon); // same icon
+        imageView.setRotate(isPinned ? 0 : 45);
         pinButton.setTooltip(new Tooltip(isPinned ? "Disable Always on Top" : "Enable Always on Top"));
     }
     

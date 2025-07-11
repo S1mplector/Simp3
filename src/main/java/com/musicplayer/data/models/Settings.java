@@ -13,6 +13,9 @@ public class Settings {
     // Mini player settings
     private double miniPlayerX = -1; // -1 means use default position
     private double miniPlayerY = -1; // -1 means use default position
+
+    // Whether mini player window should stay always on top
+    private boolean miniPlayerPinned = true;
     
     /**
      * Enum for visualizer color modes.
@@ -71,5 +74,13 @@ public class Settings {
     
     public void setMiniPlayerY(double miniPlayerY) {
         this.miniPlayerY = miniPlayerY;
+    }
+
+    public boolean isMiniPlayerPinned() {
+        return miniPlayerPinned;
+    }
+
+    public void setMiniPlayerPinned(boolean miniPlayerPinned) {
+        this.miniPlayerPinned = miniPlayerPinned;
     }
 }
