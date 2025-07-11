@@ -18,96 +18,101 @@
     </header>
     
     <content>
-        <ScrollPane fitToWidth="true" hbarPolicy="NEVER">
-            <content>
-                <VBox spacing="20">
-                    <padding>
-                        <Insets top="10" left="20" right="20" bottom="10"/>
-                    </padding>
-                    
-                    <!-- Visuals Section -->
-                    <VBox spacing="10">
-                        <Label text="Visuals" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
-                        <Separator/>
+        <VBox spacing="0">
+            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS">
+                <content>
+                    <VBox spacing="20">
+                        <padding>
+                            <Insets top="10" left="20" right="20" bottom="10"/>
+                        </padding>
                         
-                        <!-- Visualizer Enabled -->
-                        <HBox alignment="CENTER_LEFT" spacing="10">
-                            <CheckBox fx:id="visualizerEnabledCheckBox" text="Enable Audio Visualizer"/>
-                        </HBox>
-                        
-                        <!-- Color Mode -->
-                        <VBox spacing="5" fx:id="colorModeSection">
-                            <Label text="Color Mode:"/>
-                            <HBox spacing="10">
-                                <RadioButton fx:id="gradientCyclingRadio" text="Gradient Cycling">
-                                    <toggleGroup>
-                                        <ToggleGroup fx:id="colorModeGroup"/>
-                                    </toggleGroup>
-                                </RadioButton>
-                                <RadioButton fx:id="solidColorRadio" text="Solid Color" toggleGroup="$colorModeGroup"/>
+                        <!-- Visuals Section -->
+                        <VBox spacing="10">
+                            <Label text="Visuals" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                            <Separator/>
+                            
+                            <!-- Visualizer Enabled -->
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <CheckBox fx:id="visualizerEnabledCheckBox" text="Enable Audio Visualizer"/>
                             </HBox>
+                            
+                            <!-- Color Mode -->
+                            <VBox spacing="5" fx:id="colorModeSection">
+                                <Label text="Color Mode:"/>
+                                <HBox spacing="10">
+                                    <RadioButton fx:id="gradientCyclingRadio" text="Gradient Cycling">
+                                        <toggleGroup>
+                                            <ToggleGroup fx:id="colorModeGroup"/>
+                                        </toggleGroup>
+                                    </RadioButton>
+                                    <RadioButton fx:id="solidColorRadio" text="Solid Color" toggleGroup="$colorModeGroup"/>
+                                </HBox>
+                            </VBox>
+                            
+                            <!-- Color Picker -->
+                            <HBox alignment="CENTER_LEFT" spacing="10" fx:id="colorPickerSection">
+                                <Label text="Solid Color:"/>
+                                <ColorPicker fx:id="solidColorPicker" prefWidth="100"/>
+                            </HBox>
+                            
                         </VBox>
                         
-                        <!-- Color Picker -->
-                        <HBox alignment="CENTER_LEFT" spacing="10" fx:id="colorPickerSection">
-                            <Label text="Solid Color:"/>
-                            <ColorPicker fx:id="solidColorPicker" prefWidth="100"/>
-                        </HBox>
+                        <!-- Updates Section -->
+                        <VBox spacing="10">
+                            <Label text="Updates" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                            <Separator/>
+                            
+                            <!-- Auto-check for updates -->
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <CheckBox fx:id="autoCheckUpdatesCheckBox" text="Automatically check for updates"/>
+                            </HBox>
+                            
+                            <!-- Update check interval -->
+                            <HBox alignment="CENTER_LEFT" spacing="10" fx:id="updateIntervalSection">
+                                <Label text="Check for updates every:"/>
+                                <Spinner fx:id="updateIntervalSpinner" prefWidth="80">
+                                    <valueFactory>
+                                        <SpinnerValueFactory.IntegerSpinnerValueFactory min="1" max="168" initialValue="24"/>
+                                    </valueFactory>
+                                </Spinner>
+                                <Label text="hours"/>
+                            </HBox>
+                            
+                            <!-- Show pre-release versions -->
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <CheckBox fx:id="showPreReleaseCheckBox" text="Show pre-release versions"/>
+                            </HBox>
+                            
+                            <!-- Download in background -->
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <CheckBox fx:id="downloadInBackgroundCheckBox" text="Download updates in background"/>
+                            </HBox>
+                            
+                            <!-- Last update check info -->
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <Label text="Last checked:"/>
+                                <Label fx:id="lastUpdateCheckLabel" text="Never" style="-fx-text-fill: #666666;"/>
+                            </HBox>
+                            
+                            <!-- Check now button -->
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <Button fx:id="checkNowButton" text="Check for Updates Now" onAction="#onCheckForUpdates"/>
+                            </HBox>
+                            
+                        </VBox>
                         
                     </VBox>
-                    
-                    <!-- Updates Section -->
-                    <VBox spacing="10">
-                        <Label text="Updates" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
-                        <Separator/>
-                        
-                        <!-- Auto-check for updates -->
-                        <HBox alignment="CENTER_LEFT" spacing="10">
-                            <CheckBox fx:id="autoCheckUpdatesCheckBox" text="Automatically check for updates"/>
-                        </HBox>
-                        
-                        <!-- Update check interval -->
-                        <HBox alignment="CENTER_LEFT" spacing="10" fx:id="updateIntervalSection">
-                            <Label text="Check for updates every:"/>
-                            <Spinner fx:id="updateIntervalSpinner" prefWidth="80">
-                                <valueFactory>
-                                    <SpinnerValueFactory.IntegerSpinnerValueFactory min="1" max="168" initialValue="24"/>
-                                </valueFactory>
-                            </Spinner>
-                            <Label text="hours"/>
-                        </HBox>
-                        
-                        <!-- Show pre-release versions -->
-                        <HBox alignment="CENTER_LEFT" spacing="10">
-                            <CheckBox fx:id="showPreReleaseCheckBox" text="Show pre-release versions"/>
-                        </HBox>
-                        
-                        <!-- Download in background -->
-                        <HBox alignment="CENTER_LEFT" spacing="10">
-                            <CheckBox fx:id="downloadInBackgroundCheckBox" text="Download updates in background"/>
-                        </HBox>
-                        
-                        <!-- Last update check info -->
-                        <HBox alignment="CENTER_LEFT" spacing="10">
-                            <Label text="Last checked:"/>
-                            <Label fx:id="lastUpdateCheckLabel" text="Never" style="-fx-text-fill: #666666;"/>
-                        </HBox>
-                        
-                        <!-- Check now button -->
-                        <HBox alignment="CENTER_LEFT" spacing="10">
-                            <Button fx:id="checkNowButton" text="Check for Updates Now" onAction="#onCheckForUpdates"/>
-                        </HBox>
-                        
-                    </VBox>
-                    
-                </VBox>
-            </content>
-        </ScrollPane>
+                </content>
+            </ScrollPane>
+            
+            <!-- Custom button bar with icon buttons -->
+            <Separator/>
+            <HBox fx:id="buttonBar" alignment="CENTER_RIGHT" spacing="10">
+                <padding>
+                    <Insets top="10" left="20" right="20" bottom="10"/>
+                </padding>
+            </HBox>
+        </VBox>
     </content>
-    
-    <buttonTypes>
-        <ButtonType fx:constant="OK"/>
-        <ButtonType fx:constant="CANCEL"/>
-    </buttonTypes>
     
 </DialogPane> 

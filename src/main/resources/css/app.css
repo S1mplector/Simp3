@@ -180,3 +180,52 @@
 .update-dialog .secondary-button:pressed {
     -fx-background-color: #e0e0e0;
 }
+
+/* Icon button styles for dialogs */
+.icon-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 8;
+    -fx-cursor: hand;
+    -fx-background-radius: 25;
+    -fx-border-radius: 25;
+    -fx-min-width: 40;
+    -fx-min-height: 40;
+    -fx-pref-width: 40;
+    -fx-pref-height: 40;
+}
+
+.icon-button:hover {
+    -fx-background-color: linear-gradient(to bottom,
+        rgba(76, 175, 80, 0.15),
+        rgba(76, 175, 80, 0.1));
+    -fx-effect: dropshadow(gaussian, rgba(76, 175, 80, 0.4), 15, 0, 0, 3);
+    -fx-scale-x: 1.1;
+    -fx-scale-y: 1.1;
+}
+
+.icon-button:pressed {
+    -fx-background-color: linear-gradient(to bottom,
+        rgba(76, 175, 80, 0.25),
+        rgba(76, 175, 80, 0.2));
+    -fx-scale-x: 0.95;
+    -fx-scale-y: 0.95;
+}
+
+.icon-button:focused {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+/* Add subtle animation to icon buttons */
+.icon-button {
+    -fx-transition: all 0.2s ease;
+}
+
+.icon-button .image-view {
+    -fx-transition: all 0.2s ease;
+}
+
+.icon-button:hover .image-view {
+    -fx-effect: dropshadow(gaussian, rgba(76, 175, 80, 0.6), 8, 0, 0, 0);
+}

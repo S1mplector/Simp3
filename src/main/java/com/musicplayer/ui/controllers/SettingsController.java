@@ -10,6 +10,8 @@ import com.musicplayer.ui.dialogs.UpdateDialog;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -18,6 +20,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -43,6 +47,11 @@ public class SettingsController {
     @FXML private CheckBox downloadInBackgroundCheckBox;
     @FXML private Label lastUpdateCheckLabel;
     @FXML private Button checkNowButton;
+    
+    // Custom button bar
+    @FXML private HBox buttonBar;
+    private Button saveButton;
+    private Button cancelButton;
     
     private SettingsService settingsService;
     private UpdateService updateService;
@@ -88,6 +97,57 @@ public class SettingsController {
         autoCheckUpdatesCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
             updateIntervalSection.setDisable(!newVal);
         });
+        
+        // Create custom icon buttons if buttonBar exists
+        if (buttonBar != null) {
+            setupIconButtons();
+        }
+    }
+    
+    /**
+     * Set up custom icon buttons for OK and Cancel.
+     */
+    private void setupIconButtons() {
+        // Clear any existing content
+        buttonBar.getChildren().clear();
+        buttonBar.setAlignment(Pos.CENTER_RIGHT);
+        buttonBar.setSpacing(10);
+        buttonBar.setPadding(new Insets(10, 0, 0, 0));
+        
+        // Create Save button with icon
+        saveButton = new Button();
+        ImageView saveIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/icons/save.png")));
+        saveIcon.setFitWidth(24);
+        saveIcon.setFitHeight(24);
+        saveIcon.setPreserveRatio(true);
+        saveButton.setGraphic(saveIcon);
+        saveButton.getStyleClass().add("icon-button");
+        
+        // Create Cancel button with icon
+        cancelButton = new Button();
+        ImageView cancelIcon = new ImageView(new Image(getClass().getResourceAsStream("/images/icons/cancel.png")));
+        cancelIcon.setFitWidth(24);
+        cancelIcon.setFitHeight(24);
+        cancelIcon.setPreserveRatio(true);
+        cancelButton.setGraphic(cancelIcon);
+        cancelButton.getStyleClass().add("icon-button");
+        
+        // Add buttons to the bar
+        buttonBar.getChildren().addAll(saveButton, cancelButton);
+    }
+    
+    /**
+     * Get the save button for external event handling.
+     */
+    public Button getSaveButton() {
+        return saveButton;
+    }
+    
+    /**
+     * Get the cancel button for external event handling.
+     */
+    public Button getCancelButton() {
+        return cancelButton;
     }
     
     /**
@@ -227,4 +287,4 @@ public class SettingsController {
         alert.setContentText(message);
         alert.showAndWait();
     }
-} 
+}

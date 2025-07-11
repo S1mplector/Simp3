@@ -983,17 +983,42 @@ public class MainController implements Initializable {
             controller.setSettingsService(settingsService);
             controller.setUpdateService(updateService);
             
+            // Create a custom dialog without default buttons
             Dialog<ButtonType> dialog = new Dialog<>();
             dialog.setDialogPane(dialogPane);
             dialog.setTitle("Settings");
             dialog.initOwner(settingsButton.getScene().getWindow());
             
-            dialog.showAndWait().ifPresent(response -> {
-                if (response == ButtonType.OK) {
-                    controller.saveSettings();
-                    applyVisualizerSettings();
+            // Apply CSS for icon button styling
+            dialogPane.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
+            
+            // Add a hidden button type to allow dialog to be closeable
+            dialog.getDialogPane().getButtonTypes().add(ButtonType.CANCEL);
+            dialog.getDialogPane().lookupButton(ButtonType.CANCEL).setVisible(false);
+            dialog.getDialogPane().lookupButton(ButtonType.CANCEL).setManaged(false);
+            
+            // Handle custom buttons
+            controller.getSaveButton().setOnAction(e -> {
+                controller.saveSettings();
+                applyVisualizerSettings();
+                dialog.setResult(ButtonType.OK);
+                dialog.close();
+            });
+            
+            controller.getCancelButton().setOnAction(e -> {
+                dialog.setResult(ButtonType.CANCEL);
+                dialog.close();
+            });
+            
+            // Also handle ESC key to close dialog
+            dialogPane.setOnKeyPressed(event -> {
+                if (event.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
+                    dialog.setResult(ButtonType.CANCEL);
+                    dialog.close();
                 }
             });
+            
+            dialog.showAndWait();
         } catch (Exception e) {
             e.printStackTrace();
             Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -1057,15 +1082,12 @@ public class MainController implements Initializable {
             // Monitor the iconified (minimized) state of the window
             stage.iconifiedProperty().addListener((obs, wasMinimized, isMinimized) -> {
                 if (isMinimized) {
-                    // Window is minimized - completely disable visualizer
+                    // Window is minimized - disable main window visualizer
                     if (audioVisualizer != null) {
                         audioVisualizer.pause();
                     }
-                    // Remove spectrum listener to stop data flow
-                    if (audioPlayerService != null && spectrumListener != null) {
-                        audioPlayerService.setAudioSpectrumListener(null);
-                    }
-                    System.out.println("Window minimized - visualizer and spectrum updates disabled");
+                    // Don't remove spectrum listener here - let mini player manage it
+                    System.out.println("Window minimized - main visualizer paused");
                 } else {
                     // Window is restored - re-enable if music is playing and visualizer is enabled
                     // Use Platform.runLater to ensure UI is ready

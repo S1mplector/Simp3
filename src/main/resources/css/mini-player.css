@@ -416,3 +416,24 @@
 .more-options-menu .scroll-bar:vertical .thumb:hover {
     -fx-background-color: rgba(0, 0, 0, 0.3);
 }
+
+/* Audio Visualizer Styles */
+.visualizer-pane {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+}
+
+.visualizer-pane .canvas {
+    -fx-background-color: transparent;
+}
+
+/* Visualizer glow effect */
+.visualizer-active {
+    -fx-effect: dropshadow(gaussian, rgba(76, 175, 80, 0.4), 15, 0.3, 0, 0);
+}
+
+/* Smooth transitions for visualizer toggle */
+.album-art-container > * {
+    -fx-transition: opacity 0.3s ease;
+}

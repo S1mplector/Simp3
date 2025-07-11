@@ -47,6 +47,37 @@ Right-click anywhere on the mini player to access:
 - `Ctrl+M`: Toggle mini player visibility
 - `Double-click`: Restore main window and hide mini player
 
+## Audio Visualizer
+
+### Overview
+The mini player includes an integrated audio visualizer that provides real-time visual feedback of the music being played. The visualizer displays frequency spectrum data as animated bars radiating from the center in a circular pattern.
+
+### Features
+- **Circular Spectrum Display**: 32 frequency bars arranged in a radial pattern
+- **Smooth Animations**: 60 FPS rendering with configurable rotation effects
+- **Dynamic Colors**: Gradient colors that respond to audio intensity
+- **Glow Effects**: Optional glow effect for enhanced visual appeal
+- **Format Support**: Works with MP3 and M4A audio formats (JavaFX limitation)
+
+### Usage
+- **Toggle Visualizer**: Right-click on the album art area and select "Toggle Visualizer"
+- **Keyboard Shortcut**: Press 'V' while the mini player is focused to toggle the visualizer
+- **Automatic Activation**: The visualizer automatically appears when playing supported formats
+
+### Supported Audio Formats
+Due to JavaFX MediaPlayer limitations, the visualizer only works with:
+- MP3 (.mp3)
+- M4A (.m4a, .mp4)
+- AAC (.aac)
+
+For other formats (WAV, FLAC, OGG), the visualizer will remain hidden as spectrum data is not available.
+
+### Visual Design
+- **Center Circle**: Pulsating gradient circle at the center
+- **Frequency Bars**: Height represents amplitude, radiating outward
+- **Color Scheme**: Green gradient by default (customizable via VisualizerConfig)
+- **Rotation**: Slow clockwise rotation for dynamic effect
+
 ## Technical Implementation
 
 ### Architecture

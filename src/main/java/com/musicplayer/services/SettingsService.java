@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.musicplayer.data.models.Settings;
 
 /**
@@ -19,6 +20,10 @@ public class SettingsService {
     public SettingsService() {
         this.objectMapper = new ObjectMapper();
         this.objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+        // Register JavaTimeModule to handle LocalDateTime serialization
+        this.objectMapper.registerModule(new JavaTimeModule());
+        // Disable writing dates as timestamps
+        this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         loadSettings();
     }
     

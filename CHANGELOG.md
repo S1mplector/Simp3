@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Audio visualizer with circular spectrum display
+  - Real-time frequency visualization for MP3 and M4A formats
+  - Customizable colors and effects
+  - Toggle via right-click context menu or 'V' keyboard shortcut
+  - Smooth animations with configurable rotation
+  - Performance-optimized rendering at 60 FPS
 - Immediate update checks on application launch (0 second delay)
 - Comprehensive logging for all update operations
 - Update settings in Settings dialog with manual check option

@@ -1,10 +1,16 @@
 {
   "visualizerEnabled" : true,
-  "visualizerColorMode" : "GRADIENT_CYCLING",
-  "visualizerSolidColor" : "#32CD32",
-  "miniPlayerX" : 1086.0,
-  "miniPlayerY" : 130.6666717529297,
+  "visualizerColorMode" : "SOLID_COLOR",
+  "visualizerSolidColor" : "#CCFFCC",
+  "miniPlayerX" : 933.3333333333333,
+  "miniPlayerY" : 273.3333333333333,
   "miniPlayerPinned" : true,
   "autoCheckForUpdates" : true,
   "updateCheckIntervalHours" : 24,
-  "lastUpdateCheck"
+  "lastUpdateCheck" : "2025-07-12T00:02:06.1407547",
+  "skippedUpdateVersion" : null,
+  "downloadUpdatesInBackground" : true,
+  "showPreReleaseVersions" : false,
+  "preferredDistributionType" : "UNKNOWN",
+  "rememberDistributionChoice" : false
+}
