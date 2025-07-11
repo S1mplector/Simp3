@@ -179,8 +179,8 @@ public class MiniPlayerWindow {
         shadow.setColor(Color.color(0, 0, 0, 0.3));
         albumArtContainer.setEffect(shadow);
         
-        // Create visualizer
-        visualizer = new AudioVisualizerPane();
+        // Create visualizer with settings
+        visualizer = new AudioVisualizerPane(settingsService.getSettings());
         visualizer.setMouseTransparent(true); // Allow clicks to pass through
         visualizer.setPrefSize(80, 80);
         visualizer.setMaxSize(80, 80);
@@ -1260,5 +1260,15 @@ public class MiniPlayerWindow {
             })
         );
         stopTimer.play();
+    }
+    
+    /**
+     * Update visualizer settings when they change in the main application.
+     * This should be called by the main controller when settings are updated.
+     */
+    public void updateVisualizerSettings() {
+        if (visualizer != null && settingsService != null) {
+            visualizer.updateSettings(settingsService.getSettings());
+        }
     }
 }

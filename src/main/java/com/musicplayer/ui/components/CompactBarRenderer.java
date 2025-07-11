@@ -1,5 +1,7 @@
 package com.musicplayer.ui.components;
 
+import com.musicplayer.data.models.Settings;
+
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.paint.Color;
@@ -26,9 +28,15 @@ public class CompactBarRenderer {
     // Color animation
     private double currentHue = 120; // Start with green
     private static final double HUE_SHIFT_SPEED = 0.5; // Slower for mini player
+    private Settings settings;
     
     public CompactBarRenderer(VisualizerConfig config) {
+        this(config, null);
+    }
+    
+    public CompactBarRenderer(VisualizerConfig config, Settings settings) {
         this.config = config;
+        this.settings = settings;
         // Override bar count for compact view
         this.smoothedData = new double[COMPACT_BAR_COUNT];
         this.peakValues = new double[COMPACT_BAR_COUNT];
@@ -66,21 +74,29 @@ public class CompactBarRenderer {
         // Update peaks
         updatePeaks();
         
-        // Update color animation
-        if (config.isEnableRotation()) { // Reuse rotation setting for color cycling
+        // Update color based on settings
+        Color baseColor;
+        if (settings != null && settings.getVisualizerColorMode() == Settings.VisualizerColorMode.SOLID_COLOR) {
+            // Use solid color from settings
+            try {
+                baseColor = Color.web(settings.getVisualizerSolidColor());
+            } catch (Exception e) {
+                // Fallback to default if color parsing fails
+                baseColor = Color.web("#32CD32"); // Lime green
+            }
+        } else {
+            // Use gradient cycling (default)
             currentHue += HUE_SHIFT_SPEED;
             if (currentHue >= 360) {
                 currentHue -= 360;
             }
+            baseColor = Color.hsb(currentHue, 0.8, 1.0);
         }
         
         // Calculate bar dimensions
         double barWidth = width / COMPACT_BAR_COUNT;
         double actualBarWidth = barWidth * 0.8; // 80% bar, 20% spacing
         double spacing = barWidth * 0.1; // Half spacing on each side
-        
-        // Create base color
-        Color baseColor = Color.hsb(currentHue, 0.8, 1.0);
         
         // Apply subtle glow effect
         if (config.isGlowEffect()) {
@@ -244,7 +260,14 @@ public class CompactBarRenderer {
         
         String format = audioFormat.toLowerCase();
         // JavaFX MediaPlayer only provides spectrum data for MP3 and M4A
-        return format.equals("mp3") || format.equals("m4a") || 
+        return format.equals("mp3") || format.equals("m4a") ||
                format.equals("mp4") || format.equals("aac");
+    }
+    
+    /**
+     * Update the settings for color configuration.
+     */
+    public void updateSettings(Settings settings) {
+        this.settings = settings;
     }
 }
