@@ -154,6 +154,9 @@ public class AudioVisualizerPane extends StackPane {
     public void stop() {
         if (isActive) {
             isActive = false;
+            // Clear spectrum data to allow bars to fall
+            clearSpectrum();
+            // Continue animation during fade out to show bars falling
             fadeOut.play();
         }
     }
@@ -169,30 +172,36 @@ public class AudioVisualizerPane extends StackPane {
      */
     public void updateSpectrum(double timestamp, double duration,
                               float[] magnitudes, float[] phases) {
-        if (magnitudes != null && magnitudes.length > 0 && isActive) {
-            // Debug spectrum data
-            if (Math.random() < 0.01) { // Log 1% of updates to avoid spam
-                System.out.println("AudioVisualizerPane spectrum update - Active: " + isActive +
-                                 ", Visible: " + isVisible() + ", Canvas: " + canvas.getWidth() + "x" + canvas.getHeight() +
-                                 ", First magnitude: " + magnitudes[0]);
+        if (magnitudes != null && magnitudes.length > 0) {
+            // Only update spectrum if visualizer is active
+            if (isActive) {
+                // Debug spectrum data
+                if (Math.random() < 0.01) { // Log 1% of updates to avoid spam
+                    System.out.println("AudioVisualizerPane spectrum update - Active: " + isActive +
+                                     ", Visible: " + isVisible() + ", Canvas: " + canvas.getWidth() + "x" + canvas.getHeight() +
+                                     ", First magnitude: " + magnitudes[0]);
+                }
+                
+                // Convert float array to double array
+                int length = Math.min(magnitudes.length, SPECTRUM_BANDS);
+                for (int i = 0; i < length; i++) {
+                    spectrumData[i] = magnitudes[i];
+                }
+                
+                // Fill remaining with zeros if needed
+                for (int i = length; i < SPECTRUM_BANDS; i++) {
+                    spectrumData[i] = -60.0; // Minimum dB value
+                }
+                
+                // Force a render if we're not getting regular updates
+                if (canvas != null && isVisible()) {
+                    GraphicsContext gc = canvas.getGraphicsContext2D();
+                    renderer.render(gc, spectrumData, canvas.getWidth(), canvas.getHeight());
+                }
             }
-            
-            // Convert float array to double array
-            int length = Math.min(magnitudes.length, SPECTRUM_BANDS);
-            for (int i = 0; i < length; i++) {
-                spectrumData[i] = magnitudes[i];
-            }
-            
-            // Fill remaining with zeros if needed
-            for (int i = length; i < SPECTRUM_BANDS; i++) {
-                spectrumData[i] = -60.0; // Minimum dB value
-            }
-            
-            // Force a render if we're not getting regular updates
-            if (canvas != null && isVisible()) {
-                GraphicsContext gc = canvas.getGraphicsContext2D();
-                renderer.render(gc, spectrumData, canvas.getWidth(), canvas.getHeight());
-            }
+        } else if (!isActive && isVisible()) {
+            // If not active but still visible (during fade out), clear spectrum
+            clearSpectrum();
         }
     }
     

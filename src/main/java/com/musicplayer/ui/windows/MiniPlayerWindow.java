@@ -423,10 +423,23 @@ public class MiniPlayerWindow {
             updateModeButtons();
         });
         
-        // Update play/pause icon
+        // Update play/pause icon and visualizer state
         audioPlayerService.playingProperty().addListener((obs, wasPlaying, isPlaying) -> {
             ImageView imageView = (ImageView) playPauseButton.getGraphic();
             imageView.setImage(isPlaying ? pauseIcon : playIcon);
+            
+            // Update visualizer state based on playback
+            if (!isPlaying && visualizer != null && visualizer.isActive()) {
+                // When paused, stop the visualizer to let bars fall
+                visualizer.stop();
+            } else if (isPlaying && visualizer != null && !visualizer.isActive()) {
+                // When resuming, restart the visualizer
+                Song currentSong = audioPlayerService.getCurrentSong();
+                if (currentSong != null && visualizer.supportsFormat(getFileExtension(currentSong.getFilePath()))) {
+                    visualizer.start();
+                    connectSpectrumListener();
+                }
+            }
         });
         
         // Update song info
@@ -1114,18 +1127,20 @@ public class MiniPlayerWindow {
     private void updateVisualizerState() {
         // Check if current format supports visualization
         Song currentSong = audioPlayerService.getCurrentSong();
-        if (currentSong != null && visualizer.supportsFormat(getFileExtension(currentSong.getFilePath()))) {
-            // Visualizer is supported and always on
+        boolean isPlaying = audioPlayerService.isPlaying();
+        
+        if (currentSong != null && visualizer.supportsFormat(getFileExtension(currentSong.getFilePath())) && isPlaying) {
+            // Visualizer is supported and we're playing
             if (!visualizer.isActive()) {
                 visualizer.start();
                 connectSpectrumListener();
             }
         } else {
-            // Format not supported, stop visualizer
+            // Format not supported or not playing, stop visualizer
             if (visualizer.isActive()) {
                 visualizer.stop();
-                visualizer.reset();
-                disconnectSpectrumListener();
+                // Don't disconnect listener here - let it continue to receive empty data
+                // This allows bars to fall naturally
             }
         }
     }
