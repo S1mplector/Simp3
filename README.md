@@ -15,21 +15,21 @@
 
 ---
 
-## 🎯 Overview
+##  Overview
 
 SiMP3 is a resource-friendly music player designed for users who want a clean, efficient way to manage and enjoy their music collection. Built with JavaFX, it offers a modern interface while maintaining excellent performance on modest hardware.
 
 ### Why SiMP3?
 
-- **🚀 Lightweight**: Minimal resource usage, perfect for older systems
-- **🎨 Modern UI**: Clean, intuitive interface built with JavaFX
-- **🔄 Auto-Updates**: Stay current with automatic update checking via GitHub
-- **📚 Smart Library**: Automatic music scanning and organization
-- **🎧 Quality Playback**: Support for MP3, WAV, FLAC, and more
+- ** Lightweight**: Minimal resource usage, perfect for older systems
+- ** Modern UI**: Clean, intuitive interface built with JavaFX
+- ** Auto-Updates**: Stay current with automatic update checking via GitHub
+- ** Smart Library**: Automatic music scanning and organization
+- ** Quality Playback**: Support for MP3, WAV, FLAC, and more
 
-## ✨ Features
+##  Features
 
-### 🎵 Core Features
+###  Core Features
 - **Multi-Format Support**: Play MP3, WAV, FLAC, and virtually all other audio formats
 - **Library Management**: Automatic scanning and organization of your music collection
 - **Playlist Creation**: Create, edit, and manage custom playlists
@@ -37,21 +37,21 @@ SiMP3 is a resource-friendly music player designed for users who want a clean, e
 - **Favorites System**: Mark and access your favorite tracks easily
 - **Activity Tracking**: Monitor your listening history and statistics
 
-### 🎨 User Interface
+###  User Interface
 - **Mini Player Mode**: Compact player for minimal screen usage
 - **Audio Visualizer**: Real-time audio visualization with customizable colors
 - **Album Art Display**: Automatic album artwork extraction and display
 - **Pinboard**: Pin important songs and playlists for quick access
 - **Dark Theme**: Easy on the eyes during late-night listening sessions
 
-### 🔧 Advanced Features
+###  Advanced Features
 - **Auto-Update System**: Automatic checking and installation of updates
 - **Keyboard Shortcuts**: Control playback without touching the mouse
 - **Shuffle & Repeat**: Multiple playback modes for any listening style
 - **Volume Normalization**: Consistent volume across your library
 - **Listening Statistics**: Track your most played songs and listening habits
 
-## 📸 Screenshots
+##  Screenshots
 
 <div align="center">
   <img src="docs/images/main_interface.png" alt="Main Interface" width="600">
@@ -61,7 +61,7 @@ SiMP3 is a resource-friendly music player designed for users who want a clean, e
   <p><i>Compact mini player mode</i></p>
 </div>
 
-## 🚀 Installation
+##  Installation
 
 ### Prerequisites
 - Java 17 or higher
@@ -102,7 +102,7 @@ mvn javafx:run
 mvn clean package
 ```
 
-## 📖 Usage
+##  Usage
 
 ### First Run
 1. Launch SiMP3
@@ -127,7 +127,7 @@ mvn clean package
 - **Mark Favorites**: Click the heart icon next to any song
 - **Search**: Use the search bar to find songs, artists, or albums
 
-## 🛠️ Development
+##  Development
 
 ### Project Structure
 ```
@@ -175,16 +175,16 @@ simp3/
    public static final String GITHUB_REPO = "simp3";
    ```
 
-## 🤝 Contributing
+##  Contributing
 
 We welcome contributions! Here's how you can help:
 
 ### Ways to Contribute
-- 🐛 Report bugs and issues
-- 💡 Suggest new features
-- 🔧 Submit pull requests
-- 📖 Improve documentation
-- 🌍 Add translations
+-  Report bugs and issues
+-  Suggest new features
+-  Submit pull requests
+-  Improve documentation
+-  Add translations
 
 ### Development Process
 1. Fork the repository
@@ -199,9 +199,9 @@ We welcome contributions! Here's how you can help:
 - Add JavaDoc comments for public methods
 - Write unit tests for new features
 
-## 📋 Roadmap
+##  Roadmap
 
-### Version 1.0.3 (Coming Soon)
+### Version 1.0.1 (Coming Soon)
 - [ ] Equalizer with presets
 - [ ] Lyrics display and sync
 - [ ] Last.fm scrobbling
@@ -213,11 +213,10 @@ We welcome contributions! Here's how you can help:
 - [ ] Podcast support
 - [ ] Music recommendations
 
-## 🐛 Known Issues
+##  Known Issues
 
 - Audio visualizer may impact performance on older systems (can be disabled in settings)
 - Some FLAC files with unusual encoding may not play correctly
-- Playlist reordering via drag & drop can be finicky
 
 ## 📄 License
 
