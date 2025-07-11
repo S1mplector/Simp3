@@ -30,7 +30,6 @@ import com.musicplayer.ui.components.AudioVisualizer;
 import com.musicplayer.ui.components.NowPlayingBar;
 import com.musicplayer.ui.components.PinboardItem;
 import com.musicplayer.ui.components.PinboardPanel;
-import com.musicplayer.ui.components.PlaybackModeButtons;
 import com.musicplayer.ui.components.PlaylistCell;
 import com.musicplayer.ui.components.RescanButtonFactory;
 import com.musicplayer.ui.dialogs.FirstRunWizard;
@@ -41,13 +40,11 @@ import com.musicplayer.ui.handlers.PlaylistActionHandler;
 import com.musicplayer.ui.util.AlbumArtLoader;
 import com.musicplayer.ui.util.SearchManager;
 import com.musicplayer.ui.util.SongContextMenuProvider;
-import com.musicplayer.ui.components.PlaylistCell.RenameRequest;
-import com.musicplayer.ui.controllers.SettingsController;
 import com.musicplayer.ui.windows.MiniPlayerWindow;
 import com.musicplayer.ui.windows.MiniPlayerWindow.ShowSongInLibraryEvent;
 
 import javafx.animation.FadeTransition;
-import javafx.beans.binding.Bindings;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -59,6 +56,8 @@ import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SelectionMode;
@@ -78,12 +77,9 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.stage.DirectoryChooser;
-import javafx.application.Platform;
-import javafx.stage.Stage;
 import javafx.scene.paint.Color;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.DialogPane;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 
 public class MainController implements Initializable {
@@ -138,6 +134,9 @@ public class MainController implements Initializable {
     private FilteredList<Playlist> filteredPlaylists;
 
     private Playlist playingPlaylist;
+    
+    // Extracted controller
+    private AudioController audioController;
 
     @FXML private Button playlistSearchButton;
     @FXML private TextField playlistSearchField;
@@ -177,6 +176,30 @@ public class MainController implements Initializable {
         // Initialize listening stats service
         listeningStatsService = new ListeningStatsService(songRepository);
         
+        // Initialize the songs and playlists lists BEFORE creating AudioController
+        songs = FXCollections.observableArrayList();
+        playlists = FXCollections.observableArrayList();
+        
+        // Create the audio controller with all required dependencies
+        audioController = new AudioController();
+        audioController.setUIComponents(
+            playPauseButton,
+            previousButton,
+            nextButton,
+            timeSlider,
+            volumeSlider,
+            volumeIcon,
+            volumePercentageLabel,
+            currentTimeLabel,
+            totalTimeLabel,
+            albumArtContainer,
+            albumArtImageView,
+            albumArtImageView2,
+            songTitleLabel,
+            songArtistLabel
+        );
+        audioController.initialize(audioPlayerService, listeningStatsService, songs, songsTableView);
+        
         // Initialize favorites service
         favoritesService = new FavoritesService();
         
@@ -188,10 +211,6 @@ public class MainController implements Initializable {
         
         // Set up error handling for missing files
         audioPlayerService.setOnError(() -> handleMissingFiles());
-        
-        // Initialize the songs and playlists lists
-        songs = FXCollections.observableArrayList();
-        playlists = FXCollections.observableArrayList();
 
         // Wrap with filtered lists for searching
         filteredSongs = new FilteredList<>(songs, s -> true);
@@ -247,11 +266,15 @@ public class MainController implements Initializable {
         // Now playing bar under playlists
         setupNowPlayingBar();
         
-        // Set up audio controls
-        setupAudioControls();
-        
-        // Set up keyboard shortcuts
-        setupKeyboardShortcuts();
+        // Set up audio controller callbacks
+        audioController.setOnStatsUpdate(() -> updateListeningStats());
+        audioController.setOnPlaybackStateChange(() -> {
+            songsTableView.refresh();
+            refreshPlaylistCells();
+            if (nowPlayingBar != null) {
+                nowPlayingBar.update(audioPlayerService.getCurrentSong(), audioPlayerService.isPlaying());
+            }
+        });
         
         // Set up table columns
         setupFavoriteColumn();
@@ -268,6 +291,9 @@ public class MainController implements Initializable {
 
         // Enable multi-selection
         songsTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        
+        // Set up table row factory for double-click to play and drag-and-drop
+        setupTableRowFactory();
         
         // Configure Add-to-Playlist button
         addToPlaylistButton.setVisible(false);
@@ -321,113 +347,8 @@ public class MainController implements Initializable {
         }
     }
     
-    private void setupAudioControls() {
-        // Initialize play/pause icons
-        playIcon = new Image(getClass().getResourceAsStream("/images/icons/play.png"));
-        pauseIcon = new Image(getClass().getResourceAsStream("/images/icons/pause.png"));
-        
-        // Get the ImageView from the play/pause button (it should already be set in FXML)
-        playPauseImageView = (ImageView) playPauseButton.getGraphic();
-        
-        // Set initial icon
-        playPauseImageView.setImage(playIcon);
-        
-        // Bind play/pause button icon to playing state and track plays
-        audioPlayerService.playingProperty().addListener((obs, oldPlaying, newPlaying) -> {
-            playPauseImageView.setImage(newPlaying ? pauseIcon : playIcon);
-            
-            // Track when play starts (not when pausing)
-            if (newPlaying && !oldPlaying) {
-                Song currentSong = audioPlayerService.getCurrentSong();
-                if (currentSong != null) {
-                    listeningStatsService.recordPlay(currentSong);
-                    updateListeningStats();
-                }
-            }
-        });
-        
-        // Track when songs change while playing
-        audioPlayerService.currentSongProperty().addListener((obs, oldSong, newSong) -> {
-            if (newSong != null && newSong != oldSong && audioPlayerService.isPlaying()) {
-                // Only record if it's a different song and already playing
-                listeningStatsService.recordPlay(newSong);
-                updateListeningStats();
-            }
-        });
-        
-        // After play/pause, icon setup and before other bindings we can add buttons by inserting to control bar
-        HBox controlBar = (HBox) previousButton.getParent();
-        javafx.scene.control.Button shuffleBtn = PlaybackModeButtons.createShuffleButton(audioPlayerService);
-        javafx.scene.control.Button repeatBtn = PlaybackModeButtons.createRepeatButton(audioPlayerService);
-        // Insert shuffle at beginning and repeat at end
-        controlBar.getChildren().add(0, shuffleBtn);
-        controlBar.getChildren().add(repeatBtn);
-        
-        // Bind time slider to current time (with proper max value)
-        timeSlider.valueProperty().bind(audioPlayerService.currentTimeProperty());
-        timeSlider.maxProperty().bind(audioPlayerService.totalTimeProperty());
-        
-        // Set up time slider for seeking (both click and drag)
-        timeSlider.setOnMouseClicked(event -> {
-            if (audioPlayerService.getTotalTime() > 0) {
-                double seekTime = (event.getX() / timeSlider.getWidth()) * audioPlayerService.getTotalTime();
-                audioPlayerService.seek(seekTime);
-            }
-        });
-        
-        // Allow dragging to seek
-        timeSlider.setOnMouseDragged(event -> {
-            if (audioPlayerService.getTotalTime() > 0) {
-                double seekTime = (event.getX() / timeSlider.getWidth()) * audioPlayerService.getTotalTime();
-                audioPlayerService.seek(seekTime);
-            }
-        });
-        
-        // Bind volume slider to volume property
-        volumeSlider.valueProperty().bindBidirectional(audioPlayerService.volumeProperty());
-        volumeSlider.setMax(1.0); // Volume range 0.0 to 1.0
-        volumeSlider.setValue(0.5); // Default volume
-        
-        // Set up volume icon and percentage display
-        Image volIcon = new Image(getClass().getResourceAsStream("/images/icons/vol.png"));
-        Image muteIcon = new Image(getClass().getResourceAsStream("/images/icons/mute.png"));
-        
-        // Update volume icon and percentage based on volume value
-        audioPlayerService.volumeProperty().addListener((obs, oldVol, newVol) -> {
-            double volume = newVol.doubleValue();
-            int percentage = (int) Math.round(volume * 100);
-            
-            // Update percentage label
-            volumePercentageLabel.setText(percentage + "%");
-            
-            // Update icon based on volume
-            if (volume == 0) {
-                volumeIcon.setImage(muteIcon);
-            } else {
-                volumeIcon.setImage(volIcon);
-            }
-        });
-        
-        // Set initial percentage
-        int initialPercentage = (int) Math.round(volumeSlider.getValue() * 100);
-        volumePercentageLabel.setText(initialPercentage + "%");
-        
-        // Bind time labels
-        currentTimeLabel.textProperty().bind(
-            Bindings.createStringBinding(
-                () -> formatDuration((long) audioPlayerService.getCurrentTime()),
-                audioPlayerService.currentTimeProperty()
-            )
-        );
-        
-        totalTimeLabel.textProperty().bind(
-            Bindings.createStringBinding(
-                () -> formatDuration((long) audioPlayerService.getTotalTime()),
-                audioPlayerService.totalTimeProperty()
-            )
-        );
-        
-        // Set up table double-click to play song
+    
+    private void setupTableRowFactory() {
         songsTableView.setRowFactory(tv -> {
             TableRow<Song> row = new TableRow<Song>() {
                 @Override
@@ -452,7 +373,7 @@ public class MainController implements Initializable {
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && !row.isEmpty()) {
                     Song selectedSong = row.getItem();
-                    playSelectedSong(selectedSong);
+                    audioController.playSelectedSong(selectedSong);
                 }
             });
             
@@ -510,67 +431,6 @@ public class MainController implements Initializable {
             });
             return row;
         });
-        
-        // Update table row highlighting and album art when song changes
-        audioPlayerService.currentSongProperty().addListener((obs, oldSong, newSong) -> {
-            songsTableView.refresh(); // Refresh to update row highlighting
-            updateAlbumArt(newSong); // Update album art display
-        });
-        
-        audioPlayerService.playingProperty().addListener((obs, oldPlaying, newPlaying) -> {
-            songsTableView.refresh(); // Refresh to update row highlighting
-        });
-    }
-    
-    private void setupKeyboardShortcuts() {
-        // Set up keyboard shortcuts for the main scene
-        // This will be called when the scene is available
-        javafx.application.Platform.runLater(() -> {
-            if (songsTableView.getScene() != null) {
-                songsTableView.getScene().setOnKeyPressed(event -> {
-                    switch (event.getCode()) {
-                        case SPACE:
-                            handlePlayPause();
-                            event.consume();
-                            break;
-                        case LEFT:
-                            if (event.isControlDown()) {
-                                handlePrevious();
-                                event.consume();
-                            }
-                            break;
-                        case RIGHT:
-                            if (event.isControlDown()) {
-                                handleNext();
-                                event.consume();
-                            }
-                            break;
-                        case UP:
-                            if (event.isControlDown()) {
-                                double currentVolume = audioPlayerService.getVolume();
-                                audioPlayerService.setVolume(Math.min(1.0, currentVolume + 0.1));
-                                event.consume();
-                            }
-                            break;
-                        case DOWN:
-                            if (event.isControlDown()) {
-                                double currentVolume = audioPlayerService.getVolume();
-                                audioPlayerService.setVolume(Math.max(0.0, currentVolume - 0.1));
-                                event.consume();
-                            }
-                            break;
-                        default:
-                            break;
-                    }
-                });
-            }
-        });
-    }
-    
-    private void playSelectedSong(Song song) {
-        // Set current songs as playlist and play selected song
-        audioPlayerService.setPlaylist(songs);
-        audioPlayerService.playTrack(song);
     }
     
     @FXML
@@ -621,30 +481,17 @@ public class MainController implements Initializable {
     
     @FXML
     private void handlePlayPause() {
-        if (songs.isEmpty()) {
-            System.out.println("No songs in library to play");
-            return;
-        }
-        
-        // If no song is currently selected, start with the first song
-        if (audioPlayerService.getCurrentSong() == null) {
-            audioPlayerService.setPlaylist(songs);
-            if (!songs.isEmpty()) {
-                audioPlayerService.playTrack(songs.get(0));
-            }
-        } else {
-            audioPlayerService.togglePlayPause();
-        }
+        audioController.handlePlayPause();
     }
     
     @FXML
     private void handlePrevious() {
-        audioPlayerService.previousTrack();
+        audioController.handlePrevious();
     }
     
     @FXML
     private void handleNext() {
-        audioPlayerService.nextTrack();
+        audioController.handleNext();
     }
     
     /**
@@ -805,6 +652,7 @@ public class MainController implements Initializable {
                     songs.clear();
                     songs.addAll(newPlaylist.getSongs());
                     audioPlayerService.setPlaylist(songs);
+                    audioController.updatePlaylist(songs);
                     playingPlaylist = newPlaylist; // mark as playing
                     refreshPlaylistCells();
                 }
@@ -874,6 +722,7 @@ public class MainController implements Initializable {
     private void showAllSongs() {
         songs.setAll(musicLibraryManager.getAllSongs());
         audioPlayerService.setPlaylist(songs);
+        audioController.updatePlaylist(songs);
         playlistsListView.getSelectionModel().clearSelection();
         showSongsWithAlbums();
     }
@@ -887,6 +736,7 @@ public class MainController implements Initializable {
         songs.clear();
         songs.addAll(favoriteSongs);
         audioPlayerService.setPlaylist(songs);
+        audioController.updatePlaylist(songs);
         playlistsListView.getSelectionModel().clearSelection();
         
         // Hide album view when showing favorites
@@ -936,6 +786,7 @@ public class MainController implements Initializable {
         songs.clear();
         songs.setAll(album.getSongs());
         audioPlayerService.setPlaylist(songs);
+        audioController.updatePlaylist(songs);
         // Clear any playlist selection since we're now showing album songs
         playlistsListView.getSelectionModel().clearSelection();
     }
