@@ -1,5 +1,7 @@
 package com.musicplayer.data.models;
 
+import java.time.LocalDateTime;
+
 /**
  * Application settings model.
  */
@@ -16,6 +18,14 @@ public class Settings {
 
     // Whether mini player window should stay always on top
     private boolean miniPlayerPinned = true;
+    
+    // Update settings
+    private boolean autoCheckForUpdates = true;
+    private int updateCheckIntervalHours = 24;
+    private LocalDateTime lastUpdateCheck;
+    private String skippedUpdateVersion;
+    private boolean downloadUpdatesInBackground = true;
+    private boolean showPreReleaseVersions = false;
     
     /**
      * Enum for visualizer color modes.
@@ -82,5 +92,54 @@ public class Settings {
 
     public void setMiniPlayerPinned(boolean miniPlayerPinned) {
         this.miniPlayerPinned = miniPlayerPinned;
+    }
+    
+    // Update settings getters and setters
+    public boolean isAutoCheckForUpdates() {
+        return autoCheckForUpdates;
+    }
+    
+    public void setAutoCheckForUpdates(boolean autoCheckForUpdates) {
+        this.autoCheckForUpdates = autoCheckForUpdates;
+    }
+    
+    public int getUpdateCheckIntervalHours() {
+        return updateCheckIntervalHours;
+    }
+    
+    public void setUpdateCheckIntervalHours(int updateCheckIntervalHours) {
+        this.updateCheckIntervalHours = updateCheckIntervalHours;
+    }
+    
+    public LocalDateTime getLastUpdateCheck() {
+        return lastUpdateCheck;
+    }
+    
+    public void setLastUpdateCheck(LocalDateTime lastUpdateCheck) {
+        this.lastUpdateCheck = lastUpdateCheck;
+    }
+    
+    public String getSkippedUpdateVersion() {
+        return skippedUpdateVersion;
+    }
+    
+    public void setSkippedUpdateVersion(String skippedUpdateVersion) {
+        this.skippedUpdateVersion = skippedUpdateVersion;
+    }
+    
+    public boolean isDownloadUpdatesInBackground() {
+        return downloadUpdatesInBackground;
+    }
+    
+    public void setDownloadUpdatesInBackground(boolean downloadUpdatesInBackground) {
+        this.downloadUpdatesInBackground = downloadUpdatesInBackground;
+    }
+    
+    public boolean isShowPreReleaseVersions() {
+        return showPreReleaseVersions;
+    }
+    
+    public void setShowPreReleaseVersions(boolean showPreReleaseVersions) {
+        this.showPreReleaseVersions = showPreReleaseVersions;
     }
 }

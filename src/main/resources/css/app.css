@@ -92,3 +92,91 @@
         rgba(76, 175, 80, 0.25),
         rgba(76, 175, 80, 0.2));
 }
+
+/* Update Dialog Styles */
+.update-dialog {
+    -fx-background-color: #f5f5f5;
+}
+
+.update-dialog .content {
+    -fx-padding: 20;
+}
+
+.update-dialog .header-panel {
+    -fx-background-color: #4CAF50;
+    -fx-padding: 15;
+}
+
+.update-dialog .header-panel .label {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.update-dialog .version-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+.update-dialog .release-notes {
+    -fx-background-color: white;
+    -fx-border-color: #cccccc;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-padding: 10;
+}
+
+.update-dialog .progress-bar {
+    -fx-accent: #4CAF50;
+}
+
+.update-dialog .progress-bar .track {
+    -fx-background-color: #e0e0e0;
+    -fx-background-radius: 4;
+}
+
+.update-dialog .progress-bar .bar {
+    -fx-background-color: #4CAF50;
+    -fx-background-radius: 4;
+}
+
+.update-dialog .primary-button {
+    -fx-background-color: #4CAF50;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 8 16 8 16;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+}
+
+.update-dialog .primary-button:hover {
+    -fx-background-color: #45a049;
+}
+
+.update-dialog .primary-button:pressed {
+    -fx-background-color: #3d8b40;
+}
+
+.update-dialog .primary-button:disabled {
+    -fx-background-color: #cccccc;
+    -fx-text-fill: #666666;
+}
+
+.update-dialog .secondary-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #666666;
+    -fx-border-color: #cccccc;
+    -fx-border-width: 1;
+    -fx-padding: 8 16 8 16;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+}
+
+.update-dialog .secondary-button:hover {
+    -fx-background-color: #f0f0f0;
+}
+
+.update-dialog .secondary-button:pressed {
+    -fx-background-color: #e0e0e0;
+}

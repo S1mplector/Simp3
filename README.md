@@ -66,16 +66,24 @@ simp3/
 - User preferences
 - Theme configuration
 
-## Features (Planned)
+## Features
 
+### Implemented
 - **Audio Playback**: Support for MP3, WAV, FLAC, and other common formats
 - **Library Management**: Automatic music library scanning and organization
 - **Playlist Support**: Create, edit, and manage playlists
-- **Metadata Support**: ID3 tag reading and editing
 - **Search & Filter**: Advanced search and filtering capabilities
+- **Mini Player**: Compact player mode for minimal screen usage
+- **Auto-Update**: Automatic update checking and installation via GitHub Releases
+- **Favorites**: Mark and manage favorite songs
+- **Activity Feed**: Track listening history and activities
+- **Pinboard**: Pin important songs and playlists
+
+### Planned
+- **Metadata Support**: ID3 tag reading and editing
 - **Equalizer**: Built-in audio equalizer
 - **Themes**: Customizable UI themes
-- **Shortcuts**: Keyboard shortcuts and hotkeys
+- **Shortcuts**: More keyboard shortcuts and hotkeys
 
 ## Technologies
 
@@ -92,6 +100,30 @@ simp3/
 2. Clone the repository
 3. Run `mvn clean compile` to build the project
 4. Run `mvn javafx:run` to start the application
+
+## Auto-Update Feature
+
+SiMP3 includes an automatic update system that checks for new releases on GitHub:
+
+- **Automatic Checks**: The application checks for updates on startup (can be disabled in settings)
+- **Manual Checks**: Use Help → Check for Updates to manually check
+- **Background Downloads**: Updates download in the background with progress indication
+- **Safe Installation**: Updates are verified with SHA-256 checksums before installation
+
+### Setting Up Auto-Updates
+
+1. Update `src/main/java/com/musicplayer/config/UpdateConfig.java` with your GitHub repository:
+   ```java
+   public static final String GITHUB_OWNER = "your-github-username";
+   public static final String GITHUB_REPO = "your-repository-name";
+   ```
+
+2. Create releases on GitHub with:
+   - Semantic version tags (e.g., `v1.0.1`)
+   - Windows executable as a release asset
+   - SHA-256 checksum in the release description
+
+See [docs/AUTO_UPDATE.md](docs/AUTO_UPDATE.md) for detailed documentation.
 
 ## License
 
