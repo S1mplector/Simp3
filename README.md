@@ -201,13 +201,13 @@ We welcome contributions! Here's how you can help:
 
 ## 📋 Roadmap
 
-### Version 1.1 (Coming Soon)
+### Version 1.0.3 (Coming Soon)
 - [ ] Equalizer with presets
 - [ ] Lyrics display and sync
 - [ ] Last.fm scrobbling
 - [ ] Theme customization
 
-### Version 1.2 (Future)
+### Version 1.1 (Future)
 - [ ] Cloud sync for playlists
 - [ ] Mobile remote control
 - [ ] Podcast support
