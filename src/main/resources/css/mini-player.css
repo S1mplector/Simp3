@@ -199,6 +199,82 @@
     -fx-text-fill: #666666;
 }
 
+/* Queue panel styles */
+.queue-panel {
+    -fx-background-color: linear-gradient(to bottom, rgba(245, 245, 245, 0.98), rgba(240, 240, 240, 0.98));
+    -fx-border-color: rgba(200, 200, 200, 0.5);
+    -fx-border-width: 1 0 0 0;
+}
+
+.queue-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+    -fx-padding: 0 0 5 0;
+}
+
+.queue-list {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.queue-list .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 5 10;
+    -fx-border-color: transparent;
+}
+
+.queue-list .list-cell:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.05);
+    -fx-background-radius: 4;
+}
+
+.queue-list .list-cell:selected {
+    -fx-background-color: rgba(76, 175, 80, 0.2);
+    -fx-background-radius: 4;
+}
+
+.queue-number {
+    -fx-text-fill: #888888;
+    -fx-font-size: 11px;
+}
+
+.queue-song-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #333333;
+}
+
+.queue-song-artist {
+    -fx-font-size: 11px;
+    -fx-text-fill: #666666;
+}
+
+.queue-song-duration {
+    -fx-font-size: 11px;
+    -fx-text-fill: #888888;
+}
+
+/* Scrollbar styling for queue */
+.queue-list .scroll-bar:vertical {
+    -fx-pref-width: 8;
+}
+
+.queue-list .scroll-bar:vertical .track {
+    -fx-background-color: rgba(0, 0, 0, 0.05);
+    -fx-background-radius: 4;
+}
+
+.queue-list .scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(0, 0, 0, 0.2);
+    -fx-background-radius: 4;
+}
+
+.queue-list .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: rgba(0, 0, 0, 0.3);
+}
+
 /* Smooth transitions for all interactive elements */
 .control-button, .mode-button, .window-button, .slider .thumb {
     -fx-transition: all 0.2s ease-in-out;

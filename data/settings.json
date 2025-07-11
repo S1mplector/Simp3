@@ -1,7 +1,7 @@
 {
   "visualizerEnabled" : true,
-  "visualizerColorMode" : "GRADIENT_CYCLING",
-  "visualizerSolidColor" : "#FF8080",
-  "miniPlayerX" : 1008.0,
-  "miniPlayerY" : 266.0
+  "visualizerColorMode" : "SOLID_COLOR",
+  "visualizerSolidColor" : "#CCFFCC",
+  "miniPlayerX" : 971.3333333333334,
+  "miniPlayerY" : 148.0
 }

@@ -2,6 +2,7 @@ package com.musicplayer.ui.windows;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -21,6 +22,7 @@ import com.musicplayer.ui.dialogs.PlaylistSelectionPopup;
 
 import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
+import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -29,6 +31,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
@@ -71,6 +75,7 @@ public class MiniPlayerWindow {
     private Button shuffleButton;
     private Button repeatButton;
     private Button moreOptionsButton;
+    private Button queueButton;
     private Button pinButton;
     private Button closeButton;
     private Slider progressSlider;
@@ -79,6 +84,12 @@ public class MiniPlayerWindow {
     private ImageView albumArt;
     private ImageView albumArtTransition;
     private Label timeLabel;
+    
+    // Queue view components
+    private VBox queuePanel;
+    private ListView<Song> queueListView;
+    private boolean isQueueVisible = false;
+    private VBox mainContainer;
     
     // Icons
     private final Image playIcon;
@@ -222,12 +233,16 @@ public class MiniPlayerWindow {
         moreOptionsButton.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; " +
                                   "-fx-background-color: transparent; -fx-border-color: transparent; " +
                                   "-fx-padding: 2; -fx-cursor: hand;");
+        queueButton = createWindowButton("☰", "Show Queue");
+        queueButton.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; " +
+                            "-fx-background-color: transparent; -fx-border-color: transparent; " +
+                            "-fx-padding: 2; -fx-cursor: hand;");
         pinButton = createWindowButton(isPinned ? pinIcon : unpinIcon, "Toggle Always on Top");
         closeButton = createWindowButton(closeIcon, "Close Mini Player");
         
         HBox windowControls = new HBox(5);
         windowControls.setAlignment(Pos.CENTER_RIGHT);
-        windowControls.getChildren().addAll(moreOptionsButton, pinButton, closeButton);
+        windowControls.getChildren().addAll(queueButton, moreOptionsButton, pinButton, closeButton);
         
         // Layout
         VBox centerContent = new VBox(3);
@@ -248,7 +263,14 @@ public class MiniPlayerWindow {
         mainLayout.getChildren().addAll(albumArtContainer, centerContent, spacer, rightContent);
         mainLayout.getStyleClass().add("mini-player-root");
         
-        Scene scene = new Scene(mainLayout, 480, 120);
+        // Create queue panel
+        setupQueuePanel();
+        
+        // Main container that holds both player and queue
+        mainContainer = new VBox(0);
+        mainContainer.getChildren().addAll(mainLayout, queuePanel);
+        
+        Scene scene = new Scene(mainContainer, 480, 120);
         scene.getStylesheets().add(getClass().getResource("/css/mini-player.css").toExternalForm());
         miniStage.setScene(scene);
         
@@ -257,6 +279,9 @@ public class MiniPlayerWindow {
         
         // Setup more options menu
         setupMoreOptionsMenu();
+        
+        // Setup queue button action
+        queueButton.setOnAction(e -> toggleQueue());
         
         // Load saved position or use default
         loadWindowPosition();
@@ -425,20 +450,20 @@ public class MiniPlayerWindow {
     }
     
     private void setupDragHandling() {
-        HBox mainLayout = (HBox) miniStage.getScene().getRoot();
+        VBox mainContainer = (VBox) miniStage.getScene().getRoot();
         
-        mainLayout.setOnMousePressed(event -> {
+        mainContainer.setOnMousePressed(event -> {
             xOffset = event.getSceneX();
             yOffset = event.getSceneY();
         });
         
-        mainLayout.setOnMouseDragged(event -> {
+        mainContainer.setOnMouseDragged(event -> {
             miniStage.setX(event.getScreenX() - xOffset);
             miniStage.setY(event.getScreenY() - yOffset);
         });
         
         // Save position when drag ends
-        mainLayout.setOnMouseReleased(event -> {
+        mainContainer.setOnMouseReleased(event -> {
             saveWindowPosition();
         });
     }
@@ -460,9 +485,10 @@ public class MiniPlayerWindow {
         
         contextMenu.getItems().addAll(showMainWindow, alwaysOnTop, separator, close);
         
-        mainLayout.setOnContextMenuRequested(event -> {
+        // Set context menu on the main container instead of mainLayout
+        mainContainer.setOnContextMenuRequested(event -> {
             alwaysOnTop.setText(isPinned ? "✓ Always on Top" : "Always on Top");
-            contextMenu.show(mainLayout, event.getScreenX(), event.getScreenY());
+            contextMenu.show(mainContainer, event.getScreenX(), event.getScreenY());
         });
     }
     
@@ -529,6 +555,165 @@ public class MiniPlayerWindow {
             moreOptionsMenu.show(moreOptionsButton,
                                javafx.geometry.Side.BOTTOM, 0, 0);
         });
+    }
+    
+    private void setupQueuePanel() {
+        queuePanel = new VBox(5);
+        queuePanel.getStyleClass().add("queue-panel");
+        queuePanel.setPadding(new Insets(10));
+        queuePanel.setVisible(false);
+        queuePanel.setManaged(false);
+        
+        Label queueTitle = new Label("Up Next");
+        queueTitle.getStyleClass().add("queue-title");
+        
+        queueListView = new ListView<>();
+        queueListView.getStyleClass().add("queue-list");
+        queueListView.setPrefHeight(200);
+        queueListView.setCellFactory(lv -> new QueueCell());
+        
+        // Update queue when current song changes
+        audioPlayerService.currentSongProperty().addListener((obs, oldSong, newSong) -> {
+            updateQueueView();
+        });
+        
+        queuePanel.getChildren().addAll(queueTitle, queueListView);
+    }
+    
+    private void updateQueueView() {
+        queueListView.getItems().clear();
+        
+        List<Song> playlist = audioPlayerService.getCurrentPlaylist();
+        if (playlist != null && !playlist.isEmpty()) {
+            int currentIndex = audioPlayerService.getCurrentTrackIndex();
+            
+            // Add upcoming songs
+            for (int i = currentIndex + 1; i < playlist.size() && i < currentIndex + 10; i++) {
+                queueListView.getItems().add(playlist.get(i));
+            }
+            
+            // If shuffle is on and we're near the end, show some songs from the beginning
+            if (audioPlayerService.isShuffle() && queueListView.getItems().size() < 5) {
+                for (int i = 0; i < Math.min(5 - queueListView.getItems().size(), currentIndex); i++) {
+                    queueListView.getItems().add(playlist.get(i));
+                }
+            }
+        }
+        
+        // Also add any queued songs
+        List<Song> queue = audioPlayerService.getQueue();
+        if (!queue.isEmpty()) {
+            // Add a separator if we have playlist items
+            if (!queueListView.getItems().isEmpty()) {
+                // We'll handle this visually in the cell renderer
+            }
+            queueListView.getItems().addAll(queue);
+        }
+    }
+    
+    private void toggleQueue() {
+        isQueueVisible = !isQueueVisible;
+        
+        if (isQueueVisible) {
+            // Show queue
+            queuePanel.setVisible(true);
+            queuePanel.setManaged(true);
+            
+            // Animate window height expansion
+            miniStage.setHeight(320); // 120 (player) + 200 (queue)
+            
+            // Update queue view
+            updateQueueView();
+            
+            // Update button text
+            queueButton.setText("☰");
+            queueButton.setTooltip(new Tooltip("Hide Queue"));
+            
+            // Animate queue panel sliding down
+            TranslateTransition slideDown = new TranslateTransition(Duration.millis(200), queuePanel);
+            slideDown.setFromY(-200);
+            slideDown.setToY(0);
+            slideDown.play();
+        } else {
+            // Hide queue
+            TranslateTransition slideUp = new TranslateTransition(Duration.millis(200), queuePanel);
+            slideUp.setFromY(0);
+            slideUp.setToY(-200);
+            slideUp.setOnFinished(e -> {
+                queuePanel.setVisible(false);
+                queuePanel.setManaged(false);
+                miniStage.setHeight(120);
+            });
+            slideUp.play();
+            
+            // Update button text
+            queueButton.setText("☰");
+            queueButton.setTooltip(new Tooltip("Show Queue"));
+        }
+    }
+    
+    /**
+     * Custom cell for queue list view
+     */
+    private class QueueCell extends ListCell<Song> {
+        @Override
+        protected void updateItem(Song song, boolean empty) {
+            super.updateItem(song, empty);
+            
+            if (empty || song == null) {
+                setText(null);
+                setGraphic(null);
+            } else {
+                HBox cellContent = new HBox(10);
+                cellContent.setAlignment(Pos.CENTER_LEFT);
+                
+                // Song number in queue
+                Label numberLabel = new Label(String.valueOf(getIndex() + 1));
+                numberLabel.getStyleClass().add("queue-number");
+                numberLabel.setMinWidth(20);
+                
+                // Song info
+                VBox songInfo = new VBox(2);
+                Label titleLabel = new Label(song.getTitle());
+                titleLabel.getStyleClass().add("queue-song-title");
+                titleLabel.setMaxWidth(300);
+                titleLabel.setEllipsisString("...");
+                
+                Label artistLabel = new Label(song.getArtist());
+                artistLabel.getStyleClass().add("queue-song-artist");
+                artistLabel.setMaxWidth(300);
+                artistLabel.setEllipsisString("...");
+                
+                songInfo.getChildren().addAll(titleLabel, artistLabel);
+                
+                // Duration
+                Label durationLabel = new Label(formatTime(song.getDuration()));
+                durationLabel.getStyleClass().add("queue-song-duration");
+                
+                Region spacer = new Region();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                
+                cellContent.getChildren().addAll(numberLabel, songInfo, spacer, durationLabel);
+                
+                setGraphic(cellContent);
+                setText(null);
+                
+                // Add hover effect
+                setOnMouseEntered(e -> cellContent.setStyle("-fx-background-color: rgba(255, 255, 255, 0.1);"));
+                setOnMouseExited(e -> cellContent.setStyle(""));
+                
+                // Double-click to play
+                setOnMouseClicked(e -> {
+                    if (e.getClickCount() == 2) {
+                        // Jump to this song in the queue
+                        int targetIndex = audioPlayerService.getCurrentTrackIndex() + getIndex() + 1;
+                        if (targetIndex < audioPlayerService.getCurrentPlaylist().size()) {
+                            audioPlayerService.playTrack(targetIndex);
+                        }
+                    }
+                });
+            }
+        }
     }
     
     private void setSleepTimer(int minutes) {
