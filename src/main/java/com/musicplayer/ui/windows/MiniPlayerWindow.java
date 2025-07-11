@@ -110,6 +110,8 @@ public class MiniPlayerWindow {
     
     // Sleep timer
     private javafx.animation.Timeline sleepTimer;
+    private Label sleepTimerLabel;
+    private int remainingMinutes = 0;
     
     // Logger for album art loading
     private static final Logger LOGGER = Logger.getLogger(MiniPlayerWindow.class.getName());
@@ -496,16 +498,16 @@ public class MiniPlayerWindow {
         ContextMenu moreOptionsMenu = new ContextMenu();
         moreOptionsMenu.getStyleClass().add("more-options-menu");
         
-        MenuItem addToFavorites = new MenuItem("Add to Favorites");
+        MenuItem addToFavorites = new MenuItem("❤ Add to Favorites");
         addToFavorites.setOnAction(e -> {
             Song currentSong = audioPlayerService.getCurrentSong();
             if (currentSong != null) {
                 boolean isFavorite = favoritesService.toggleFavorite(currentSong);
-                addToFavorites.setText(isFavorite ? "Remove from Favorites" : "Add to Favorites");
+                addToFavorites.setText(isFavorite ? "💔 Remove from Favorites" : "❤ Add to Favorites");
             }
         });
         
-        MenuItem addToPlaylist = new MenuItem("Add to Playlist");
+        MenuItem addToPlaylist = new MenuItem("➕ Add to Playlist");
         addToPlaylist.setOnAction(e -> {
             Song currentSong = audioPlayerService.getCurrentSong();
             if (currentSong != null && playlistManager != null) {
@@ -519,10 +521,13 @@ public class MiniPlayerWindow {
             }
         });
         
-        MenuItem showInLibrary = new MenuItem("Show in Library");
-        showInLibrary.setOnAction(e -> restoreMainWindow());
+        MenuItem showInLibrary = new MenuItem("📁 Show in Library");
+        showInLibrary.setOnAction(e -> {
+            // Fire an event or call a method to show the song in the main window
+            showSongInMainWindow();
+        });
         
-        Menu sleepTimerMenu = new Menu("Sleep Timer");
+        Menu sleepTimerMenu = new Menu("⏱ Sleep Timer");
         MenuItem timer15 = new MenuItem("15 minutes");
         MenuItem timer30 = new MenuItem("30 minutes");
         MenuItem timer45 = new MenuItem("45 minutes");
@@ -547,7 +552,7 @@ public class MiniPlayerWindow {
             Song currentSong = audioPlayerService.getCurrentSong();
             if (currentSong != null) {
                 boolean isFavorite = favoritesService.isFavorite(currentSong.getId());
-                addToFavorites.setText(isFavorite ? "Remove from Favorites" : "Add to Favorites");
+                addToFavorites.setText(isFavorite ? "💔 Remove from Favorites" : "❤ Add to Favorites");
             }
         });
         
@@ -619,6 +624,10 @@ public class MiniPlayerWindow {
             queuePanel.setVisible(true);
             queuePanel.setManaged(true);
             
+            // Set initial position (hidden below the visible area)
+            queuePanel.setTranslateY(200);
+            queuePanel.setOpacity(0);
+            
             // Animate window height expansion
             miniStage.setHeight(320); // 120 (player) + 200 (queue)
             
@@ -629,22 +638,35 @@ public class MiniPlayerWindow {
             queueButton.setText("☰");
             queueButton.setTooltip(new Tooltip("Hide Queue"));
             
-            // Animate queue panel sliding down
-            TranslateTransition slideDown = new TranslateTransition(Duration.millis(200), queuePanel);
-            slideDown.setFromY(-200);
-            slideDown.setToY(0);
-            slideDown.play();
+            // Animate queue panel sliding up from bottom with fade in
+            TranslateTransition slideUp = new TranslateTransition(Duration.millis(300), queuePanel);
+            slideUp.setFromY(200);
+            slideUp.setToY(0);
+            
+            FadeTransition fadeIn = new FadeTransition(Duration.millis(300), queuePanel);
+            fadeIn.setFromValue(0);
+            fadeIn.setToValue(1);
+            
+            slideUp.play();
+            fadeIn.play();
         } else {
-            // Hide queue
-            TranslateTransition slideUp = new TranslateTransition(Duration.millis(200), queuePanel);
-            slideUp.setFromY(0);
-            slideUp.setToY(-200);
-            slideUp.setOnFinished(e -> {
+            // Hide queue - slide down and fade out
+            TranslateTransition slideDown = new TranslateTransition(Duration.millis(300), queuePanel);
+            slideDown.setFromY(0);
+            slideDown.setToY(200);
+            
+            FadeTransition fadeOut = new FadeTransition(Duration.millis(300), queuePanel);
+            fadeOut.setFromValue(1);
+            fadeOut.setToValue(0);
+            
+            slideDown.setOnFinished(e -> {
                 queuePanel.setVisible(false);
                 queuePanel.setManaged(false);
                 miniStage.setHeight(120);
             });
-            slideUp.play();
+            
+            slideDown.play();
+            fadeOut.play();
             
             // Update button text
             queueButton.setText("☰");
@@ -718,24 +740,46 @@ public class MiniPlayerWindow {
     
     private void setSleepTimer(int minutes) {
         cancelSleepTimer();
+        remainingMinutes = minutes;
         
+        // Create sleep timer label if it doesn't exist
+        if (sleepTimerLabel == null) {
+            sleepTimerLabel = new Label();
+            sleepTimerLabel.getStyleClass().add("sleep-timer-label");
+            sleepTimerLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #ff9800; -fx-font-weight: bold;");
+        }
+        
+        // Update label and add to UI
+        updateSleepTimerLabel();
+        if (!((VBox) ((HBox) mainContainer.getChildren().get(0)).getChildren().get(1)).getChildren().contains(sleepTimerLabel)) {
+            ((VBox) ((HBox) mainContainer.getChildren().get(0)).getChildren().get(1)).getChildren().add(1, sleepTimerLabel);
+        }
+        
+        // Create timeline with minute updates
         sleepTimer = new javafx.animation.Timeline(
             new javafx.animation.KeyFrame(
-                Duration.minutes(minutes),
+                Duration.minutes(1),
                 e -> {
-                    audioPlayerService.pause();
-                    Platform.runLater(() -> {
-                        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
-                            javafx.scene.control.Alert.AlertType.INFORMATION,
-                            "Sleep timer has stopped playback."
-                        );
-                        alert.setTitle("Sleep Timer");
-                        alert.setHeaderText(null);
-                        alert.showAndWait();
-                    });
+                    remainingMinutes--;
+                    if (remainingMinutes <= 0) {
+                        audioPlayerService.pause();
+                        cancelSleepTimer();
+                        Platform.runLater(() -> {
+                            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
+                                javafx.scene.control.Alert.AlertType.INFORMATION,
+                                "Sleep timer has stopped playback."
+                            );
+                            alert.setTitle("Sleep Timer");
+                            alert.setHeaderText(null);
+                            alert.showAndWait();
+                        });
+                    } else {
+                        updateSleepTimerLabel();
+                    }
                 }
             )
         );
+        sleepTimer.setCycleCount(minutes);
         sleepTimer.play();
         
         // Show confirmation
@@ -748,10 +792,20 @@ public class MiniPlayerWindow {
         alert.show();
     }
     
+    private void updateSleepTimerLabel() {
+        if (sleepTimerLabel != null) {
+            sleepTimerLabel.setText("⏱ " + remainingMinutes + " min");
+        }
+    }
+    
     private void cancelSleepTimer() {
         if (sleepTimer != null) {
             sleepTimer.stop();
             sleepTimer = null;
+        }
+        remainingMinutes = 0;
+        if (sleepTimerLabel != null) {
+            ((VBox) ((HBox) mainContainer.getChildren().get(0)).getChildren().get(1)).getChildren().remove(sleepTimerLabel);
         }
     }
     
@@ -891,6 +945,47 @@ public class MiniPlayerWindow {
         mainStage.show();
         mainStage.toFront();
         hide();
+    }
+    
+    /**
+     * Show the current song in the main window library view.
+     * This method communicates with the main window to highlight/show the current song.
+     */
+    private void showSongInMainWindow() {
+        Song currentSong = audioPlayerService.getCurrentSong();
+        if (currentSong != null) {
+            // First restore the main window
+            if (mainStage.isIconified()) {
+                mainStage.setIconified(false);
+            }
+            mainStage.show();
+            mainStage.toFront();
+            
+            // Fire a custom event that the main controller can listen to
+            mainStage.fireEvent(new ShowSongInLibraryEvent(currentSong));
+            
+            // Hide mini player
+            hide();
+        }
+    }
+    
+    /**
+     * Custom event for showing a song in the library.
+     */
+    public static class ShowSongInLibraryEvent extends javafx.event.Event {
+        public static final javafx.event.EventType<ShowSongInLibraryEvent> SHOW_SONG_IN_LIBRARY =
+            new javafx.event.EventType<>(javafx.event.Event.ANY, "SHOW_SONG_IN_LIBRARY");
+        
+        private final Song song;
+        
+        public ShowSongInLibraryEvent(Song song) {
+            super(SHOW_SONG_IN_LIBRARY);
+            this.song = song;
+        }
+        
+        public Song getSong() {
+            return song;
+        }
     }
     
     public void show() {

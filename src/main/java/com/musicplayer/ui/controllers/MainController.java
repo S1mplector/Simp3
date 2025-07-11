@@ -41,6 +41,7 @@ import com.musicplayer.ui.util.SongContextMenuProvider;
 import com.musicplayer.ui.components.PlaylistCell.RenameRequest;
 import com.musicplayer.ui.controllers.SettingsController;
 import com.musicplayer.ui.windows.MiniPlayerWindow;
+import com.musicplayer.ui.windows.MiniPlayerWindow.ShowSongInLibraryEvent;
 
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
@@ -1261,6 +1262,24 @@ public class MainController implements Initializable {
                     
                     // Create the mini player window
                     miniPlayerWindow = new MiniPlayerWindow(audioPlayerService, mainStage, settingsService, favoritesService, playlistManager);
+                    
+                    // Listen for show song in library events from mini player
+                    mainStage.addEventHandler(MiniPlayerWindow.ShowSongInLibraryEvent.SHOW_SONG_IN_LIBRARY, event -> {
+                        Song songToShow = event.getSong();
+                        if (songToShow != null) {
+                            // Show all songs view
+                            showAllSongs();
+                            
+                            // Find and select the song in the table
+                            for (int i = 0; i < songsTableView.getItems().size(); i++) {
+                                if (songsTableView.getItems().get(i).equals(songToShow)) {
+                                    songsTableView.getSelectionModel().select(i);
+                                    songsTableView.scrollTo(i);
+                                    break;
+                                }
+                            }
+                        }
+                    });
                     
                     // When mini player is closed, set reference to null
                     miniPlayerWindow.getStage().setOnHidden(e -> {
