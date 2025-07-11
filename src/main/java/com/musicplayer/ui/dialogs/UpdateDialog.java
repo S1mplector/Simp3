@@ -315,14 +315,17 @@ public class UpdateDialog extends Stage {
         try {
             // Execute the update script and exit
             String updateScript = "update/apply-update.bat";
-            if (new File(updateScript).exists()) {
-                new ProcessBuilder("cmd", "/c", "start", updateScript).start();
+            File scriptFile = new File(updateScript);
+            if (scriptFile.exists()) {
+                // Use the full path and quote it to handle spaces
+                String fullPath = scriptFile.getAbsolutePath();
+                new ProcessBuilder("cmd", "/c", "\"" + fullPath + "\"").start();
                 Platform.exit();
                 System.exit(0);
             }
         } catch (Exception e) {
             logger.error("Failed to restart application", e);
-            showError("Restart Failed", 
+            showError("Restart Failed",
                 "Failed to restart the application. Please close and restart manually.");
         }
     }

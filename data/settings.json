@@ -1,9 +1,9 @@
 {
   "visualizerEnabled" : true,
-  "visualizerColorMode" : "SOLID_COLOR",
-  "visualizerSolidColor" : "#FF9980",
-  "miniPlayerX" : 1079.3333333333335,
-  "miniPlayerY" : 184.0,
+  "visualizerColorMode" : "GRADIENT_CYCLING",
+  "visualizerSolidColor" : "#32CD32",
+  "miniPlayerX" : -1.0,
+  "miniPlayerY" : -1.0,
   "miniPlayerPinned" : true,
   "autoCheckForUpdates" : true,
   "updateCheckIntervalHours" : 24,
