@@ -23,6 +23,7 @@ import com.musicplayer.services.MusicLibraryManager;
 import com.musicplayer.services.PlaylistManager;
 import com.musicplayer.services.PlaylistService;
 import com.musicplayer.services.SettingsService;
+import com.musicplayer.services.UpdateService;
 import com.musicplayer.ui.components.ActivityFeedItem;
 import com.musicplayer.ui.components.AlbumGridView;
 import com.musicplayer.ui.components.AudioVisualizer;
@@ -35,6 +36,7 @@ import com.musicplayer.ui.components.RescanButtonFactory;
 import com.musicplayer.ui.dialogs.FirstRunWizard;
 import com.musicplayer.ui.dialogs.MissingFilesDialog;
 import com.musicplayer.ui.dialogs.PlaylistSelectionPopup;
+import com.musicplayer.ui.dialogs.UpdateDialog;
 import com.musicplayer.ui.handlers.PlaylistActionHandler;
 import com.musicplayer.ui.util.AlbumArtLoader;
 import com.musicplayer.ui.util.SearchManager;
@@ -128,6 +130,7 @@ public class MainController implements Initializable {
     private ListeningStatsService listeningStatsService;
     private FavoritesService favoritesService;
     private SettingsService settingsService;
+    private UpdateService updateService;
     private ObservableList<Song> songs;
     private ObservableList<Playlist> playlists;
 
@@ -179,6 +182,9 @@ public class MainController implements Initializable {
         
         // Initialize settings service
         settingsService = new SettingsService();
+        
+        // Initialize update service
+        updateService = new UpdateService(settingsService);
         
         // Set up error handling for missing files
         audioPlayerService.setOnError(() -> handleMissingFiles());
@@ -701,6 +707,12 @@ public class MainController implements Initializable {
         if (audioPlayerService != null) {
             audioPlayerService.dispose();
             System.out.println("Audio resources disposed");
+        }
+        
+        // Shutdown update service
+        if (updateService != null) {
+            updateService.shutdown();
+            System.out.println("Update service shutdown");
         }
         
         System.out.println("Application shutdown complete");
@@ -1377,6 +1389,73 @@ public class MainController implements Initializable {
         // Play both transitions
         fadeOut.play();
         fadeIn.play();
+    }
+    
+    @FXML
+    private void handleCheckForUpdates() {
+        // Disable the button/menu item while checking
+        // Note: We don't have direct access to the menu item here, but we can show progress
+        
+        // Show initial status
+        if (pinboardPanel != null) {
+            pinboardPanel.addActivity(ActivityFeedItem.ActivityType.SCAN_COMPLETE,
+                "Checking for updates...");
+        }
+        
+        // Call checkForUpdates on the updateService
+        updateService.checkForUpdates()
+            .thenAccept(updateInfo -> {
+                // This runs on a background thread, so use Platform.runLater for UI updates
+                Platform.runLater(() -> {
+                    if (updateInfo != null) {
+                        // Update is available - show the UpdateDialog
+                        UpdateDialog updateDialog = new UpdateDialog(updateService, updateInfo);
+                        updateDialog.initOwner(playPauseButton.getScene().getWindow());
+                        
+                        // Show the dialog and wait for it to close
+                        updateDialog.showAndWait();
+                        
+                        // Log the activity
+                        if (pinboardPanel != null) {
+                            pinboardPanel.addActivity(ActivityFeedItem.ActivityType.SCAN_COMPLETE,
+                                "Update available: version " + updateInfo.getVersion());
+                        }
+                    } else {
+                        // No updates found
+                        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                        alert.setTitle("Check for Updates");
+                        alert.setHeaderText("No Updates Available");
+                        alert.setContentText("You are running the latest version of SiMP3 (" +
+                            updateService.getCurrentVersion() + ")");
+                        alert.initOwner(playPauseButton.getScene().getWindow());
+                        alert.showAndWait();
+                        
+                        if (pinboardPanel != null) {
+                            pinboardPanel.addActivity(ActivityFeedItem.ActivityType.SCAN_COMPLETE,
+                                "No updates available - running latest version");
+                        }
+                    }
+                });
+            })
+            .exceptionally(throwable -> {
+                // Handle errors
+                Platform.runLater(() -> {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Update Check Failed");
+                    alert.setHeaderText("Could not check for updates");
+                    alert.setContentText("An error occurred while checking for updates. " +
+                        "Please check your internet connection and try again.\n\n" +
+                        "Error: " + throwable.getMessage());
+                    alert.initOwner(playPauseButton.getScene().getWindow());
+                    alert.showAndWait();
+                    
+                    if (pinboardPanel != null) {
+                        pinboardPanel.addActivity(ActivityFeedItem.ActivityType.FILES_MISSING,
+                            "Update check failed: " + throwable.getMessage());
+                    }
+                });
+                return null;
+            });
     }
 
 }
