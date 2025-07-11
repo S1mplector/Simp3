@@ -36,6 +36,7 @@ import com.musicplayer.ui.dialogs.FirstRunWizard;
 import com.musicplayer.ui.dialogs.MissingFilesDialog;
 import com.musicplayer.ui.dialogs.PlaylistSelectionPopup;
 import com.musicplayer.ui.handlers.PlaylistActionHandler;
+import com.musicplayer.ui.util.AlbumArtLoader;
 import com.musicplayer.ui.util.SearchManager;
 import com.musicplayer.ui.util.SongContextMenuProvider;
 import com.musicplayer.ui.components.PlaylistCell.RenameRequest;
@@ -43,6 +44,7 @@ import com.musicplayer.ui.controllers.SettingsController;
 import com.musicplayer.ui.windows.MiniPlayerWindow;
 import com.musicplayer.ui.windows.MiniPlayerWindow.ShowSongInLibraryEvent;
 
+import javafx.animation.FadeTransition;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -80,6 +82,7 @@ import javafx.stage.Stage;
 import javafx.scene.paint.Color;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
+import javafx.util.Duration;
 
 public class MainController implements Initializable {
     
@@ -104,6 +107,13 @@ public class MainController implements Initializable {
     @FXML private Slider volumeSlider;
     @FXML private ImageView volumeIcon;
     @FXML private Label volumePercentageLabel;
+    
+    // Album art display elements
+    @FXML private StackPane albumArtContainer;
+    @FXML private ImageView albumArtImageView;
+    @FXML private ImageView albumArtImageView2;
+    @FXML private Label songTitleLabel;
+    @FXML private Label songArtistLabel;
     
     // Icons for play/pause button
     private Image playIcon;
@@ -492,9 +502,10 @@ public class MainController implements Initializable {
             return row;
         });
         
-        // Update table row highlighting when song changes
+        // Update table row highlighting and album art when song changes
         audioPlayerService.currentSongProperty().addListener((obs, oldSong, newSong) -> {
             songsTableView.refresh(); // Refresh to update row highlighting
+            updateAlbumArt(newSong); // Update album art display
         });
         
         audioPlayerService.playingProperty().addListener((obs, oldPlaying, newPlaying) -> {
@@ -1299,5 +1310,73 @@ public class MainController implements Initializable {
                     mainStage.setIconified(true);
                 }
             }
+            
+    /**
+     * Updates the album art display for the current song.
+     * Uses AlbumArtLoader utility to load album art from metadata.
+     */
+    private void updateAlbumArt(Song song) {
+        if (song == null) {
+            // Clear album art and labels when no song
+            if (albumArtImageView != null) {
+                albumArtImageView.setImage(null);
+            }
+            if (albumArtImageView2 != null) {
+                albumArtImageView2.setImage(null);
+            }
+            if (songTitleLabel != null) {
+                songTitleLabel.setText("");
+            }
+            if (songArtistLabel != null) {
+                songArtistLabel.setText("");
+            }
+            return;
+        }
+        
+        // Update song info labels
+        if (songTitleLabel != null) {
+            songTitleLabel.setText(song.getTitle());
+        }
+        if (songArtistLabel != null) {
+            songArtistLabel.setText(song.getArtist());
+        }
+        
+        // Load album art asynchronously
+        if (albumArtContainer != null && albumArtImageView != null && albumArtImageView2 != null) {
+            AlbumArtLoader.loadAlbumArt(song)
+                .thenAcceptAsync(image -> transitionToImage(image), Platform::runLater);
+        }
+    }
+    
+    /**
+     * Transitions to a new album art image with a fade effect.
+     * Uses two ImageViews to create smooth crossfade transitions.
+     */
+    private void transitionToImage(Image newImage) {
+        if (albumArtImageView == null || albumArtImageView2 == null || albumArtContainer == null) {
+            return;
+        }
+        
+        // Determine which ImageView is currently visible
+        ImageView currentView = albumArtImageView.getOpacity() > 0 ? albumArtImageView : albumArtImageView2;
+        ImageView nextView = currentView == albumArtImageView ? albumArtImageView2 : albumArtImageView;
+        
+        // Set the new image on the hidden view
+        nextView.setImage(newImage);
+        
+        // Create fade out transition for current view
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(300), currentView);
+        fadeOut.setFromValue(1.0);
+        fadeOut.setToValue(0.0);
+        
+        // Create fade in transition for next view
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(300), nextView);
+        fadeIn.setFromValue(0.0);
+        fadeIn.setToValue(1.0);
+        
+        // Play both transitions
+        fadeOut.play();
+        fadeIn.play();
+    }
 
 }

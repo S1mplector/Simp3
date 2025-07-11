@@ -67,7 +67,7 @@ public class PinboardItem extends HBox {
         setOnMouseEntered(e -> {
             // Semi-transparent lime overlay
             setStyle("-fx-background-color: #32cd3246; -fx-background-radius: 3;");
-            setEffect(new DropShadow(5, Color.BLACK));
+            setEffect(new DropShadow(1, Color.BLACK));
         });
         
         setOnMouseExited(e -> {

@@ -1,7 +1,9 @@
 package com.musicplayer.ui.components;
 
 import com.musicplayer.data.models.Album;
+import com.musicplayer.ui.util.AlbumArtLoader;
 
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -31,16 +33,23 @@ public class AlbumCard extends StackPane {
         VBox content = new VBox(5);
         content.setAlignment(Pos.CENTER);
 
-        // Cover art if present else generic icon
-        ImageView coverView;
-        if (album.getCoverArtPath() != null && !album.getCoverArtPath().isBlank()) {
-            try {
-                coverView = new ImageView(new Image("file:" + album.getCoverArtPath(), 90, 90, true, true));
-            } catch (Exception e) {
-                coverView = placeholder();
-            }
+        // Create ImageView for album art
+        ImageView coverView = new ImageView();
+        coverView.setFitWidth(90);
+        coverView.setFitHeight(90);
+        coverView.setPreserveRatio(true);
+        coverView.setSmooth(true);
+        
+        // Load album art from the first song in the album
+        if (album.getSongs() != null && !album.getSongs().isEmpty()) {
+            // Load album art asynchronously from the first song
+            AlbumArtLoader.loadAlbumArt(album.getSongs().get(0))
+                .thenAcceptAsync(image -> {
+                    coverView.setImage(image);
+                }, Platform::runLater);
         } else {
-            coverView = placeholder();
+            // Use placeholder if no songs in album
+            coverView.setImage(getPlaceholderImage());
         }
 
         Label titleLbl = new Label(album.getTitle());
@@ -65,9 +74,8 @@ public class AlbumCard extends StackPane {
         });
     }
 
-    private ImageView placeholder() {
-        Image icon = new Image(AlbumCard.class.getResourceAsStream("/images/icons/album_placeholder.png"), 90, 90, true, true);
-        return new ImageView(icon);
+    private Image getPlaceholderImage() {
+        return new Image(AlbumCard.class.getResourceAsStream("/images/icons/album_placeholder.png"), 90, 90, true, true);
     }
 
     public Album getAlbum() {
