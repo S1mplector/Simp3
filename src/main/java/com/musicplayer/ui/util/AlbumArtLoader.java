@@ -88,6 +88,62 @@ public class AlbumArtLoader {
     }
     
     /**
+     * Load album artwork for an Album, checking for custom album art first.
+     * 
+     * @param album The album to load album art for
+     * @return CompletableFuture that will complete with the loaded image
+     */
+    public static CompletableFuture<Image> loadAlbumArt(com.musicplayer.data.models.Album album) {
+        if (album == null) {
+            return CompletableFuture.completedFuture(DEFAULT_ALBUM_ART);
+        }
+        
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                // First check if album has custom cover art path
+                if (album.getCoverArtPath() != null && !album.getCoverArtPath().trim().isEmpty()) {
+                    java.io.File customArtFile = new java.io.File(album.getCoverArtPath());
+                    if (customArtFile.exists() && customArtFile.isFile()) {
+                        Image customImage = new Image(customArtFile.toURI().toString(), 90, 90, true, true);
+                        if (!customImage.isError()) {
+                            return customImage;
+                        }
+                    }
+                }
+                
+                // Fallback to loading from first song's metadata
+                if (album.getSongs() != null && !album.getSongs().isEmpty()) {
+                    com.musicplayer.data.models.Song firstSong = album.getSongs().get(0);
+                    // Extract the album art loading logic from the original method
+                    java.io.File audioFile = new java.io.File(firstSong.getFilePath());
+                    if (audioFile.exists()) {
+                        // Read audio file metadata
+                        org.jaudiotagger.audio.AudioFile f = org.jaudiotagger.audio.AudioFileIO.read(audioFile);
+                        org.jaudiotagger.tag.Tag tag = f.getTag();
+                        
+                        if (tag != null) {
+                            org.jaudiotagger.tag.images.Artwork artwork = tag.getFirstArtwork();
+                            if (artwork != null) {
+                                byte[] imageData = artwork.getBinaryData();
+                                if (imageData != null && imageData.length > 0) {
+                                    return new Image(new java.io.ByteArrayInputStream(imageData));
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // No songs or custom art available
+                return DEFAULT_ALBUM_ART;
+                
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error loading album art for album: " + album.getTitle(), e);
+                return DEFAULT_ALBUM_ART;
+            }
+        });
+    }
+
+    /**
      * Load album artwork synchronously (blocking).
      * Use sparingly - prefer the async version for UI responsiveness.
      * 

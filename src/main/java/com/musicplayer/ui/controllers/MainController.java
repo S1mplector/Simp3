@@ -9,6 +9,8 @@ import java.util.ResourceBundle;
 import com.musicplayer.data.models.Album;
 import com.musicplayer.data.models.Playlist;
 import com.musicplayer.data.models.Song;
+import com.musicplayer.data.repositories.AlbumRepository;
+import com.musicplayer.data.repositories.PersistentAlbumRepository;
 import com.musicplayer.data.repositories.PersistentPlaylistRepository;
 import com.musicplayer.data.repositories.PersistentSongRepository;
 import com.musicplayer.data.repositories.PlaylistRepository;
@@ -137,6 +139,9 @@ public class MainController implements Initializable {
     
     // Extracted controller
     private AudioController audioController;
+    
+    // Repositories
+    private AlbumRepository albumRepository;
 
     @FXML private Button playlistSearchButton;
     @FXML private TextField playlistSearchField;
@@ -161,6 +166,7 @@ public class MainController implements Initializable {
         LibraryStorage storage = new JsonLibraryStorage();
         SongRepository songRepository = new PersistentSongRepository(storage);
         PlaylistRepository playlistRepository = new PersistentPlaylistRepository(storage);
+        albumRepository = new PersistentAlbumRepository(storage);
         libraryService = new LibraryService(songRepository);
         playlistService = new PlaylistService(playlistRepository);
         
@@ -760,7 +766,7 @@ public class MainController implements Initializable {
     private void showSongsWithAlbums() {
         // Show albums at top and all songs below
         if (albumGridView == null) {
-            albumGridView = new AlbumGridView(libraryService.getAllAlbums(), this::onAlbumSelected);
+            albumGridView = new AlbumGridView(libraryService.getAllAlbums(), this::onAlbumSelected, albumRepository);
             albumGridView.setPrefHeight(150);
             albumGridView.setMaxHeight(200);
             VBox container = (VBox) songsTableView.getParent();

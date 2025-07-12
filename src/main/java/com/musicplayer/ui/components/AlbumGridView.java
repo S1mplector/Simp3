@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import com.musicplayer.data.models.Album;
+import com.musicplayer.data.repositories.AlbumRepository;
 
 import javafx.geometry.Insets;
 import javafx.scene.control.ScrollPane;
@@ -17,9 +18,11 @@ public class AlbumGridView extends ScrollPane {
     private final FlowPane flow;
     private AlbumCard selectedCard;
     private final Consumer<Album> selectionCallback;
+    private final AlbumRepository albumRepository;
 
-    public AlbumGridView(List<Album> albums, Consumer<Album> onSelect) {
+    public AlbumGridView(List<Album> albums, Consumer<Album> onSelect, AlbumRepository albumRepository) {
         this.selectionCallback = onSelect;
+        this.albumRepository = albumRepository;
 
         flow = new FlowPane();
         flow.setPadding(new Insets(10));
@@ -38,7 +41,7 @@ public class AlbumGridView extends ScrollPane {
     public void refresh(List<Album> albums) {
         flow.getChildren().clear();
         for (Album album : albums) {
-            AlbumCard card = new AlbumCard(album);
+            AlbumCard card = new AlbumCard(album, albumRepository);
             card.setOnMouseClicked(e -> selectCard(card));
             flow.getChildren().add(card);
         }
