@@ -1006,13 +1006,18 @@ public class MainController implements Initializable {
                 if (spectrumListener != null) {
                     audioPlayerService.setAudioSpectrumListener(spectrumListener);
                 }
-                if (!audioVisualizer.isPaused()) {
+                // Resume the visualizer only if it is currently paused
+                if (audioVisualizer.isPaused()) {
                     audioVisualizer.resume();
                 }
             } else if (!isPlaying || !visualizerEnabled) {
                 // Music stopped or visualizer disabled - disable spectrum listener to save resources
                 if (spectrumListener != null) {
                     audioPlayerService.setAudioSpectrumListener(null);
+                }
+                // Ensure the visualizer animation is paused while not playing
+                if (!audioVisualizer.isPaused()) {
+                    audioVisualizer.pause();
                 }
             }
         });
