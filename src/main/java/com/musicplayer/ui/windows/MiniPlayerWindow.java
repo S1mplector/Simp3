@@ -13,13 +13,16 @@ import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.images.Artwork;
 
 import com.musicplayer.core.playlist.PlaylistEngine;
+import com.musicplayer.data.models.Album;
 import com.musicplayer.data.models.Song;
+import com.musicplayer.data.repositories.AlbumRepository;
 import com.musicplayer.services.AudioPlayerService;
 import com.musicplayer.services.FavoritesService;
 import com.musicplayer.services.PlaylistManager;
 import com.musicplayer.services.SettingsService;
 import com.musicplayer.ui.components.AudioVisualizerPane;
 import com.musicplayer.ui.dialogs.PlaylistSelectionPopup;
+import com.musicplayer.ui.util.AlbumArtLoader;
 
 import javafx.animation.FadeTransition;
 import javafx.animation.ScaleTransition;
@@ -66,6 +69,7 @@ public class MiniPlayerWindow {
     private final SettingsService settingsService;
     private final FavoritesService favoritesService;
     private final PlaylistManager playlistManager;
+    private final AlbumRepository albumRepository;
     
     // UI Components
     private Label titleLabel;
@@ -120,12 +124,13 @@ public class MiniPlayerWindow {
     
     public MiniPlayerWindow(AudioPlayerService audioPlayerService, Stage mainStage,
                            SettingsService settingsService, FavoritesService favoritesService,
-                           PlaylistManager playlistManager) {
+                           PlaylistManager playlistManager, AlbumRepository albumRepository) {
         this.audioPlayerService = audioPlayerService;
         this.mainStage = mainStage;
         this.settingsService = settingsService;
         this.favoritesService = favoritesService;
         this.playlistManager = playlistManager;
+        this.albumRepository = albumRepository;
         this.miniStage = new Stage();
         
         // Load icons
@@ -919,16 +924,40 @@ public class MiniPlayerWindow {
      * @param song The song to load album art for
      */
     private void loadAlbumArt(Song song) {
+        // Try to get album from repository to load custom cover art if present
+        CompletableFuture.runAsync(() -> {
+            if (albumRepository != null && song.getAlbum() != null) {
+                Album album = albumRepository.findAll().stream()
+                        .filter(a -> a.getTitle() != null && a.getTitle().equalsIgnoreCase(song.getAlbum()))
+                        .findFirst().orElse(null);
+                if (album != null) {
+                    AlbumArtLoader.loadAlbumArt(album).thenAcceptAsync(img -> {
+                        if (img != null) {
+                            transitionToImage(img);
+                        } else {
+                            // fallback to metadata path below
+                            loadAlbumArtFromMetadata(song);
+                        }
+                    }, Platform::runLater);
+                    return;
+                }
+            }
+            // If no repository album found, fallback to metadata
+            loadAlbumArtFromMetadata(song);
+        });
+    }
+
+    private void loadAlbumArtFromMetadata(Song song) {
         CompletableFuture.supplyAsync(() -> {
             try {
                 File audioFile = new File(song.getFilePath());
                 if (!audioFile.exists()) {
                     return null;
                 }
-                
+
                 AudioFile f = AudioFileIO.read(audioFile);
                 Tag tag = f.getTag();
-                
+
                 if (tag != null) {
                     Artwork artwork = tag.getFirstArtwork();
                     if (artwork != null) {
@@ -940,9 +969,9 @@ public class MiniPlayerWindow {
                 LOGGER.log(Level.WARNING, "Failed to load album art for: " + song.getFilePath(), e);
             }
             return null;
-        }).thenAcceptAsync(image -> {
-            if (image != null) {
-                transitionToImage(image);
+        }).thenAcceptAsync(img -> {
+            if (img != null) {
+                transitionToImage(img);
             } else {
                 transitionToImage(defaultAlbumArt);
             }

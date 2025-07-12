@@ -233,15 +233,19 @@ public class MainController implements Initializable {
             audioPlayerService.setPlaylist(songs);
             // Refresh library service to update albums
             libraryService.refreshLibrary();
+            // Synchronize albums from library engine to the persistent repository so that
+            // newly discovered albums are also persisted and available for editing next session.
+            syncAlbumsWithRepository();
             // Refresh album view if it exists
             if (albumGridView != null) {
                 javafx.application.Platform.runLater(() -> {
-                    albumGridView.refresh(libraryService.getAllAlbums());
+                    // Use album repository to retrieve albums so that persisted edits (name, cover art) are reflected
+                    albumGridView.refresh(albumRepository.findAll());
                 });
             }
             // Update library stats in pinboard panel
             if (pinboardPanel != null) {
-                int totalAlbums = libraryService.getAllAlbums().size();
+                int totalAlbums = albumRepository.findAll().size();
                 File musicFolderFile = musicLibraryManager.getCurrentMusicFolder();
                 String musicFolder = musicFolderFile != null ? musicFolderFile.getAbsolutePath() : null;
                 pinboardPanel.updateLibraryStats(updatedSongs.size(), totalAlbums, musicFolder);
@@ -262,6 +266,8 @@ public class MainController implements Initializable {
         
         // Load existing library data if available
         musicLibraryManager.initializeLibrary();
+        // Ensure albums detected from the initial library scan are persisted
+        syncAlbumsWithRepository();
         
         // Load existing playlists if available
         playlistManager.initializePlaylists();
@@ -478,7 +484,7 @@ public class MainController implements Initializable {
             // Update library stats after scanning
             if (pinboardPanel != null) {
                 int totalSongs = musicLibraryManager.getSongCount();
-                int totalAlbums = libraryService.getAllAlbums().size();
+                int totalAlbums = albumRepository.findAll().size();
                 String musicFolder = selectedDirectory.getAbsolutePath();
                 pinboardPanel.updateLibraryStats(totalSongs, totalAlbums, musicFolder);
             }
@@ -713,7 +719,7 @@ public class MainController implements Initializable {
         
         // Initialize library stats
         int totalSongs = musicLibraryManager.getSongCount();
-        int totalAlbums = libraryService.getAllAlbums().size();
+        int totalAlbums = albumRepository.findAll().size();
         File musicFolderFile = musicLibraryManager.getCurrentMusicFolder();
         String musicFolder = musicFolderFile != null ? musicFolderFile.getAbsolutePath() : null;
         pinboardPanel.updateLibraryStats(totalSongs, totalAlbums, musicFolder);
@@ -766,14 +772,15 @@ public class MainController implements Initializable {
     private void showSongsWithAlbums() {
         // Show albums at top and all songs below
         if (albumGridView == null) {
-            albumGridView = new AlbumGridView(libraryService.getAllAlbums(), this::onAlbumSelected, albumRepository);
+            // Use album repository to retrieve albums so that persisted edits (name, cover art) are reflected
+            albumGridView = new AlbumGridView(albumRepository.findAll(), this::onAlbumSelected, albumRepository);
             albumGridView.setPrefHeight(150);
             albumGridView.setMaxHeight(200);
             VBox container = (VBox) songsTableView.getParent();
             int tableIndex = container.getChildren().indexOf(songsTableView);
             container.getChildren().add(tableIndex, albumGridView);
         } else {
-            albumGridView.refresh(libraryService.getAllAlbums());
+            albumGridView.refresh(albumRepository.findAll());
         }
         albumGridView.setVisible(true);
         songsTableView.setVisible(true);
@@ -1176,7 +1183,7 @@ public class MainController implements Initializable {
                     Stage mainStage = (Stage) playPauseButton.getScene().getWindow();
                     
                     // Create the mini player window
-                    miniPlayerWindow = new MiniPlayerWindow(audioPlayerService, mainStage, settingsService, favoritesService, playlistManager);
+                    miniPlayerWindow = new MiniPlayerWindow(audioPlayerService, mainStage, settingsService, favoritesService, playlistManager, albumRepository);
                     
                     // Listen for show song in library events from mini player
                     mainStage.addEventHandler(MiniPlayerWindow.ShowSongInLibraryEvent.SHOW_SONG_IN_LIBRARY, event -> {
@@ -1350,4 +1357,34 @@ public class MainController implements Initializable {
             });
     }
 
+    private void syncAlbumsWithRepository() {
+        // Ensure that all albums detected by the library engine are persisted so that
+        // users can immediately edit them and have their changes stick across sessions.
+
+        List<Album> persisted = albumRepository.findAll();
+        List<Album> engineAlbums = libraryService.getAllAlbums();
+
+        for (Album engineAlbum : engineAlbums) {
+            boolean exists = persisted.stream().anyMatch(persistedAlbum -> {
+                // Match by title first
+                if (persistedAlbum.getTitle() != null && engineAlbum.getTitle() != null &&
+                    persistedAlbum.getTitle().equalsIgnoreCase(engineAlbum.getTitle())) {
+                    return true;
+                }
+
+                // Fallback: If any song file path overlaps, consider it the same album
+                if (persistedAlbum.getSongs() != null && engineAlbum.getSongs() != null) {
+                    return persistedAlbum.getSongs().stream().anyMatch(ps ->
+                        engineAlbum.getSongs().stream().anyMatch(es -> es.getFilePath() != null && ps.getFilePath() != null &&
+                            ps.getFilePath().equals(es.getFilePath())));
+                }
+                return false;
+            });
+
+            if (!exists) {
+                // Assign an ID via repository save (it will auto-generate one)
+                albumRepository.save(engineAlbum);
+            }
+        }
+    }
 }

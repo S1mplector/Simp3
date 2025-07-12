@@ -243,8 +243,19 @@ public class AlbumCard extends StackPane {
         try {
             // Update album name if it changed
             if (!result.getNewName().equals(album.getTitle())) {
+                String oldTitle = album.getTitle();
                 album.setTitle(result.getNewName());
-                
+
+                // Update album field of all songs belonging to this album so that
+                // the library engine will reflect the change the next time it refreshes.
+                if (album.getSongs() != null) {
+                    for (com.musicplayer.data.models.Song s : album.getSongs()) {
+                        if (s.getAlbum() != null && s.getAlbum().equals(oldTitle)) {
+                            s.setAlbum(result.getNewName());
+                        }
+                    }
+                }
+
                 // Update the title label in the UI
                 VBox content = (VBox) getChildren().get(0);
                 Label titleLabel = (Label) content.getChildren().get(1);
