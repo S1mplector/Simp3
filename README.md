@@ -28,7 +28,7 @@ SiMP3 is a resource-friendly music player designed for users who want a clean, e
 - **Modern UI**: Clean, intuitive interface built with JavaFX
 - **Auto-Updates**: Stay current with automatic update checking via GitHub
 - **Smart Library**: Automatic music scanning and organization
-- ** Quality Playback**: Support for MP3, WAV, FLAC, and more
+- **Quality Playback**: Support for MP3, WAV, FLAC, and more
 
 ##  Features
 
