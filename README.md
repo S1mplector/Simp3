@@ -33,7 +33,6 @@ SiMP3 is a resource-friendly music player designed for users who want a clean, e
 - **Multi-Format Support**: Play MP3, WAV, FLAC, and virtually all other audio formats
 - **Library Management**: Automatic scanning and organization of your music collection
 - **Playlist Creation**: Create, edit, and manage custom playlists
-- **Smart Search**: Find songs quickly with advanced search and filtering
 - **Favorites System**: Mark and access your favorite tracks easily
 - **Activity Tracking**: Monitor your listening history and statistics
 
@@ -42,23 +41,24 @@ SiMP3 is a resource-friendly music player designed for users who want a clean, e
 - **Audio Visualizer**: Real-time audio visualization with customizable colors
 - **Album Art Display**: Automatic album artwork extraction and display
 - **Pinboard**: Pin important songs and playlists for quick access
-- **Dark Theme**: Easy on the eyes during late-night listening sessions
 
 ###  Advanced Features
 - **Auto-Update System**: Automatic checking and installation of updates
 - **Keyboard Shortcuts**: Control playback without touching the mouse
 - **Shuffle & Repeat**: Multiple playback modes for any listening style
 - **Volume Normalization**: Consistent volume across your library
-- **Listening Statistics**: Track your most played songs and listening habits
 
 ##  Screenshots
 
 <div align="center">
   <img src="docs/images/main_interface.png" alt="Main Interface" width="600">
   <p><i>Main player interface with library and playlists</i></p>
-  
+
+  <img src="docs/images/settings.png" alt="Settings Window" width="600">
+  <p><i>User configurable settings window</i></p>
+
   <img src="docs/images/miniplayer.png" alt="Mini Player" width="300">
-  <p><i>Compact mini player mode</i></p>
+  <p><i>Mini player mode</i></p>
 </div>
 
 ##  Installation
@@ -72,7 +72,7 @@ SiMP3 is a resource-friendly music player designed for users who want a clean, e
 1. **Download the latest release**
    ```bash
    # Visit the releases page
-   https://github.com/yourusername/simp3/releases/latest
+   https://github.com/S1mplector/Simp3/releases
    ```
 
 2. **Run the installer** (Windows)
@@ -125,7 +125,6 @@ mvn clean package
 - **Add Music**: Click "Select Music Folder" or drag & drop files
 - **Create Playlists**: Click the "+" button in the playlist section
 - **Mark Favorites**: Click the heart icon next to any song
-- **Search**: Use the search bar to find songs, artists, or albums
 
 ##  Development
 
@@ -177,14 +176,13 @@ simp3/
 
 ##  Contributing
 
-We welcome contributions! Here's how you can help:
+Contributors are always welcome. Here's how you can help:
 
 ### Ways to Contribute
 -  Report bugs and issues
 -  Suggest new features
 -  Submit pull requests
 -  Improve documentation
--  Add translations
 
 ### Development Process
 1. Fork the repository
@@ -201,17 +199,11 @@ We welcome contributions! Here's how you can help:
 
 ##  Roadmap
 
-### Version 1.0.1 (Coming Soon)
+### Version 1.0.2 (Coming Soon)
 - [ ] Equalizer with presets
 - [ ] Lyrics display and sync
 - [ ] Last.fm scrobbling
 - [ ] Theme customization
-
-### Version 1.1 (Future)
-- [ ] Cloud sync for playlists
-- [ ] Mobile remote control
-- [ ] Podcast support
-- [ ] Music recommendations
 
 ##  Known Issues
 
@@ -226,7 +218,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
   
-**Made with ❤️ by the SiMP3 team**
+**Made with ❤️ by S1mplector**
 
 [Report Bug](https://github.com/yourusername/simp3/issues) • [Request Feature](https://github.com/yourusername/simp3/issues) • [Discussions](https://github.com/yourusername/simp3/discussions)
 

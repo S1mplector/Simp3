@@ -142,6 +142,7 @@ public class MainController implements Initializable {
     
     // Repositories
     private AlbumRepository albumRepository;
+    private SongRepository songRepository;
 
     @FXML private Button playlistSearchButton;
     @FXML private TextField playlistSearchField;
@@ -164,7 +165,7 @@ public class MainController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         // Initialize storage and repositories
         LibraryStorage storage = new JsonLibraryStorage();
-        SongRepository songRepository = new PersistentSongRepository(storage);
+        songRepository = new PersistentSongRepository(storage);
         PlaylistRepository playlistRepository = new PersistentPlaylistRepository(storage);
         albumRepository = new PersistentAlbumRepository(storage);
         libraryService = new LibraryService(songRepository);
@@ -773,7 +774,7 @@ public class MainController implements Initializable {
         // Show albums at top and all songs below
         if (albumGridView == null) {
             // Use album repository to retrieve albums so that persisted edits (name, cover art) are reflected
-            albumGridView = new AlbumGridView(albumRepository.findAll(), this::onAlbumSelected, albumRepository);
+            albumGridView = new AlbumGridView(albumRepository.findAll(), this::onAlbumSelected, albumRepository, songRepository);
             albumGridView.setPrefHeight(150);
             albumGridView.setMaxHeight(200);
             VBox container = (VBox) songsTableView.getParent();

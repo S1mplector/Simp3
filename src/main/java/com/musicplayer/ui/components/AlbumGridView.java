@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 
 import com.musicplayer.data.models.Album;
 import com.musicplayer.data.repositories.AlbumRepository;
+import com.musicplayer.data.repositories.SongRepository;
 
 import javafx.geometry.Insets;
 import javafx.scene.control.ScrollPane;
@@ -19,10 +20,12 @@ public class AlbumGridView extends ScrollPane {
     private AlbumCard selectedCard;
     private final Consumer<Album> selectionCallback;
     private final AlbumRepository albumRepository;
+    private final SongRepository songRepository;
 
-    public AlbumGridView(List<Album> albums, Consumer<Album> onSelect, AlbumRepository albumRepository) {
+    public AlbumGridView(List<Album> albums, Consumer<Album> onSelect, AlbumRepository albumRepository, SongRepository songRepository) {
         this.selectionCallback = onSelect;
         this.albumRepository = albumRepository;
+        this.songRepository = songRepository;
 
         flow = new FlowPane();
         flow.setPadding(new Insets(10));
@@ -41,7 +44,7 @@ public class AlbumGridView extends ScrollPane {
     public void refresh(List<Album> albums) {
         flow.getChildren().clear();
         for (Album album : albums) {
-            AlbumCard card = new AlbumCard(album, albumRepository);
+            AlbumCard card = new AlbumCard(album, albumRepository, songRepository);
             card.setOnMouseClicked(e -> selectCard(card));
             flow.getChildren().add(card);
         }
@@ -58,4 +61,12 @@ public class AlbumGridView extends ScrollPane {
             selectionCallback.accept(card.getAlbum());
         }
     }
-} 
+    
+    /**
+     * Refresh the albums view by reloading from the repository.
+     */
+    public void refreshAlbums() {
+        List<Album> albums = albumRepository.findAll();
+        refresh(albums);
+    }
+}

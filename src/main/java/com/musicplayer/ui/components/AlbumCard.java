@@ -2,6 +2,7 @@ package com.musicplayer.ui.components;
 
 import com.musicplayer.data.models.Album;
 import com.musicplayer.data.repositories.AlbumRepository;
+import com.musicplayer.data.repositories.SongRepository;
 import com.musicplayer.ui.controllers.AlbumEditController;
 import com.musicplayer.ui.util.AlbumArtLoader;
 
@@ -30,11 +31,13 @@ public class AlbumCard extends StackPane {
 
     private final Album album;
     private final AlbumRepository albumRepository;
+    private final SongRepository songRepository;
     private boolean selected = false;
 
-    public AlbumCard(Album album, AlbumRepository albumRepository) {
+    public AlbumCard(Album album, AlbumRepository albumRepository, SongRepository songRepository) {
         this.album = album;
         this.albumRepository = albumRepository;
+        this.songRepository = songRepository;
         setPrefSize(110, 130);
         setPadding(new Insets(5));
         setCursor(Cursor.HAND);
@@ -67,15 +70,20 @@ public class AlbumCard extends StackPane {
         // Create settings button in top-right corner
         Button settingsButton = createSettingsButton();
         
-        // Add content and settings button to main container
-        getChildren().addAll(content, settingsButton);
+        // Create delete button in top-left corner
+        Button deleteButton = createDeleteButton();
+        
+        // Add content and buttons to main container
+        getChildren().addAll(content, settingsButton, deleteButton);
         
         getStyleClass().add("album-card");
         setStyle("-fx-background-color: #333333; -fx-background-radius: 5;");
 
         setOnMouseClicked(e -> {
-            // Don't trigger selection if settings button was clicked
-            if (e.getTarget() != settingsButton && !isDescendantOf(e.getTarget(), settingsButton)) {
+            // Don't trigger selection if settings or delete button was clicked
+            Button deleteBtn = (Button) getChildren().get(2); // Get the delete button
+            if (e.getTarget() != settingsButton && !isDescendantOf(e.getTarget(), settingsButton) &&
+                e.getTarget() != deleteBtn && !isDescendantOf(e.getTarget(), deleteBtn)) {
                 toggleSelected();
             }
         });
@@ -152,6 +160,190 @@ public class AlbumCard extends StackPane {
         settingsButton.setOnAction(e -> openAlbumEditDialog());
         
         return settingsButton;
+    }
+    
+    /**
+     * Create the delete button positioned in the top-left corner.
+     */
+    private Button createDeleteButton() {
+        Button deleteButton = new Button();
+        deleteButton.setFocusTraversable(false);
+        deleteButton.getStyleClass().add("icon-button");
+        deleteButton.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; -fx-background-radius: 50%; -fx-min-width: 20px; -fx-min-height: 20px; -fx-max-width: 20px; -fx-max-height: 20px;");
+        
+        // Add trash icon
+        try {
+            ImageView deleteIcon = new ImageView(new Image(
+                getClass().getResourceAsStream("/images/icons/trash.png"), 12, 12, true, true));
+            deleteButton.setGraphic(deleteIcon);
+        } catch (Exception e) {
+            // If icon not found, use text
+            deleteButton.setText("🗑");
+            deleteButton.setStyle(deleteButton.getStyle() + " -fx-font-size: 10px;");
+        }
+        
+        // Position in top-left corner
+        StackPane.setAlignment(deleteButton, Pos.TOP_LEFT);
+        StackPane.setMargin(deleteButton, new Insets(2, 0, 0, 2));
+        
+        // Add hover effect
+        deleteButton.setOnMouseEntered(e -> {
+            deleteButton.setStyle(deleteButton.getStyle() + " -fx-background-color: rgba(255, 0, 0, 0.3);");
+        });
+        
+        deleteButton.setOnMouseExited(e -> {
+            deleteButton.setStyle(deleteButton.getStyle().replace(" -fx-background-color: rgba(255, 0, 0, 0.3);", ""));
+        });
+        
+        // Handle delete button click
+        deleteButton.setOnAction(e -> openDeleteConfirmationDialog());
+        
+        return deleteButton;
+    }
+    
+    /**
+     * Open the delete confirmation dialog.
+     */
+    private void openDeleteConfirmationDialog() {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Delete Album");
+        alert.setHeaderText("Delete Album: " + album.getTitle());
+        alert.setContentText("Are you sure you want to delete this album and all its songs?\n" +
+                            "This action will permanently remove all music files from your computer.\n" +
+                            "This cannot be undone.");
+        
+        // Apply custom CSS if available
+        try {
+            alert.getDialogPane().getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
+        } catch (Exception e) {
+            // CSS not found, continue without styling
+        }
+        
+        alert.initOwner(getScene().getWindow());
+        
+        ButtonType deleteButtonType = new ButtonType("Delete", ButtonType.OK.getButtonData());
+        ButtonType cancelButtonType = new ButtonType("Cancel", ButtonType.CANCEL.getButtonData());
+        
+        alert.getButtonTypes().setAll(deleteButtonType, cancelButtonType);
+        
+        alert.showAndWait().ifPresent(response -> {
+            if (response == deleteButtonType) {
+                deleteAlbum();
+            }
+        });
+    }
+    
+    /**
+     * Delete the album and all its associated files.
+     */
+    private void deleteAlbum() {
+        try {
+            // Delete physical files first
+            deletePhysicalFiles();
+            
+            // Delete songs from the song repository
+            for (com.musicplayer.data.models.Song song : album.getSongs()) {
+                songRepository.delete(song.getId());
+            }
+            
+            // Delete from album repository
+            albumRepository.delete(album.getId());
+            
+            // Notify parent container to refresh the UI
+            notifyParentOfDeletion();
+            
+            System.out.println("Album deleted successfully: " + album.getTitle());
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Delete Error");
+            alert.setHeaderText("Error deleting album");
+            alert.setContentText("An error occurred while deleting the album: " + e.getMessage());
+            alert.showAndWait();
+        }
+    }
+    
+    /**
+     * Delete all physical files associated with this album.
+     */
+    private void deletePhysicalFiles() throws Exception {
+        java.util.List<String> filesToDelete = new java.util.ArrayList<>();
+        
+        // Collect all song file paths
+        for (com.musicplayer.data.models.Song song : album.getSongs()) {
+            if (song.getFilePath() != null) {
+                filesToDelete.add(song.getFilePath());
+            }
+        }
+        
+        // Delete custom album art if it exists
+        if (album.getCoverArtPath() != null) {
+            java.io.File coverArtFile = new java.io.File(album.getCoverArtPath());
+            if (coverArtFile.exists() && coverArtFile.getParentFile().getName().equals("album-art")) {
+                // Only delete if it's in our custom album-art directory
+                filesToDelete.add(album.getCoverArtPath());
+            }
+        }
+        
+        // Delete all collected files
+        for (String filePath : filesToDelete) {
+            java.io.File file = new java.io.File(filePath);
+            if (file.exists()) {
+                if (!file.delete()) {
+                    System.err.println("Failed to delete file: " + filePath);
+                } else {
+                    System.out.println("Deleted file: " + filePath);
+                }
+            }
+        }
+        
+        // Try to delete empty directories
+        deleteEmptyDirectories(filesToDelete);
+    }
+    
+    /**
+     * Delete empty directories after file deletion.
+     */
+    private void deleteEmptyDirectories(java.util.List<String> deletedFiles) {
+        java.util.Set<String> directoriesToCheck = new java.util.HashSet<>();
+        
+        // Collect unique directories
+        for (String filePath : deletedFiles) {
+            java.io.File file = new java.io.File(filePath);
+            String parentDir = file.getParent();
+            if (parentDir != null) {
+                directoriesToCheck.add(parentDir);
+            }
+        }
+        
+        // Try to delete empty directories
+        for (String dirPath : directoriesToCheck) {
+            java.io.File dir = new java.io.File(dirPath);
+            if (dir.exists() && dir.isDirectory()) {
+                String[] contents = dir.list();
+                if (contents != null && contents.length == 0) {
+                    if (dir.delete()) {
+                        System.out.println("Deleted empty directory: " + dirPath);
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Notify the parent container that this album has been deleted.
+     */
+    private void notifyParentOfDeletion() {
+        // Find the parent AlbumGridView and request a refresh
+        javafx.scene.Node parent = getParent();
+        while (parent != null) {
+            if (parent instanceof AlbumGridView) {
+                ((AlbumGridView) parent).refreshAlbums();
+                break;
+            }
+            parent = parent.getParent();
+        }
     }
     
     /**
@@ -243,19 +435,8 @@ public class AlbumCard extends StackPane {
         try {
             // Update album name if it changed
             if (!result.getNewName().equals(album.getTitle())) {
-                String oldTitle = album.getTitle();
                 album.setTitle(result.getNewName());
-
-                // Update album field of all songs belonging to this album so that
-                // the library engine will reflect the change the next time it refreshes.
-                if (album.getSongs() != null) {
-                    for (com.musicplayer.data.models.Song s : album.getSongs()) {
-                        if (s.getAlbum() != null && s.getAlbum().equals(oldTitle)) {
-                            s.setAlbum(result.getNewName());
-                        }
-                    }
-                }
-
+                
                 // Update the title label in the UI
                 VBox content = (VBox) getChildren().get(0);
                 Label titleLabel = (Label) content.getChildren().get(1);
