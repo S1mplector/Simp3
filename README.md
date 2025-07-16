@@ -1,6 +1,9 @@
 <div align="center">
-  
-# 🎵 SiMP3 - Simple Music Player
+    <img src="src/main/resources/images/icons/app.png" width="128">
+    <br><br>
+</div>
+
+# SiMP3 - Simple Music Player
 
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://www.oracle.com/java/)
 [![JavaFX](https://img.shields.io/badge/JavaFX-17%2B-blue.svg)](https://openjfx.io/)
@@ -21,11 +24,11 @@ SiMP3 is a resource-friendly music player designed for users who want a clean, e
 
 ### Why SiMP3?
 
-- ** Lightweight**: Minimal resource usage, perfect for older systems
-- ** Modern UI**: Clean, intuitive interface built with JavaFX
-- ** Auto-Updates**: Stay current with automatic update checking via GitHub
-- ** Smart Library**: Automatic music scanning and organization
-- ** Quality Playback**: Support for MP3, WAV, FLAC, and more
+- **Lightweight**: Minimal resource usage, perfect for older systems
+- **Modern UI**: Clean, intuitive interface built with JavaFX
+- **Auto-Updates**: Stay current with automatic update checking via GitHub
+- **Smart Library**: Automatic music scanning and organization
+- **Quality Playback**: Support for MP3, WAV, FLAC, and more
 
 ##  Features
 
