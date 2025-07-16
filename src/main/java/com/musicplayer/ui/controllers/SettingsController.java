@@ -3,6 +3,7 @@ package com.musicplayer.ui.controllers;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+import com.musicplayer.data.models.DistributionType;
 import com.musicplayer.data.models.Settings;
 import com.musicplayer.services.SettingsService;
 import com.musicplayer.services.UpdateService;
@@ -47,6 +48,12 @@ public class SettingsController {
     @FXML private CheckBox downloadInBackgroundCheckBox;
     @FXML private Label lastUpdateCheckLabel;
     @FXML private Button checkNowButton;
+    
+    // Distribution type controls
+    @FXML private RadioButton installerRadio;
+    @FXML private RadioButton releaseRadio;
+    @FXML private RadioButton portableRadio;
+    @FXML private ToggleGroup distributionTypeGroup;
     
     // Custom button bar
     @FXML private HBox buttonBar;
@@ -183,6 +190,24 @@ public class SettingsController {
         showPreReleaseCheckBox.setSelected(settings.isShowPreReleaseVersions());
         downloadInBackgroundCheckBox.setSelected(settings.isDownloadUpdatesInBackground());
         
+        // Load distribution type preference
+        DistributionType preferredType = settings.getPreferredDistributionType();
+        switch (preferredType) {
+            case INSTALLER:
+                installerRadio.setSelected(true);
+                break;
+            case RELEASE:
+                releaseRadio.setSelected(true);
+                break;
+            case PORTABLE:
+                portableRadio.setSelected(true);
+                break;
+            default:
+                // Default to release if unknown
+                releaseRadio.setSelected(true);
+                break;
+        }
+        
         // Update interval enabled state
         updateIntervalSection.setDisable(!settings.isAutoCheckForUpdates());
         
@@ -222,6 +247,18 @@ public class SettingsController {
         settings.setUpdateCheckIntervalHours(updateIntervalSpinner.getValue());
         settings.setShowPreReleaseVersions(showPreReleaseCheckBox.isSelected());
         settings.setDownloadUpdatesInBackground(downloadInBackgroundCheckBox.isSelected());
+        
+        // Save distribution type preference
+        if (installerRadio.isSelected()) {
+            settings.setPreferredDistributionType(DistributionType.INSTALLER);
+        } else if (releaseRadio.isSelected()) {
+            settings.setPreferredDistributionType(DistributionType.RELEASE);
+        } else if (portableRadio.isSelected()) {
+            settings.setPreferredDistributionType(DistributionType.PORTABLE);
+        } else {
+            // Default to release if none selected
+            settings.setPreferredDistributionType(DistributionType.RELEASE);
+        }
         
         // Save to file
         settingsService.saveSettings();

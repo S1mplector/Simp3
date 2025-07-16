@@ -392,7 +392,7 @@ public class UpdateService {
         
         // Check for Windows zip files
         if (fileName.endsWith(".zip") &&
-            (fileName.contains("win") || fileName.contains("windows"))) {
+            (fileName.contains("win") || fileName.contains("windows") || fileName.contains("portable"))) {
             return true;
         }
         
@@ -410,6 +410,11 @@ public class UpdateService {
         // Check for installer/setup files
         if ((fileName.contains("installer") || fileName.contains("setup")) &&
             (fileName.endsWith(".exe") || fileName.endsWith(".msi"))) {
+            return true;
+        }
+        
+        // Check for release executables (standalone .exe files)
+        if (fileName.contains("release") && fileName.endsWith(".exe")) {
             return true;
         }
         
@@ -647,24 +652,26 @@ public class UpdateService {
         String updateFileName = updateFile.getFileName().toString();
         String lowerFileName = updateFileName.toLowerCase();
         
-        // Determine if this is an installer or portable update
-        boolean isInstaller = lowerFileName.endsWith(".msi") ||
-                            (lowerFileName.endsWith(".exe") &&
-                             (lowerFileName.contains("setup") || lowerFileName.contains("installer")));
-        
+        // Determine update type based on distribution type and filename
         String script;
         
-        if (isInstaller) {
+        if (updateDistType == DistributionType.INSTALLER ||
+            lowerFileName.endsWith(".msi") ||
+            (lowerFileName.endsWith(".exe") &&
+             (lowerFileName.contains("setup") || lowerFileName.contains("installer")))) {
             // Create installer script
             script = createInstallerScript(updateFileName, lowerFileName);
+        } else if (updateDistType == DistributionType.RELEASE ||
+                   (lowerFileName.endsWith(".exe") && lowerFileName.contains("release"))) {
+            // Create release executable script
+            script = createReleaseScript(updateFileName, lowerFileName);
         } else {
-            // Create portable update script
+            // Create portable update script (for PORTABLE or unknown types)
             script = createPortableScript(updateFileName, lowerFileName);
         }
         
         Files.writeString(scriptPath, script);
-        logger.info("Update script created: {} (type: {})", scriptPath,
-                   isInstaller ? "installer" : "portable");
+        logger.info("Update script created: {} (type: {})", scriptPath, updateDistType);
     }
     
     /**
@@ -824,6 +831,73 @@ public class UpdateService {
                 echo Installing new version...
                 copy /Y "%%updateFile%%" "SiMP3.exe" > nul
             )
+            
+            :: Verify update was successful
+            if not exist "SiMP3.exe" (
+                echo ERROR: Update failed - SiMP3.exe not found!
+                if exist "SiMP3.exe.backup" (
+                    echo Restoring backup...
+                    move /Y "SiMP3.exe.backup" "SiMP3.exe" > nul
+                )
+                pause
+                exit /b 1
+            )
+            
+            :: Clean up update file
+            if exist "%%updateFile%%" del /Q "%%updateFile%%"
+            
+            :: Clean up backup after successful update
+            if exist "SiMP3.exe.backup" del /Q "SiMP3.exe.backup"
+            
+            :: Start updated application
+            echo Starting SiMP3...
+            start "" "SiMP3.exe"
+            
+            :: Clean up update directory
+            timeout /t 2 /nobreak > nul
+            rmdir /S /Q "update" 2>nul
+            
+            :: Exit
+            exit
+            """,
+            updateFileName
+        );
+    }
+    
+    /**
+     * Create update script for release executable updates.
+     * This handles seamless replacement of the current executable.
+     */
+    private String createReleaseScript(String updateFileName, String lowerFileName) {
+        return String.format("""
+            @echo off
+            echo Applying SiMP3 release update...
+            echo.
+            
+            :: Change to parent directory (where SiMP3.exe should be)
+            cd /d "%%~dp0\\.."
+            
+            :: Wait for the application to fully close
+            echo Waiting for application to close...
+            timeout /t 3 /nobreak > nul
+            
+            :: Kill any remaining SiMP3 processes
+            taskkill /F /IM SiMP3.exe >nul 2>&1
+            timeout /t 2 /nobreak > nul
+            
+            :: Backup current executable
+            if exist "SiMP3.exe" (
+                echo Backing up current version...
+                if exist "SiMP3.exe.backup" del /Q "SiMP3.exe.backup"
+                move /Y "SiMP3.exe" "SiMP3.exe.backup" > nul 2>&1
+            )
+            
+            :: Set update file path
+            set "updateFile=update\\%s"
+            
+            :: Replace the executable
+            echo Installing new version...
+            copy /Y "%%updateFile%%" "SiMP3.exe" > nul
             
             :: Verify update was successful
             if not exist "SiMP3.exe" (

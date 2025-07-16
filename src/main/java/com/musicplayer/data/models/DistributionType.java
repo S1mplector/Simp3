@@ -15,6 +15,11 @@ public enum DistributionType {
     INSTALLER("Installer", "installer", "setup"),
     
     /**
+     * Release executable - standalone executable that replaces the current one
+     */
+    RELEASE("Release", "release"),
+    
+    /**
      * Unknown distribution type - cannot be determined
      */
     UNKNOWN("Unknown");
@@ -48,7 +53,7 @@ public enum DistributionType {
         
         String lowerFilename = filename.toLowerCase();
         
-        // Check for portable patterns
+        // Check for portable patterns (zip files containing portable)
         for (String pattern : PORTABLE.filePatterns) {
             if (lowerFilename.contains(pattern)) {
                 return PORTABLE;
@@ -60,6 +65,21 @@ public enum DistributionType {
             if (lowerFilename.contains(pattern)) {
                 return INSTALLER;
             }
+        }
+        
+        // Check for release patterns
+        for (String pattern : RELEASE.filePatterns) {
+            if (lowerFilename.contains(pattern)) {
+                return RELEASE;
+            }
+        }
+        
+        // If it's a standalone .exe file without specific keywords, assume it's a release executable
+        if (lowerFilename.endsWith(".exe") &&
+            !lowerFilename.contains("installer") &&
+            !lowerFilename.contains("setup") &&
+            !lowerFilename.contains("portable")) {
+            return RELEASE;
         }
         
         // Default to UNKNOWN if no pattern matches

@@ -64,6 +64,7 @@ public class UpdateDialog extends Stage {
     private CheckBox rememberChoiceCheckBox;
     private RadioButton portableRadio;
     private RadioButton installerRadio;
+    private RadioButton releaseRadio;
     
     public UpdateDialog(UpdateService updateService, UpdateInfo updateInfo) {
         this.updateService = updateService;
@@ -223,18 +224,6 @@ public class UpdateDialog extends Stage {
         
         distributionGroup = new ToggleGroup();
         
-        // Portable option
-        VBox portableBox = new VBox(5);
-        portableRadio = new RadioButton("Portable Version");
-        portableRadio.setToggleGroup(distributionGroup);
-        portableRadio.setFont(Font.font("System", FontWeight.BOLD, 12));
-        
-        Label portableDesc = new Label("• No installation required\n• Can run from USB drive\n• Settings stored locally");
-        portableDesc.setStyle("-fx-text-fill: #666666; -fx-font-size: 11px;");
-        portableDesc.setPadding(new Insets(0, 0, 0, 20));
-        
-        portableBox.getChildren().addAll(portableRadio, portableDesc);
-        
         // Installer option
         VBox installerBox = new VBox(5);
         installerRadio = new RadioButton("Installer Version");
@@ -247,19 +236,47 @@ public class UpdateDialog extends Stage {
         
         installerBox.getChildren().addAll(installerRadio, installerDesc);
         
+        // Release option
+        VBox releaseBox = new VBox(5);
+        releaseRadio = new RadioButton("Release Executable");
+        releaseRadio.setToggleGroup(distributionGroup);
+        releaseRadio.setFont(Font.font("System", FontWeight.BOLD, 12));
+        
+        Label releaseDesc = new Label("• Seamless update experience\n• Replaces current executable\n• No installation required");
+        releaseDesc.setStyle("-fx-text-fill: #666666; -fx-font-size: 11px;");
+        releaseDesc.setPadding(new Insets(0, 0, 0, 20));
+        
+        releaseBox.getChildren().addAll(releaseRadio, releaseDesc);
+        
+        // Portable option
+        VBox portableBox = new VBox(5);
+        portableRadio = new RadioButton("Portable Version");
+        portableRadio.setToggleGroup(distributionGroup);
+        portableRadio.setFont(Font.font("System", FontWeight.BOLD, 12));
+        
+        Label portableDesc = new Label("• No installation required\n• Can run from USB drive\n• Settings stored locally");
+        portableDesc.setStyle("-fx-text-fill: #666666; -fx-font-size: 11px;");
+        portableDesc.setPadding(new Insets(0, 0, 0, 20));
+        
+        portableBox.getChildren().addAll(portableRadio, portableDesc);
+        
         // Pre-select based on current selection
-        if (selectedUpdate.getDistributionType() == DistributionType.PORTABLE) {
-            portableRadio.setSelected(true);
-        } else if (selectedUpdate.getDistributionType() == DistributionType.INSTALLER) {
+        if (selectedUpdate.getDistributionType() == DistributionType.INSTALLER) {
             installerRadio.setSelected(true);
+        } else if (selectedUpdate.getDistributionType() == DistributionType.RELEASE) {
+            releaseRadio.setSelected(true);
+        } else if (selectedUpdate.getDistributionType() == DistributionType.PORTABLE) {
+            portableRadio.setSelected(true);
         }
         
         // Add listener to update selected update when radio selection changes
         distributionGroup.selectedToggleProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal == portableRadio) {
-                updateSelectedDistribution(DistributionType.PORTABLE);
-            } else if (newVal == installerRadio) {
+            if (newVal == installerRadio) {
                 updateSelectedDistribution(DistributionType.INSTALLER);
+            } else if (newVal == releaseRadio) {
+                updateSelectedDistribution(DistributionType.RELEASE);
+            } else if (newVal == portableRadio) {
+                updateSelectedDistribution(DistributionType.PORTABLE);
             }
         });
         
@@ -268,7 +285,7 @@ public class UpdateDialog extends Stage {
         rememberChoiceCheckBox.setSelected(updateService.getSettingsService().getSettings().isRememberDistributionChoice());
         rememberChoiceCheckBox.setPadding(new Insets(10, 0, 0, 0));
         
-        choiceBox.getChildren().addAll(choiceLabel, portableBox, installerBox, rememberChoiceCheckBox);
+        choiceBox.getChildren().addAll(choiceLabel, installerBox, releaseBox, portableBox, rememberChoiceCheckBox);
         
         return choiceBox;
     }

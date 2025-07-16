@@ -88,6 +88,26 @@
                                 <CheckBox fx:id="downloadInBackgroundCheckBox" text="Download updates in background"/>
                             </HBox>
                             
+                            <!-- Distribution type preference -->
+                            <VBox spacing="5">
+                                <Label text="Preferred update type:"/>
+                                <HBox spacing="10">
+                                    <RadioButton fx:id="installerRadio" text="Installer (.exe/.msi)">
+                                        <toggleGroup>
+                                            <ToggleGroup fx:id="distributionTypeGroup"/>
+                                        </toggleGroup>
+                                    </RadioButton>
+                                    <RadioButton fx:id="releaseRadio" text="Release executable (.exe)" toggleGroup="$distributionTypeGroup"/>
+                                    <RadioButton fx:id="portableRadio" text="Portable (.zip)" toggleGroup="$distributionTypeGroup"/>
+                                </HBox>
+                                <Label text="• Installer: Installs to Program Files and creates shortcuts"
+                                       style="-fx-text-fill: #666666; -fx-font-size: 11px;"/>
+                                <Label text="• Release: Replaces current executable for seamless updates"
+                                       style="-fx-text-fill: #666666; -fx-font-size: 11px;"/>
+                                <Label text="• Portable: Contains runtime, extract and run anywhere"
+                                       style="-fx-text-fill: #666666; -fx-font-size: 11px;"/>
+                            </VBox>
+                            
                             <!-- Last update check info -->
                             <HBox alignment="CENTER_LEFT" spacing="10">
                                 <Label text="Last checked:"/>
