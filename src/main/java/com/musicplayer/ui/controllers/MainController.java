@@ -84,7 +84,7 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-public class MainController implements Initializable {
+public class MainController implements Initializable, IControllerCommunication {
     
     @FXML private ListView<String> libraryListView;
     @FXML private ListView<Playlist> playlistsListView;
@@ -137,8 +137,8 @@ public class MainController implements Initializable {
 
     private Playlist playingPlaylist;
     
-    // Extracted controller
-    private AudioController audioController;
+    // Extracted playback controller
+    private PlaybackController playbackController;
     
     // Repositories
     private AlbumRepository albumRepository;
@@ -188,8 +188,8 @@ public class MainController implements Initializable {
         playlists = FXCollections.observableArrayList();
         
         // Create the audio controller with all required dependencies
-        audioController = new AudioController();
-        audioController.setUIComponents(
+        playbackController = new PlaybackController();
+        playbackController.setUIComponents(
             playPauseButton,
             previousButton,
             nextButton,
@@ -205,7 +205,10 @@ public class MainController implements Initializable {
             songTitleLabel,
             songArtistLabel
         );
-        audioController.initialize(audioPlayerService, listeningStatsService, songs, songsTableView);
+        playbackController.initialize(audioPlayerService, listeningStatsService, songs, songsTableView);
+        
+        // Set up communication interface
+        playbackController.setCommunicationInterface(this);
         
         // Initialize favorites service
         favoritesService = new FavoritesService();
@@ -280,8 +283,8 @@ public class MainController implements Initializable {
         setupNowPlayingBar();
         
         // Set up audio controller callbacks
-        audioController.setOnStatsUpdate(() -> updateListeningStats());
-        audioController.setOnPlaybackStateChange(() -> {
+        playbackController.setOnStatsUpdate(() -> updateListeningStats());
+        playbackController.setOnPlaybackStateChange(() -> {
             songsTableView.refresh();
             refreshPlaylistCells();
             if (nowPlayingBar != null) {
@@ -386,7 +389,7 @@ public class MainController implements Initializable {
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && !row.isEmpty()) {
                     Song selectedSong = row.getItem();
-                    audioController.playSelectedSong(selectedSong);
+                    playbackController.playSelectedSong(selectedSong);
                 }
             });
             
@@ -494,38 +497,36 @@ public class MainController implements Initializable {
     
     @FXML
     private void handlePlayPause() {
-        audioController.handlePlayPause();
+        playbackController.handlePlayPause();
     }
     
     @FXML
     private void handlePrevious() {
-        audioController.handlePrevious();
+        playbackController.handlePrevious();
     }
     
     @FXML
     private void handleNext() {
-        audioController.handleNext();
+        playbackController.handleNext();
     }
     
     /**
      * Stop playback completely.
      */
     public void stopPlayback() {
-        audioPlayerService.stop();
+        if (playbackController != null) {
+            playbackController.stopPlayback();
+        }
     }
     
     /**
      * Get information about the currently playing song.
-     * 
+     *
      * @return String with current song info, or null if no song is playing
      */
     public String getCurrentSongInfo() {
-        Song currentSong = audioPlayerService.getCurrentSong();
-        if (currentSong != null) {
-            return String.format("%s - %s (%s)", 
-                currentSong.getArtist(), 
-                currentSong.getTitle(), 
-                currentSong.getAlbum());
+        if (playbackController != null) {
+            return playbackController.getCurrentSongInfo();
         }
         return null;
     }
@@ -566,10 +567,10 @@ public class MainController implements Initializable {
             System.out.println("Audio visualizer disposed");
         }
         
-        // Dispose of audio resources
-        if (audioPlayerService != null) {
-            audioPlayerService.dispose();
-            System.out.println("Audio resources disposed");
+        // Dispose of audio resources through playback controller
+        if (playbackController != null) {
+            playbackController.cleanup();
+            System.out.println("Playback controller cleanup completed");
         }
         
         // Shutdown update service
@@ -665,7 +666,7 @@ public class MainController implements Initializable {
                     songs.clear();
                     songs.addAll(newPlaylist.getSongs());
                     audioPlayerService.setPlaylist(songs);
-                    audioController.updatePlaylist(songs);
+                    playbackController.updatePlaylist(songs);
                     playingPlaylist = newPlaylist; // mark as playing
                     refreshPlaylistCells();
                 }
@@ -735,7 +736,7 @@ public class MainController implements Initializable {
     private void showAllSongs() {
         songs.setAll(musicLibraryManager.getAllSongs());
         audioPlayerService.setPlaylist(songs);
-        audioController.updatePlaylist(songs);
+        playbackController.updatePlaylist(songs);
         playlistsListView.getSelectionModel().clearSelection();
         showSongsWithAlbums();
     }
@@ -749,7 +750,7 @@ public class MainController implements Initializable {
         songs.clear();
         songs.addAll(favoriteSongs);
         audioPlayerService.setPlaylist(songs);
-        audioController.updatePlaylist(songs);
+        playbackController.updatePlaylist(songs);
         playlistsListView.getSelectionModel().clearSelection();
         
         // Hide album view when showing favorites
@@ -800,7 +801,7 @@ public class MainController implements Initializable {
         songs.clear();
         songs.setAll(album.getSongs());
         audioPlayerService.setPlaylist(songs);
-        audioController.updatePlaylist(songs);
+        playbackController.updatePlaylist(songs);
         // Clear any playlist selection since we're now showing album songs
         playlistsListView.getSelectionModel().clearSelection();
     }
@@ -1386,6 +1387,49 @@ public class MainController implements Initializable {
                 // Assign an ID via repository save (it will auto-generate one)
                 albumRepository.save(engineAlbum);
             }
+        }
+    }
+    
+    // Implementation of IControllerCommunication interface methods
+    
+    @Override
+    public void onListeningStatsUpdated() {
+        updateListeningStats();
+    }
+    
+    @Override
+    public void onPlaybackStateChanged() {
+        songsTableView.refresh();
+        refreshPlaylistCells();
+        if (nowPlayingBar != null) {
+            nowPlayingBar.update(audioPlayerService.getCurrentSong(), audioPlayerService.isPlaying());
+        }
+    }
+    
+    @Override
+    public void onCurrentSongChanged(Song newSong) {
+        // Update album art and song info - this is already handled by the AudioController
+        // But we can add any additional UI updates here if needed
+        songsTableView.refresh();
+    }
+    
+    @Override
+    public void onPlaylistUpdated(ObservableList<Song> playlist) {
+        // Update the main controller's playlist reference
+        // This is already handled in the existing code
+    }
+    
+    @Override
+    public void requestPlaySong(Song song) {
+        if (playbackController != null) {
+            playbackController.playSelectedSong(song);
+        }
+    }
+    
+    @Override
+    public void requestRefreshSongTable() {
+        if (songsTableView != null) {
+            songsTableView.refresh();
         }
     }
 }
