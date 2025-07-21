@@ -1067,12 +1067,22 @@ public class MiniPlayerWindow {
     }
     
     public void show() {
-        miniStage.show();
-        // Update current song info
+        // Update current song info before showing
         updateSongInfo(audioPlayerService.getCurrentSong());
+        
+        // Connect spectrum listener and show the window
+        connectSpectrumListener();
+        miniStage.show();
+        
+        // Update visualizer state based on current settings
+        updateVisualizerState();
     }
     
     public void hide() {
+        // Disconnect spectrum listener when hiding the window
+        disconnectSpectrumListener();
+        
+        // Save window position and hide
         saveWindowPosition();
         miniStage.hide();
     }
@@ -1181,6 +1191,12 @@ public class MiniPlayerWindow {
      */
     private void connectSpectrumListener() {
         System.out.println("Connecting spectrum listener for mini player visualizer");
+        
+        // Ensure visualizer is started if enabled in settings
+        if (settingsService != null && settingsService.getSettings().isVisualizerEnabled()) {
+            visualizer.start();
+        }
+        
         audioPlayerService.setAudioSpectrumListener((timestamp, duration, magnitudes, phases) -> {
             if (visualizer != null && visualizer.isActive()) {
                 // Update spectrum data on JavaFX thread if needed
@@ -1192,10 +1208,16 @@ public class MiniPlayerWindow {
     }
     
     /**
-     * Disconnect audio spectrum listener.
+     * Disconnect audio spectrum listener and stop visualizer.
      */
     private void disconnectSpectrumListener() {
+        // Stop receiving spectrum updates
         audioPlayerService.setAudioSpectrumListener(null);
+        
+        // Stop the visualizer animation
+        if (visualizer != null && visualizer.isActive()) {
+            visualizer.stop();
+        }
     }
     
     /**
