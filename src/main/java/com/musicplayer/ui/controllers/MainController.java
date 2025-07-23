@@ -149,15 +149,12 @@ public class MainController implements Initializable, IControllerCommunication {
     @FXML private Button songSearchButton;
     @FXML private TextField songSearchField;
 
-    private AudioVisualizer audioVisualizer;
+    private VisualizerController visualizerController;
     private AlbumGridView albumGridView;
     @FXML private VBox libraryContainer; // parent VBox containing library section
     private PinboardPanel pinboardPanel;
     private NowPlayingBar nowPlayingBar;
     @FXML private HBox controlBar;
-    
-    // Store the spectrum listener to enable/disable it
-    private javafx.scene.media.AudioSpectrumListener spectrumListener;
 
     private MiniPlayerWindow miniPlayerWindow;
 
@@ -290,6 +287,10 @@ public class MainController implements Initializable, IControllerCommunication {
             if (nowPlayingBar != null) {
                 nowPlayingBar.update(audioPlayerService.getCurrentSong(), audioPlayerService.isPlaying());
             }
+            // Update visualizer state when playback state changes
+            if (visualizerController != null) {
+                visualizerController.updateMainVisualizerState();
+            }
         });
         
         // Set up table columns
@@ -327,9 +328,6 @@ public class MainController implements Initializable, IControllerCommunication {
         
         setupSearchControls();
 
-        // Set up audio visualizer (behind bottom controls)
-        setupAudioVisualizer();
-        
         // Apply settings to visualizer
         applyVisualizerSettings();
         
@@ -345,6 +343,17 @@ public class MainController implements Initializable, IControllerCommunication {
             
             // Check for first run
             checkFirstRun();
+        });
+        
+        // Initialize visualizer controller
+        visualizerController = new VisualizerController(audioPlayerService, settingsService);
+        
+        // Initialize the main visualizer after scene is ready
+        Platform.runLater(() -> {
+            if (playPauseButton != null && playPauseButton.getScene() != null && playPauseButton.getScene().getWindow() != null) {
+                Stage stage = (Stage) playPauseButton.getScene().getWindow();
+                visualizerController.initializeMainVisualizer(stage);
+            }
         });
         
         // Start auto-update check after initialization
@@ -561,10 +570,10 @@ public class MainController implements Initializable, IControllerCommunication {
             System.out.println("Favorites data saved to storage");
         }
         
-        // Dispose of audio visualizer
-        if (audioVisualizer != null) {
-            audioVisualizer.dispose();
-            System.out.println("Audio visualizer disposed");
+        // Cleanup visualizer controller
+        if (visualizerController != null) {
+            visualizerController.cleanup();
+            System.out.println("Visualizer controller cleanup completed");
         }
         
         // Dispose of audio resources through playback controller
@@ -903,29 +912,8 @@ public class MainController implements Initializable, IControllerCommunication {
      * Apply the current visualizer settings.
      */
     private void applyVisualizerSettings() {
-        if (audioVisualizer != null && settingsService != null) {
-            var settings = settingsService.getSettings();
-            
-            // Apply enabled state
-            audioVisualizer.setEnabled(settings.isVisualizerEnabled());
-            
-            // Apply color mode
-            boolean gradientCycling = settings.getVisualizerColorMode() == 
-                com.musicplayer.data.models.Settings.VisualizerColorMode.GRADIENT_CYCLING;
-            audioVisualizer.setGradientCyclingEnabled(gradientCycling);
-            
-            // Apply solid color
-            try {
-                audioVisualizer.setSolidColor(Color.web(settings.getVisualizerSolidColor()));
-            } catch (Exception e) {
-                // Default to green if color parsing fails
-                audioVisualizer.setSolidColor(Color.LIMEGREEN);
-            }
-            
-            // Update visibility based on playing state and enabled setting
-            if (audioPlayerService != null) {
-                audioVisualizer.setVisible(audioPlayerService.isPlaying() && settings.isVisualizerEnabled());
-            }
+        if (visualizerController != null) {
+            visualizerController.applySettings();
         }
     }
 
@@ -948,119 +936,30 @@ public class MainController implements Initializable, IControllerCommunication {
      * @param stage The primary stage of the application
      */
     public void setupWindowStateMonitoring(javafx.stage.Stage stage) {
+        if (visualizerController != null) {
+            visualizerController.setupWindowStateMonitoring(stage);
+        }
+        
+        // Force refresh UI components to ensure they're properly rendered
         if (stage != null) {
-            // Monitor the iconified (minimized) state of the window
             stage.iconifiedProperty().addListener((obs, wasMinimized, isMinimized) -> {
-                if (isMinimized) {
-                    // Window is minimized - disable main window visualizer
-                    if (audioVisualizer != null) {
-                        audioVisualizer.pause();
-                    }
-                    // Don't remove spectrum listener here - let mini player manage it
-                    System.out.println("Window minimized - main visualizer paused");
-                } else {
-                    // Window is restored - re-enable if music is playing and visualizer is enabled
-                    // Use Platform.runLater to ensure UI is ready
+                if (!isMinimized) {
                     Platform.runLater(() -> {
-                        boolean visualizerEnabled = settingsService.getSettings().isVisualizerEnabled();
-                        if (audioPlayerService != null && audioPlayerService.isPlaying() && visualizerEnabled) {
-                            // Re-add spectrum listener
-                            if (spectrumListener != null) {
-                                audioPlayerService.setAudioSpectrumListener(spectrumListener);
-                            }
-                            // Resume visualizer
-                            if (audioVisualizer != null) {
-                                audioVisualizer.resume();
-                            }
-                            System.out.println("Window restored - visualizer and spectrum updates re-enabled");
-                        } else {
-                            System.out.println("Window restored - music not playing or visualizer disabled, visualizer remains inactive");
-                        }
-                        
-                        // Force refresh UI components to ensure they're properly rendered
                         if (songsTableView != null) {
                             songsTableView.refresh();
                         }
                         if (playlistsListView != null) {
                             playlistsListView.refresh();
                         }
-                    });
-                }
-            });
-        }
+                    }); // End of Platform.runLater
+                } // End of else (window restored)
+            }); // End of iconifiedProperty listener
+        } // End of if (stage != null)
     }
 
-    private void setupAudioVisualizer() {
-        audioVisualizer = new AudioVisualizer(64);
-        audioVisualizer.setMouseTransparent(true);
-        audioVisualizer.setVisible(false);
 
-        // Create and store the spectrum listener
-        spectrumListener = (timestamp, duration, magnitudes, phases) -> {
-            // MediaPlayer already invokes this on JavaFX thread
-            audioVisualizer.update(magnitudes);
-        };
-        
-        // Set up spectrum data listener with audio player
-        audioPlayerService.setAudioSpectrumListener(spectrumListener);
+    
 
-        // Show/hide visualizer based on playing state and settings
-        audioPlayerService.playingProperty().addListener((obs, wasPlaying, isPlaying) -> {
-            boolean visualizerEnabled = settingsService.getSettings().isVisualizerEnabled();
-            audioVisualizer.setVisible(isPlaying && visualizerEnabled);
-            
-            // Get the current window state (scene might not be available yet)
-            Stage stage = null;
-            if (playPauseButton.getScene() != null) {
-                stage = (Stage) playPauseButton.getScene().getWindow();
-            }
-            boolean isMinimized = stage != null && stage.isIconified();
-            
-            if (isPlaying && !isMinimized && visualizerEnabled) {
-                // Music started and window is visible and visualizer enabled - enable everything
-                if (spectrumListener != null) {
-                    audioPlayerService.setAudioSpectrumListener(spectrumListener);
-                }
-                // Resume the visualizer only if it is currently paused
-                if (audioVisualizer.isPaused()) {
-                    audioVisualizer.resume();
-                }
-            } else if (!isPlaying || !visualizerEnabled) {
-                // Music stopped or visualizer disabled - disable spectrum listener to save resources
-                if (spectrumListener != null) {
-                    audioPlayerService.setAudioSpectrumListener(null);
-                }
-                // Ensure the visualizer animation is paused while not playing
-                if (!audioVisualizer.isPaused()) {
-                    audioVisualizer.pause();
-                }
-            }
-        });
-
-        // Defer layout changes until scene is ready
-        javafx.application.Platform.runLater(() -> {
-            if (playPauseButton == null || playPauseButton.getScene() == null) {
-                return;
-            }
-            BorderPane root = (BorderPane) playPauseButton.getScene().getRoot();
-            if (root == null) {
-                return;
-            }
-            Node bottomNode = root.getBottom();
-            if (bottomNode == null) {
-                return;
-            }
-            // Remove existing bottom node and wrap into stack pane with visualizer behind
-            root.setBottom(null);
-            StackPane stack = new StackPane();
-            stack.getChildren().addAll(audioVisualizer, bottomNode);
-            // Bind visualizer size to stack pane
-            audioVisualizer.widthProperty().bind(stack.widthProperty());
-            audioVisualizer.heightProperty().bind(stack.heightProperty());
-
-            root.setBottom(stack);
-        });
-    }
 
     private void handleMissingFiles() {
         javafx.application.Platform.runLater(() -> {
