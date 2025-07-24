@@ -350,7 +350,7 @@ public class AudioVisualizer extends Canvas {
         gc.setStroke(baseColor);
         gc.setLineWidth(2.0);
         
-        double centerY = height / 2.0;
+        double baselineY = height; // Baseline at the bottom of the canvas
         double xStep = width / (WAVEFORM_SAMPLES - 1);
         
         // Begin path for smooth waveform line
@@ -363,9 +363,9 @@ public class AudioVisualizer extends Canvas {
             double normalizedValue = (60 + smoothedWaveform[i]) / 60.0;
             normalizedValue = Math.max(0, Math.min(1, normalizedValue));
             
-            // Convert to waveform amplitude (oscillating around center)
-            double amplitude = (normalizedValue - 0.5) * height * 0.8; // 80% of height
-            double y = centerY + amplitude;
+            // Convert to waveform amplitude (projecting upward from bottom)
+            double amplitude = normalizedValue * height * 0.9; // 90% of height, projecting upward
+            double y = baselineY - amplitude; // Subtract to go upward from bottom
             
             if (i == 0) {
                 gc.moveTo(x, y);
@@ -379,18 +379,18 @@ public class AudioVisualizer extends Canvas {
         // Add a subtle fill under the waveform
         gc.setFill(baseColor.deriveColor(0, 1, 1, 0.3)); // 30% opacity
         gc.beginPath();
-        gc.moveTo(0, centerY);
+        gc.moveTo(0, baselineY);
         
         for (int i = 0; i < WAVEFORM_SAMPLES; i++) {
             double x = i * xStep;
             double normalizedValue = (60 + smoothedWaveform[i]) / 60.0;
             normalizedValue = Math.max(0, Math.min(1, normalizedValue));
-            double amplitude = (normalizedValue - 0.5) * height * 0.8;
-            double y = centerY + amplitude;
+            double amplitude = normalizedValue * height * 0.9;
+            double y = baselineY - amplitude;
             gc.lineTo(x, y);
         }
         
-        gc.lineTo(width, centerY);
+        gc.lineTo(width, baselineY);
         gc.closePath();
         gc.fill();
         

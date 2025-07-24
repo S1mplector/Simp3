@@ -8,7 +8,7 @@ import javafx.stage.Stage;
 
 import com.musicplayer.services.AudioPlayerService;
 import com.musicplayer.services.SettingsService;
-import com.musicplayer.ui.components.AudioVisualizer;
+import com.musicplayer.ui.components.VisualizerManager;
 import com.musicplayer.ui.windows.MiniPlayerWindow;
 
 /**
@@ -22,7 +22,7 @@ public class VisualizerController {
     private final SettingsService settingsService;
     
     // Main window visualizer components
-    private AudioVisualizer mainVisualizer;
+    private VisualizerManager mainVisualizerManager;
     private javafx.scene.media.AudioSpectrumListener mainSpectrumListener;
     private Stage mainStage;
     
@@ -44,15 +44,15 @@ public class VisualizerController {
     public void initializeMainVisualizer(Stage stage) {
         this.mainStage = stage;
         
-        // Create main visualizer
-        mainVisualizer = new AudioVisualizer(64);
-        mainVisualizer.setMouseTransparent(true);
-        mainVisualizer.setVisible(false);
+        // Create main visualizer manager
+        mainVisualizerManager = new VisualizerManager(64);
+        mainVisualizerManager.setMouseTransparent(true);
+        mainVisualizerManager.setVisible(false);
         
         // Create spectrum listener for main visualizer
         mainSpectrumListener = (timestamp, duration, magnitudes, phases) -> {
-            if (mainVisualizer != null) {
-                mainVisualizer.update(magnitudes);
+            if (mainVisualizerManager != null) {
+                mainVisualizerManager.update(magnitudes);
             }
         };
         
@@ -78,7 +78,7 @@ public class VisualizerController {
      * Update the main visualizer state based on current conditions.
      */
     public void updateMainVisualizerState() {
-        if (mainVisualizer == null) return;
+        if (mainVisualizerManager == null) return;
         
         boolean visualizerEnabled = settingsService != null && settingsService.getSettings() != null && 
                                   settingsService.getSettings().isVisualizerEnabled();
@@ -102,20 +102,16 @@ public class VisualizerController {
      * Activate the main window visualizer.
      */
     private void activateMainVisualizer() {
-        if (mainVisualizer == null) return;
-        
-        mainVisualizer.setVisible(true);
-        isMainVisualizerActive = true;
-        
+        if (mainVisualizerManager != null) {
+            mainVisualizerManager.setVisible(true);
+            mainVisualizerManager.resume();
+        }
         // Connect spectrum listener
         if (mainSpectrumListener != null && audioPlayerService != null) {
             audioPlayerService.setAudioSpectrumListener(mainSpectrumListener);
         }
         
-        // Resume animation if paused
-        if (mainVisualizer.isPaused()) {
-            mainVisualizer.resume();
-        }
+        isMainVisualizerActive = true;
         
         System.out.println("Main visualizer activated");
     }
@@ -125,11 +121,10 @@ public class VisualizerController {
      * @param miniPlayerActive Whether the mini player is currently active
      */
     private void deactivateMainVisualizer(boolean miniPlayerActive) {
-        if (mainVisualizer == null) return;
-        
-        mainVisualizer.setVisible(false);
-        isMainVisualizerActive = false;
-        
+        if (mainVisualizerManager != null) {
+            mainVisualizerManager.setVisible(false);
+            mainVisualizerManager.pause();
+        }
         // Only disconnect spectrum listener if mini player is not active
         if (audioPlayerService != null && !miniPlayerActive) {
             boolean isPlaying = audioPlayerService.isPlaying();
@@ -142,10 +137,7 @@ public class VisualizerController {
             }
         }
         
-        // Pause animation
-        if (!mainVisualizer.isPaused()) {
-            mainVisualizer.pause();
-        }
+        isMainVisualizerActive = false;
         
         System.out.println("Main visualizer deactivated (mini player active: " + miniPlayerActive + ")");
     }
@@ -179,8 +171,8 @@ public class VisualizerController {
             mainStage.iconifiedProperty().addListener((obs, wasMinimized, isMinimized) -> {
                 if (isMinimized) {
                     // Window minimized - deactivate main visualizer
-                    if (mainVisualizer != null) {
-                        mainVisualizer.pause();
+                    if (mainVisualizerManager != null) {
+                        mainVisualizerManager.pause();
                     }
                     System.out.println("Window minimized - main visualizer paused");
                 } else {
@@ -203,7 +195,7 @@ public class VisualizerController {
      * Update the main visualizer layout in the UI.
      */
     private void updateMainVisualizerLayout() {
-        if (mainVisualizer == null || mainStage == null) return;
+        if (mainVisualizerManager == null || mainStage == null) return;
         
         Platform.runLater(() -> {
             try {
@@ -216,20 +208,18 @@ public class VisualizerController {
                 // Check if visualizer is already in a stack pane
                 if (bottomNode instanceof StackPane) {
                     StackPane existingStack = (StackPane) bottomNode;
-                    if (!existingStack.getChildren().contains(mainVisualizer)) {
-                        existingStack.getChildren().add(0, mainVisualizer); // Add at bottom
-                        mainVisualizer.widthProperty().bind(existingStack.widthProperty());
-                        mainVisualizer.heightProperty().bind(existingStack.heightProperty());
+                    if (!existingStack.getChildren().contains(mainVisualizerManager.getCurrentVisualizer())) {
+                        existingStack.getChildren().add(0, mainVisualizerManager.getCurrentVisualizer()); // Add at bottom
+                        mainVisualizerManager.bindSize(existingStack.widthProperty(), existingStack.heightProperty());
                     }
                 } else {
                     // Create new stack pane with visualizer
                     root.setBottom(null);
                     StackPane stack = new StackPane();
-                    stack.getChildren().addAll(mainVisualizer, bottomNode);
+                    stack.getChildren().addAll(mainVisualizerManager.getCurrentVisualizer(), bottomNode);
                     
                     // Bind visualizer size to stack pane
-                    mainVisualizer.widthProperty().bind(stack.widthProperty());
-                    mainVisualizer.heightProperty().bind(stack.heightProperty());
+                    mainVisualizerManager.bindSize(stack.widthProperty(), stack.heightProperty());
                     
                     root.setBottom(stack);
                 }
@@ -270,38 +260,38 @@ public class VisualizerController {
     /**
      * Get the main visualizer instance.
      */
-    public AudioVisualizer getMainVisualizer() {
-        return mainVisualizer;
+    public VisualizerManager getMainVisualizerManager() {
+        return mainVisualizerManager;
     }
     
     /**
      * Apply the current visualizer settings
      */
     public void applySettings() {
-        if (mainVisualizer != null && settingsService != null) {
+        if (mainVisualizerManager != null && settingsService != null) {
             var settings = settingsService.getSettings();
             
             // Apply enabled state
-            mainVisualizer.setEnabled(settings.isVisualizerEnabled());
+            mainVisualizerManager.setEnabled(settings.isVisualizerEnabled());
             
             // Apply color mode
             boolean gradientCycling = settings.getVisualizerColorMode() == 
                 com.musicplayer.data.models.Settings.VisualizerColorMode.GRADIENT_CYCLING;
-            mainVisualizer.setGradientCyclingEnabled(gradientCycling);
+            mainVisualizerManager.setGradientCyclingEnabled(gradientCycling);
             
             // Apply solid color
             try {
-                mainVisualizer.setSolidColor(javafx.scene.paint.Color.web(settings.getVisualizerSolidColor()));
+                mainVisualizerManager.setSolidColor(javafx.scene.paint.Color.web(settings.getVisualizerSolidColor()));
             } catch (Exception e) {
                 // Default to green if color parsing fails
-                mainVisualizer.setSolidColor(javafx.scene.paint.Color.LIMEGREEN);
+                mainVisualizerManager.setSolidColor(javafx.scene.paint.Color.LIMEGREEN);
             }
             
             // Apply visualization display mode
             switch (settings.getVisualizerDisplayMode()) {
-                case WAVEFORM -> mainVisualizer.setVisualizationType(com.musicplayer.ui.components.AudioVisualizer.VisualizationType.WAVEFORM);
-                case COMBINED -> mainVisualizer.setVisualizationType(com.musicplayer.ui.components.AudioVisualizer.VisualizationType.COMBINED);
-                default -> mainVisualizer.setVisualizationType(com.musicplayer.ui.components.AudioVisualizer.VisualizationType.SPECTRUM_BARS);
+                case WAVEFORM -> mainVisualizerManager.setVisualizationType(VisualizerManager.VisualizationType.WAVEFORM);
+                case COMBINED -> mainVisualizerManager.setVisualizationType(VisualizerManager.VisualizationType.COMBINED);
+                default -> mainVisualizerManager.setVisualizationType(VisualizerManager.VisualizationType.SPECTRUM_BARS);
             }
             
             // Update state based on current conditions
@@ -318,8 +308,8 @@ public class VisualizerController {
             stage.iconifiedProperty().addListener((obs, wasMinimized, isMinimized) -> {
                 if (isMinimized) {
                     // Window is minimized - pause main visualizer
-                    if (mainVisualizer != null) {
-                        mainVisualizer.pause();
+                    if (mainVisualizerManager != null) {
+                        mainVisualizerManager.pause();
                     }
                     System.out.println("Window minimized - main visualizer paused");
                 } else {
@@ -337,8 +327,8 @@ public class VisualizerController {
      * Cleanup resources when shutting down
      */
     public void cleanup() {
-        if (mainVisualizer != null) {
-            mainVisualizer.dispose();
+        if (mainVisualizerManager != null) {
+            mainVisualizerManager.forceRefresh();
         }
         if (audioPlayerService != null) {
             audioPlayerService.setAudioSpectrumListener(null);
