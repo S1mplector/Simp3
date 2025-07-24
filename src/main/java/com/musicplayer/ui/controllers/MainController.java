@@ -70,6 +70,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.ClipboardContent;
@@ -355,6 +356,9 @@ public class MainController implements Initializable, IControllerCommunication {
         // Initialize visualizer controller
         visualizerController = new VisualizerController(audioPlayerService, settingsService);
         
+        // Initialize audio conversion controller
+        audioConversionController = new AudioConversionController(musicLibraryManager);
+        
         // Initialize the main visualizer after scene is ready
         Platform.runLater(() -> {
             if (playPauseButton != null && playPauseButton.getScene() != null && playPauseButton.getScene().getWindow() != null) {
@@ -498,7 +502,7 @@ public class MainController implements Initializable, IControllerCommunication {
                         // Re-enable error dialogs after scan
                         audioPlayerService.setSuppressErrorDialogs(false);
                         // Check for convertible files and prompt user
-                        audioConversionController.checkAndPromptForConversion(
+                        audioConversionController.checkDirectoryForConversion(
                             selectMusicFolderButton.getScene().getWindow(), selectedDirectory);
                     } else if (response == addToLibrary) {
                         // Suppress error dialogs during library scan
@@ -507,7 +511,7 @@ public class MainController implements Initializable, IControllerCommunication {
                         // Re-enable error dialogs after scan
                         audioPlayerService.setSuppressErrorDialogs(false);
                         // Check for convertible files and prompt user
-                        audioConversionController.checkAndPromptForConversion(
+                        audioConversionController.checkDirectoryForConversion(
                             selectMusicFolderButton.getScene().getWindow(), selectedDirectory);
                     }
                     // If cancel, do nothing
@@ -520,7 +524,7 @@ public class MainController implements Initializable, IControllerCommunication {
                 // Re-enable error dialogs after scan
                 audioPlayerService.setSuppressErrorDialogs(false);
                 // Check for convertible files and prompt user
-                audioConversionController.checkAndPromptForConversion(
+                audioConversionController.checkDirectoryForConversion(
                     selectMusicFolderButton.getScene().getWindow(), selectedDirectory);
             }
             
@@ -874,6 +878,27 @@ public class MainController implements Initializable, IControllerCommunication {
                         songs.setAll(pl.getSongs());
                     }
                 });
+    }
+    
+    /**
+     * Handle the audio conversion menu item click.
+     */
+    @FXML
+    private void handleAudioConversion() {
+        if (audioConversionController != null) {
+            // Get the current music folder from the library manager
+            File musicDir = musicLibraryManager.getCurrentMusicFolder();
+            if (musicDir != null && musicDir.exists() && musicDir.isDirectory()) {
+                // Use the directory-based conversion check
+                audioConversionController.checkDirectoryForConversion(
+                    selectMusicFolderButton.getScene().getWindow(), musicDir);
+            } else {
+                // Show dialog to select music folder first
+                showInfo("No Music Folder", "Please select a music folder first using the 'Select Music Folder' button.");
+            }
+        } else {
+            showError("Error", "Audio conversion service is not available.");
+        }
     }
     
     /**
@@ -1366,5 +1391,27 @@ public class MainController implements Initializable, IControllerCommunication {
         if (songsTableView != null) {
             songsTableView.refresh();
         }
+    }
+    
+    /**
+     * Show an information dialog.
+     */
+    private void showInfo(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+    
+    /**
+     * Show an error dialog.
+     */
+    private void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }

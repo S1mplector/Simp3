@@ -208,10 +208,146 @@ public class AudioConversionController {
     }
     
     /**
-     * Cleanup resources when shutting down.
+     * Show batch conversion dialog for multiple files.
+     */
+    private void showBatchConversionDialog(Window owner, List<File> filesToConvert) {
+        if (filesToConvert == null || filesToConvert.isEmpty()) {
+            showInfo(owner, "No Files", "No files selected for conversion.");
+            return;
+        }
+        
+        AudioConversionDialog dialog = new AudioConversionDialog(owner, conversionService, filesToConvert);
+        dialog.showAndWait();
+        
+        // Refresh library after conversion
+        refreshLibraryAfterConversion();
+    }
+    
+    /**
+     * Shutdown the conversion service and cleanup resources.
      */
     public void shutdown() {
         conversionService.shutdown();
+    }
+    
+    /**
+     * Check if files in a directory need conversion and prompt the user if necessary.
+     * This method is called after scanning a music folder to offer batch conversion.
+     */
+    public void checkDirectoryForConversion(Window owner, File directory) {
+        if (directory == null || !directory.exists() || !directory.isDirectory()) {
+            return;
+        }
+        
+        // Analyze the directory for convertible files
+        AudioConversionService.ConversionAnalysis analysis = conversionService.analyzeDirectory(directory);
+        
+        if (!analysis.hasConvertibleFiles()) {
+            // No files need conversion
+            return;
+        }
+        
+        // Show conversion prompt with statistics and directory information
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Audio Conversion Available");
+        alert.setHeaderText("Convert files for enhanced features?");
+        
+        String directoryList = analysis.getDirectoryListString();
+        alert.setContentText(String.format(
+            "Found %d audio files that can be converted to JavaFX-compatible formats.\n\n" +
+            "Files found in these directories:\n%s\n\n" +
+            "Converting these files will enable:\n" +
+            "• Audio visualizer\n" +
+            "• Better playback performance\n" +
+            "• Enhanced audio controls\n\n" +
+            "Would you like to convert them now?",
+            analysis.getConvertibleFiles(),
+            directoryList
+        ));
+        
+        // Make the dialog resizable and larger to accommodate directory list
+        alert.setResizable(true);
+        alert.getDialogPane().setPrefWidth(500);
+        alert.getDialogPane().setPrefHeight(400);
+        
+        alert.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO);
+        
+        alert.showAndWait()
+            .filter(response -> response == ButtonType.YES)
+            .ifPresent(response -> {
+                // Show conversion dialog for the convertible files
+                showBatchConversionDialog(owner, analysis.getFilesToConvert());
+            });
+    }
+    
+    /**
+     * Check if a single file needs conversion and prompt the user if necessary.
+     * This method is called when importing or playing individual files to ensure JavaFX compatibility.
+     */
+    public boolean checkAndPromptForConversion(Window owner, File audioFile) {
+        if (audioFile == null || !audioFile.exists()) {
+            return false;
+        }
+        
+        String extension = getFileExtension(audioFile.getName());
+        
+        // If already JavaFX compatible, no conversion needed
+        if (conversionService.isJavaFXCompatible(extension)) {
+            return true;
+        }
+        
+        // If not convertible, show warning
+        if (!conversionService.isConvertible(extension)) {
+            showWarning(owner, "Unsupported Format", 
+                "The file '" + audioFile.getName() + "' is in an unsupported format and cannot be converted.");
+            return false;
+        }
+        
+        // File needs conversion - prompt user
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Audio Conversion Required");
+        alert.setHeaderText("File needs conversion for full feature support");
+        alert.setContentText("The file '" + audioFile.getName() + "' is not in a JavaFX-compatible format.\n\n" +
+            "Would you like to convert it now? This will enable full features including the visualizer.");
+        
+        alert.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO);
+        
+        return alert.showAndWait()
+            .filter(response -> response == ButtonType.YES)
+            .map(response -> {
+                // Perform conversion
+                try {
+                    conversionService.convertFile(audioFile, new AudioConversionService.ConversionProgressCallback() {
+                        @Override
+                        public void onProgress(String fileName, int current, int total, double percentage) {
+                            // Could show progress dialog here if needed
+                        }
+                        
+                        @Override
+                        public void onComplete(List<File> convertedFiles, List<String> errors) {
+                            if (!convertedFiles.isEmpty()) {
+                                showInfo(owner, "Conversion Complete", 
+                                    "File converted successfully: " + convertedFiles.get(0).getName());
+                            } else if (!errors.isEmpty()) {
+                                showError(owner, "Conversion Failed", 
+                                    "Failed to convert file: " + String.join(", ", errors));
+                            }
+                        }
+                        
+                        @Override
+                        public void onError(String fileName, Exception error) {
+                            showError(owner, "Conversion Error", 
+                                "Error converting " + fileName + ": " + error.getMessage());
+                        }
+                    });
+                    return true;
+                } catch (Exception e) {
+                    showError(owner, "Conversion Error", 
+                        "Failed to start conversion: " + e.getMessage());
+                    return false;
+                }
+            })
+            .orElse(false);
     }
     
     // Helper methods
@@ -234,10 +370,27 @@ public class AudioConversionController {
         alert.showAndWait();
     }
     
-    private String getFileExtension(String filePath) {
-        if (filePath == null) return "";
-        int lastDot = filePath.lastIndexOf('.');
-        return lastDot > 0 ? filePath.substring(lastDot + 1).toLowerCase() : "";
+    private void showWarning(Window owner, String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.initOwner(owner);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+    
+    private void showError(Window owner, String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.initOwner(owner);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+    
+    private String getFileExtension(String fileName) {
+        int lastDot = fileName.lastIndexOf('.');
+        return lastDot > 0 ? fileName.substring(lastDot + 1).toLowerCase() : "";
     }
     
     /**

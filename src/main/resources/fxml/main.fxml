@@ -29,6 +29,11 @@
                         <MenuItem mnemonicParsing="false" text="Exit" />
                     </items>
                 </Menu>
+                <Menu mnemonicParsing="false" text="Tools">
+                    <items>
+                        <MenuItem fx:id="audioConversionMenuItem" mnemonicParsing="false" text="Audio Conversion..." onAction="#handleAudioConversion" />
+                    </items>
+                </Menu>
                 <Menu mnemonicParsing="false" text="Help">
                     <items>
                         <MenuItem fx:id="checkForUpdatesMenuItem" mnemonicParsing="false" text="Check for Updates..." onAction="#handleCheckForUpdates" />

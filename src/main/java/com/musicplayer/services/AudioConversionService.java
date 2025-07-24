@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -220,8 +221,9 @@ public class AudioConversionService {
                         allConvertedFiles.size() + 1, inputFiles.size(), 
                         (double)(allConvertedFiles.size()) / inputFiles.size() * 100);
                     
-                    if (convertFile(inputFile, outputFile)) {
-                        allConvertedFiles.add(outputFile);
+                    File convertedFile = convertFileSync(inputFile, callback);
+                    if (convertedFile != null) {
+                        allConvertedFiles.add(convertedFile);
                     } else {
                         allErrors.add("Failed to convert: " + inputFile.getName());
                     }
@@ -294,21 +296,58 @@ public class AudioConversionService {
         private final int totalAudioFiles;
         private final int convertibleFiles;
         private final List<File> filesToConvert;
+        private final Map<String, Integer> directoryCounts;
         
         public ConversionAnalysis(int totalAudioFiles, int convertibleFiles, List<File> filesToConvert) {
             this.totalAudioFiles = totalAudioFiles;
             this.convertibleFiles = convertibleFiles;
             this.filesToConvert = filesToConvert;
+            this.directoryCounts = calculateDirectoryCounts(filesToConvert);
+        }
+        
+        private Map<String, Integer> calculateDirectoryCounts(List<File> files) {
+            Map<String, Integer> counts = new HashMap<>();
+            for (File file : files) {
+                String parentPath = file.getParent();
+                if (parentPath != null) {
+                    counts.put(parentPath, counts.getOrDefault(parentPath, 0) + 1);
+                }
+            }
+            return counts;
         }
         
         public int getTotalAudioFiles() { return totalAudioFiles; }
         public int getConvertibleFiles() { return convertibleFiles; }
         public List<File> getFilesToConvert() { return filesToConvert; }
+        public Map<String, Integer> getDirectoryCounts() { return directoryCounts; }
         
         public boolean hasConvertibleFiles() { return convertibleFiles > 0; }
         
         public double getConvertiblePercentage() {
             return totalAudioFiles > 0 ? (double) convertibleFiles / totalAudioFiles * 100 : 0;
+        }
+        
+        /**
+         * Get a formatted string listing all directories with convertible files.
+         */
+        public String getDirectoryListString() {
+            if (directoryCounts.isEmpty()) {
+                return "No directories with convertible files found.";
+            }
+            
+            StringBuilder sb = new StringBuilder();
+            directoryCounts.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .forEach(entry -> {
+                    File dir = new File(entry.getKey());
+                    String dirName = dir.getName();
+                    if (dirName.isEmpty()) {
+                        dirName = dir.getAbsolutePath();
+                    }
+                    sb.append(String.format("• %s (%d files)\n", dirName, entry.getValue()));
+                });
+            
+            return sb.toString().trim();
         }
         
         @Override

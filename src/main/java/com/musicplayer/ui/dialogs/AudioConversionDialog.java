@@ -21,10 +21,12 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.RadioButton;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
@@ -66,17 +68,17 @@ public class AudioConversionDialog extends Stage {
         setResizable(false);
         initModality(Modality.APPLICATION_MODAL);
         
-        createUI();
+        initializeUI();
         loadSettings();
     }
     
-    private void createUI() {
-        VBox root = new VBox(20);
-        root.setPadding(new Insets(20));
-        root.setAlignment(Pos.TOP_CENTER);
+    private void initializeUI() {
+        VBox root = new VBox(10);
+        root.setPadding(new Insets(10));
+        root.setStyle("-fx-background-color: white;");
         
         // Header
-        Label headerLabel = new Label("Convert Audio Files for Full JavaFX Support");
+        Label headerLabel = new Label("Audio Conversion Settings");
         headerLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
         
         Label descLabel = new Label(
@@ -84,6 +86,10 @@ public class AudioConversionDialog extends Stage {
             "Files to convert: " + filesToConvert.size()
         );
         descLabel.setStyle("-fx-text-fill: #666666;");
+        
+        // Create scrollable content area
+        VBox contentBox = new VBox(15);
+        contentBox.setPadding(new Insets(10));
         
         // Format selection
         VBox formatBox = createFormatSelectionBox();
@@ -94,19 +100,29 @@ public class AudioConversionDialog extends Stage {
         // Audio quality settings
         VBox qualityBox = createQualityBox();
         
-        // Progress section (initially hidden)
+        contentBox.getChildren().addAll(formatBox, optionsBox, qualityBox);
+        
+        // Make content scrollable
+        ScrollPane scrollPane = new ScrollPane(contentBox);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scrollPane.setStyle("-fx-background-color: transparent;");
+        VBox.setVgrow(scrollPane, Priority.ALWAYS);
+        
+        // Progress section (initially hidden) - positioned after scrollable content
         VBox progressBox = createProgressBox();
         progressBox.setVisible(false);
         progressBox.setManaged(false);
         
-        // Buttons
+        // Buttons - always at the bottom
         HBox buttonBox = createButtonBox(progressBox);
         
         root.getChildren().addAll(
-            headerLabel, descLabel, formatBox, optionsBox, qualityBox, progressBox, buttonBox
+            headerLabel, descLabel, scrollPane, progressBox, buttonBox
         );
         
-        Scene scene = new Scene(root, 500, 600);
+        Scene scene = new Scene(root, 520, 650);
         setScene(scene);
     }
     
@@ -321,7 +337,11 @@ public class AudioConversionDialog extends Stage {
                     public void onProgress(String fileName, int current, int total, double percentage) {
                         Platform.runLater(() -> {
                             progressBar.setProgress(percentage / 100.0);
-                            progressLabel.setText(String.format("Converting %s (%d/%d)", fileName, current, total));
+                            progressLabel.setText(String.format("Converting %s (%d/%d) - %.1f%%", 
+                                fileName, current, total, percentage));
+                            
+                            // Update window title to show progress
+                            setTitle(String.format("Audio Conversion - %d/%d (%.0f%%)", current, total, percentage));
                         });
                     }
                     
@@ -329,14 +349,35 @@ public class AudioConversionDialog extends Stage {
                     public void onComplete(List<File> convertedFiles, List<String> errors) {
                         Platform.runLater(() -> {
                             progressBar.setProgress(1.0);
-                            progressLabel.setText("Conversion completed!");
+                            progressLabel.setText("Conversion completed successfully!");
+                            setTitle("Audio Conversion - Complete");
                             
+                            // Show detailed completion notification
+                            String message;
                             if (!errors.isEmpty()) {
+                                message = String.format(
+                                    "Conversion completed with some issues:\n\n" +
+                                    "✓ Successfully converted: %d files\n" +
+                                    "⚠ Failed to convert: %d files\n\n" +
+                                    "Target format: %s\n" +
+                                    "Check the error details for more information.",
+                                    convertedFiles.size(), errors.size(),
+                                    settings.getTargetFormat().getExtension().toUpperCase()
+                                );
                                 showConversionResults(convertedFiles.size(), errors);
                             } else {
-                                showInfo("Conversion Complete", 
-                                    String.format("Successfully converted %d files to %s format.", 
-                                        convertedFiles.size(), settings.getTargetFormat().getExtension().toUpperCase()));
+                                message = String.format(
+                                    "🎉 Conversion completed successfully!\n\n" +
+                                    "✓ Converted files: %d\n" +
+                                    "📁 Target format: %s\n" +
+                                    "🎵 Enhanced features now available:\n" +
+                                    "  • Audio visualizer\n" +
+                                    "  • Better playback performance\n" +
+                                    "  • Enhanced audio controls",
+                                    convertedFiles.size(),
+                                    settings.getTargetFormat().getExtension().toUpperCase()
+                                );
+                                showInfo("Conversion Complete", message);
                             }
                         });
                     }
