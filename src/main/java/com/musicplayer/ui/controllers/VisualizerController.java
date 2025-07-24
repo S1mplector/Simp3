@@ -297,6 +297,13 @@ public class VisualizerController {
                 mainVisualizer.setSolidColor(javafx.scene.paint.Color.LIMEGREEN);
             }
             
+            // Apply visualization display mode
+            switch (settings.getVisualizerDisplayMode()) {
+                case WAVEFORM -> mainVisualizer.setVisualizationType(com.musicplayer.ui.components.AudioVisualizer.VisualizationType.WAVEFORM);
+                case COMBINED -> mainVisualizer.setVisualizationType(com.musicplayer.ui.components.AudioVisualizer.VisualizationType.COMBINED);
+                default -> mainVisualizer.setVisualizationType(com.musicplayer.ui.components.AudioVisualizer.VisualizationType.SPECTRUM_BARS);
+            }
+            
             // Update state based on current conditions
             updateMainVisualizerState();
         }

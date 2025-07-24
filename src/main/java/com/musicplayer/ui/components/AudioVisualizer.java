@@ -9,9 +9,15 @@ import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
 
 /**
- * Enhanced audio spectrum visualizer with gradient bars, peak caps, and glow effects.
+ * Enhanced audio visualizer with spectrum bars and waveform display modes.
  */
 public class AudioVisualizer extends Canvas {
+
+    public enum VisualizationType {
+        SPECTRUM_BARS,
+        WAVEFORM,
+        COMBINED
+    }
 
     private final int numBands;
     // Smoothed magnitudes displayed
@@ -20,6 +26,15 @@ public class AudioVisualizer extends Canvas {
     private final float[] peakValues;
     // Peak fall velocities
     private final float[] peakVelocities;
+    
+    // Waveform data
+    private final float[] waveformData;
+    private final float[] smoothedWaveform;
+    private static final int WAVEFORM_SAMPLES = 512; // Number of waveform samples to display
+    private int waveformWriteIndex = 0;
+    
+    // Visualization mode
+    private VisualizationType visualizationType = VisualizationType.SPECTRUM_BARS;
     
     private static final double SMOOTHING_FACTOR = 0.7; // Reduced for more responsive movement
     private static final double PEAK_FALL_SPEED = 0.15; // Speed at which peaks fall
@@ -47,11 +62,21 @@ public class AudioVisualizer extends Canvas {
         this.displayMagnitudes = new float[numBands];
         this.peakValues = new float[numBands];
         this.peakVelocities = new float[numBands];
+        
+        // Initialize waveform arrays
+        this.waveformData = new float[WAVEFORM_SAMPLES];
+        this.smoothedWaveform = new float[WAVEFORM_SAMPLES];
 
         // Initialize peaks
         for (int i = 0; i < numBands; i++) {
             peakValues[i] = -60.0f;
             peakVelocities[i] = 0.0f;
+        }
+        
+        // Initialize waveform data
+        for (int i = 0; i < WAVEFORM_SAMPLES; i++) {
+            waveformData[i] = 0.0f;
+            smoothedWaveform[i] = 0.0f;
         }
 
         // Redraw when resized
@@ -90,6 +115,23 @@ public class AudioVisualizer extends Canvas {
     public void setSolidColor(Color color) {
         this.solidColor = color;
     }
+    
+    /**
+     * Set the visualization type (spectrum bars, waveform, or combined).
+     * @param type The visualization type to use
+     */
+    public void setVisualizationType(VisualizationType type) {
+        this.visualizationType = type;
+        draw(); // Redraw with new visualization type
+    }
+    
+    /**
+     * Get the current visualization type.
+     * @return The current visualization type
+     */
+    public VisualizationType getVisualizationType() {
+        return visualizationType;
+    }
 
     /**
      * Update the visualizer with the latest magnitude data.
@@ -113,7 +155,38 @@ public class AudioVisualizer extends Canvas {
                 peakVelocities[i] = 0.0f; // Reset velocity when peak is updated
             }
         }
+        
+        // Update waveform data if we're in waveform or combined mode
+        if (visualizationType == VisualizationType.WAVEFORM || visualizationType == VisualizationType.COMBINED) {
+            updateWaveformData(newMagnitudes);
+        }
+        
         draw();
+    }
+    
+    /**
+     * Update waveform data by converting spectrum data to waveform-like visualization.
+     * This creates a pseudo-waveform from frequency domain data.
+     */
+    private void updateWaveformData(float[] magnitudes) {
+        // Convert spectrum magnitudes to waveform-like data
+        // We'll create a circular buffer effect by shifting existing data
+        System.arraycopy(waveformData, 1, waveformData, 0, WAVEFORM_SAMPLES - 1);
+        
+        // Add new data point - use average of all frequency bands as amplitude
+        float amplitude = 0.0f;
+        for (float magnitude : magnitudes) {
+            amplitude += magnitude;
+        }
+        amplitude /= magnitudes.length;
+        
+        // Normalize and store
+        waveformData[WAVEFORM_SAMPLES - 1] = Math.max(-60.0f, Math.min(0.0f, amplitude));
+        
+        // Apply smoothing to waveform
+        for (int i = 0; i < WAVEFORM_SAMPLES; i++) {
+            smoothedWaveform[i] = (float) (0.8 * smoothedWaveform[i] + 0.2 * waveformData[i]);
+        }
     }
 
     private void startPeakAnimation() {
@@ -199,10 +272,6 @@ public class AudioVisualizer extends Canvas {
         GraphicsContext gc = getGraphicsContext2D();
         gc.clearRect(0, 0, width, height);
 
-        double bandWidth = width / numBands;
-        double barWidth = bandWidth * 0.8; // 80% width for bars, 20% for spacing
-        double spacing = bandWidth * 0.2;
-
         // Create base color from current hue or solid color
         Color baseColor;
         if (gradientCyclingEnabled) {
@@ -217,6 +286,25 @@ public class AudioVisualizer extends Canvas {
         glow.setRadius(10);
         glow.setSpread(0.2);
         gc.setEffect(glow);
+        
+        // Draw based on visualization type
+        switch (visualizationType) {
+            case SPECTRUM_BARS:
+                drawSpectrumBars(gc, width, height, baseColor);
+                break;
+            case WAVEFORM:
+                drawWaveform(gc, width, height, baseColor);
+                break;
+            case COMBINED:
+                drawCombined(gc, width, height, baseColor);
+                break;
+        }
+    }
+    
+    private void drawSpectrumBars(GraphicsContext gc, double width, double height, Color baseColor) {
+        double bandWidth = width / numBands;
+        double barWidth = bandWidth * 0.8; // 80% width for bars, 20% for spacing
+        double spacing = bandWidth * 0.2;
 
         for (int i = 0; i < numBands; i++) {
             float magnitude = displayMagnitudes[i];
@@ -255,6 +343,141 @@ public class AudioVisualizer extends Canvas {
         
         // Remove effect after drawing
         gc.setEffect(null);
+    }
+    
+    private void drawWaveform(GraphicsContext gc, double width, double height, Color baseColor) {
+        // Draw waveform as a continuous line
+        gc.setStroke(baseColor);
+        gc.setLineWidth(2.0);
+        
+        double centerY = height / 2.0;
+        double xStep = width / (WAVEFORM_SAMPLES - 1);
+        
+        // Begin path for smooth waveform line
+        gc.beginPath();
+        
+        for (int i = 0; i < WAVEFORM_SAMPLES; i++) {
+            double x = i * xStep;
+            
+            // Normalize waveform data (-60 to 0 dB) to screen coordinates
+            double normalizedValue = (60 + smoothedWaveform[i]) / 60.0;
+            normalizedValue = Math.max(0, Math.min(1, normalizedValue));
+            
+            // Convert to waveform amplitude (oscillating around center)
+            double amplitude = (normalizedValue - 0.5) * height * 0.8; // 80% of height
+            double y = centerY + amplitude;
+            
+            if (i == 0) {
+                gc.moveTo(x, y);
+            } else {
+                gc.lineTo(x, y);
+            }
+        }
+        
+        gc.stroke();
+        
+        // Add a subtle fill under the waveform
+        gc.setFill(baseColor.deriveColor(0, 1, 1, 0.3)); // 30% opacity
+        gc.beginPath();
+        gc.moveTo(0, centerY);
+        
+        for (int i = 0; i < WAVEFORM_SAMPLES; i++) {
+            double x = i * xStep;
+            double normalizedValue = (60 + smoothedWaveform[i]) / 60.0;
+            normalizedValue = Math.max(0, Math.min(1, normalizedValue));
+            double amplitude = (normalizedValue - 0.5) * height * 0.8;
+            double y = centerY + amplitude;
+            gc.lineTo(x, y);
+        }
+        
+        gc.lineTo(width, centerY);
+        gc.closePath();
+        gc.fill();
+        
+        // Remove effect after drawing
+        gc.setEffect(null);
+    }
+    
+    private void drawCombined(GraphicsContext gc, double width, double height, Color baseColor) {
+        // Draw spectrum bars in the bottom half
+        double spectrumHeight = height * 0.6;
+        drawSpectrumBarsInRegion(gc, width, spectrumHeight, height, baseColor);
+        
+        // Draw waveform in the top half
+        double waveformHeight = height * 0.4;
+        drawWaveformInRegion(gc, width, 0, waveformHeight, baseColor);
+        
+        // Remove effect after drawing
+        gc.setEffect(null);
+    }
+    
+    private void drawSpectrumBarsInRegion(GraphicsContext gc, double width, double startY, double endY, Color baseColor) {
+        double regionHeight = endY - startY;
+        double bandWidth = width / numBands;
+        double barWidth = bandWidth * 0.8;
+        double spacing = bandWidth * 0.2;
+        
+        for (int i = 0; i < numBands; i++) {
+            float magnitude = displayMagnitudes[i];
+            float peak = peakValues[i];
+            
+            // Normalize values
+            double normalizedMag = (60 + magnitude) / 60.0;
+            double normalizedPeak = (60 + peak) / 60.0;
+            normalizedMag = Math.max(0, Math.min(1, normalizedMag));
+            normalizedPeak = Math.max(0, Math.min(1, normalizedPeak));
+            
+            double barHeight = normalizedMag * regionHeight * 0.9;
+            double peakY = endY - (normalizedPeak * regionHeight * 0.9);
+            double x = i * bandWidth + spacing / 2;
+            double y = endY - barHeight;
+            
+            // Create gradient for bars
+            LinearGradient gradient = new LinearGradient(
+                0, y, 0, endY,
+                false, null,
+                new Stop(0, baseColor.brighter()),
+                new Stop(0.5, baseColor),
+                new Stop(1, baseColor.darker().darker())
+            );
+            
+            // Draw main bar with gradient
+            gc.setFill(gradient);
+            gc.fillRect(x, y, barWidth, barHeight);
+            
+            // Draw peak cap
+            if (normalizedPeak > normalizedMag && peakY < endY - 2) {
+                gc.setFill(peakColor);
+                gc.fillRect(x, peakY, barWidth, 2);
+            }
+        }
+    }
+    
+    private void drawWaveformInRegion(GraphicsContext gc, double width, double startY, double endY, Color baseColor) {
+        double regionHeight = endY - startY;
+        double centerY = startY + regionHeight / 2.0;
+        double xStep = width / (WAVEFORM_SAMPLES - 1);
+        
+        // Draw waveform line
+        gc.setStroke(baseColor);
+        gc.setLineWidth(1.5);
+        gc.beginPath();
+        
+        for (int i = 0; i < WAVEFORM_SAMPLES; i++) {
+            double x = i * xStep;
+            double normalizedValue = (60 + smoothedWaveform[i]) / 60.0;
+            normalizedValue = Math.max(0, Math.min(1, normalizedValue));
+            double amplitude = (normalizedValue - 0.5) * regionHeight * 0.6;
+            double y = centerY + amplitude;
+            
+            if (i == 0) {
+                gc.moveTo(x, y);
+            } else {
+                gc.lineTo(x, y);
+            }
+        }
+        
+        gc.stroke();
     }
     
     /**
