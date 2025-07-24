@@ -7,13 +7,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
@@ -176,6 +180,142 @@ public class AudioConversionService {
             
             return convertedFiles;
         }, conversionExecutor);
+    }
+    
+    /**
+     * Convert files with automatic output directory creation (folder + "-converted").
+     */
+    public void convertFilesWithAutoDirectory(List<File> inputFiles, ConversionProgressCallback callback) {
+        if (inputFiles.isEmpty()) {
+            callback.onComplete(new ArrayList<>(), new ArrayList<>());
+            return;
+        }
+        
+        // Group files by their parent directory
+        Map<File, List<File>> filesByDirectory = inputFiles.stream()
+            .collect(Collectors.groupingBy(File::getParentFile));
+        
+        List<File> allConvertedFiles = new ArrayList<>();
+        List<String> allErrors = new ArrayList<>();
+        
+        for (Map.Entry<File, List<File>> entry : filesByDirectory.entrySet()) {
+            File sourceDir = entry.getKey();
+            List<File> filesInDir = entry.getValue();
+            
+            // Create converted directory
+            File convertedDir = new File(sourceDir.getParentFile(), sourceDir.getName() + "-converted");
+            if (!convertedDir.exists() && !convertedDir.mkdirs()) {
+                String error = "Failed to create converted directory: " + convertedDir.getAbsolutePath();
+                allErrors.add(error);
+                continue;
+            }
+            
+            // Convert files in this directory
+            for (File inputFile : filesInDir) {
+                try {
+                    String outputFileName = getConvertedFileName(inputFile.getName());
+                    File outputFile = new File(convertedDir, outputFileName);
+                    
+                    callback.onProgress(inputFile.getName(), 
+                        allConvertedFiles.size() + 1, inputFiles.size(), 
+                        (double)(allConvertedFiles.size()) / inputFiles.size() * 100);
+                    
+                    if (convertFile(inputFile, outputFile)) {
+                        allConvertedFiles.add(outputFile);
+                    } else {
+                        allErrors.add("Failed to convert: " + inputFile.getName());
+                    }
+                } catch (Exception e) {
+                    allErrors.add("Error converting " + inputFile.getName() + ": " + e.getMessage());
+                    callback.onError(inputFile.getName(), e);
+                }
+            }
+        }
+        
+        callback.onComplete(allConvertedFiles, allErrors);
+    }
+    
+    /**
+     * Analyze a directory and return statistics about convertible files.
+     */
+    public ConversionAnalysis analyzeDirectory(File directory) {
+        if (!directory.exists() || !directory.isDirectory()) {
+            return new ConversionAnalysis(0, 0, new ArrayList<>());
+        }
+        
+        List<File> allAudioFiles = new ArrayList<>();
+        List<File> convertibleFiles = new ArrayList<>();
+        
+        scanDirectoryForAudio(directory, allAudioFiles);
+        
+        for (File file : allAudioFiles) {
+            String ext = getFileExtension(file.getName());
+            if (isConvertible(ext) && !isJavaFXCompatible(ext)) {
+                convertibleFiles.add(file);
+            }
+        }
+        
+        return new ConversionAnalysis(allAudioFiles.size(), convertibleFiles.size(), convertibleFiles);
+    }
+    
+    /**
+     * Recursively scan directory for audio files.
+     */
+    private void scanDirectoryForAudio(File directory, List<File> audioFiles) {
+        File[] files = directory.listFiles();
+        if (files == null) return;
+        
+        for (File file : files) {
+            if (file.isDirectory()) {
+                // Skip already converted directories
+                if (!file.getName().endsWith("-converted")) {
+                    scanDirectoryForAudio(file, audioFiles);
+                }
+            } else if (file.isFile()) {
+                String ext = getFileExtension(file.getName());
+                if (isConvertible(ext)) {
+                    audioFiles.add(file);
+                }
+            }
+        }
+    }
+    
+    private String getConvertedFileName(String originalName) {
+        int lastDot = originalName.lastIndexOf('.');
+        String baseName = lastDot > 0 ? originalName.substring(0, lastDot) : originalName;
+        String targetExt = settings.getTargetFormat().getExtension().toLowerCase();
+        return baseName + "." + targetExt;
+    }
+    
+    /**
+     * Analysis result for a directory scan.
+     */
+    public static class ConversionAnalysis {
+        private final int totalAudioFiles;
+        private final int convertibleFiles;
+        private final List<File> filesToConvert;
+        
+        public ConversionAnalysis(int totalAudioFiles, int convertibleFiles, List<File> filesToConvert) {
+            this.totalAudioFiles = totalAudioFiles;
+            this.convertibleFiles = convertibleFiles;
+            this.filesToConvert = filesToConvert;
+        }
+        
+        public int getTotalAudioFiles() { return totalAudioFiles; }
+        public int getConvertibleFiles() { return convertibleFiles; }
+        public List<File> getFilesToConvert() { return filesToConvert; }
+        
+        public boolean hasConvertibleFiles() { return convertibleFiles > 0; }
+        
+        public double getConvertiblePercentage() {
+            return totalAudioFiles > 0 ? (double) convertibleFiles / totalAudioFiles * 100 : 0;
+        }
+        
+        @Override
+        public String toString() {
+            return String.format("Total audio files: %d, Convertible: %d (%.1f%%)", 
+                totalAudioFiles, convertibleFiles, getConvertiblePercentage());
+        }
     }
     
     /**

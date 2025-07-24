@@ -34,6 +34,7 @@ import com.musicplayer.ui.components.PinboardItem;
 import com.musicplayer.ui.components.PinboardPanel;
 import com.musicplayer.ui.components.PlaylistCell;
 import com.musicplayer.ui.components.RescanButtonFactory;
+import com.musicplayer.ui.controllers.AudioConversionController;
 import com.musicplayer.ui.dialogs.FirstRunWizard;
 import com.musicplayer.ui.dialogs.MissingFilesDialog;
 import com.musicplayer.ui.dialogs.PlaylistSelectionPopup;
@@ -69,7 +70,6 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.ClipboardContent;
@@ -139,6 +139,9 @@ public class MainController implements Initializable, IControllerCommunication {
     
     // Extracted playback controller
     private PlaybackController playbackController;
+    
+    // Audio conversion controller
+    private AudioConversionController audioConversionController;
     
     // Repositories
     private AlbumRepository albumRepository;
@@ -336,6 +339,7 @@ public class MainController implements Initializable, IControllerCommunication {
         
         // After setting up library controls or right after selectMusicFolderButton creation finish insert rescan button
         HBox libraryHeader = (HBox) selectMusicFolderButton.getParent();
+        int index = libraryHeader.getChildren().indexOf(selectMusicFolderButton);
         libraryHeader.getChildren().add(RescanButtonFactory.createRescanButton(musicLibraryManager));
         
         // Initialize album view after everything is set up
@@ -491,10 +495,20 @@ public class MainController implements Initializable, IControllerCommunication {
                         // Suppress error dialogs during library scan
                         audioPlayerService.setSuppressErrorDialogs(true);
                         musicLibraryManager.scanMusicFolder(selectedDirectory, true);
+                        // Re-enable error dialogs after scan
+                        audioPlayerService.setSuppressErrorDialogs(false);
+                        // Check for convertible files and prompt user
+                        audioConversionController.checkAndPromptForConversion(
+                            selectMusicFolderButton.getScene().getWindow(), selectedDirectory);
                     } else if (response == addToLibrary) {
                         // Suppress error dialogs during library scan
                         audioPlayerService.setSuppressErrorDialogs(true);
                         musicLibraryManager.scanMusicFolder(selectedDirectory, false);
+                        // Re-enable error dialogs after scan
+                        audioPlayerService.setSuppressErrorDialogs(false);
+                        // Check for convertible files and prompt user
+                        audioConversionController.checkAndPromptForConversion(
+                            selectMusicFolderButton.getScene().getWindow(), selectedDirectory);
                     }
                     // If cancel, do nothing
                 });
@@ -503,6 +517,11 @@ public class MainController implements Initializable, IControllerCommunication {
                 // Suppress error dialogs during library scan
                 audioPlayerService.setSuppressErrorDialogs(true);
                 musicLibraryManager.scanMusicFolder(selectedDirectory, true);
+                // Re-enable error dialogs after scan
+                audioPlayerService.setSuppressErrorDialogs(false);
+                // Check for convertible files and prompt user
+                audioConversionController.checkAndPromptForConversion(
+                    selectMusicFolderButton.getScene().getWindow(), selectedDirectory);
             }
             
             // Update library stats after scanning
