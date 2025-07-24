@@ -296,11 +296,22 @@ public class JavaZoomAudioEngine implements AudioEngine, BasicPlayerListener {
         // Extract audio properties
         if (properties != null) {
             if (properties.containsKey("audio.length.bytes")) {
-                audioDataLength = ((Long) properties.get("audio.length.bytes")).longValue();
+                Object lengthObj = properties.get("audio.length.bytes");
+                if (lengthObj instanceof Long) {
+                    audioDataLength = ((Long) lengthObj).longValue();
+                } else if (lengthObj instanceof Integer) {
+                    audioDataLength = ((Integer) lengthObj).longValue();
+                }
             }
             
             if (properties.containsKey("duration")) {
-                long durationMicroseconds = ((Long) properties.get("duration")).longValue();
+                Object durationObj = properties.get("duration");
+                long durationMicroseconds = 0;
+                if (durationObj instanceof Long) {
+                    durationMicroseconds = ((Long) durationObj).longValue();
+                } else if (durationObj instanceof Integer) {
+                    durationMicroseconds = ((Integer) durationObj).longValue();
+                }
                 double durationSeconds = durationMicroseconds / 1_000_000.0;
                 Platform.runLater(() -> totalTime.set(durationSeconds));
                 LOGGER.fine("Duration: " + formatTime(durationSeconds));

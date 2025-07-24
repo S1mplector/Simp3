@@ -20,6 +20,7 @@ public class AudioPlayerService {
     private final AudioEngine audioEngine;
     private final PlaylistEngine playlistEngine;
     private Runnable customErrorCallback;
+    private boolean suppressErrorDialogs = false;
     
     public AudioPlayerService() {
         this.audioEngine = new HybridAudioEngine();
@@ -29,10 +30,11 @@ public class AudioPlayerService {
         audioEngine.setOnSongEnded(this::handleSongEnded);
         audioEngine.setOnError(() -> {
             System.err.println("Audio playback error occurred");
-            if (customErrorCallback != null) {
+            if (customErrorCallback != null && !suppressErrorDialogs) {
                 customErrorCallback.run();
             }
-            handleSongEnded();
+            // Don't automatically advance to next song on error to prevent infinite loops
+            // Let the user manually skip or handle the error
         });
     }
     
@@ -279,5 +281,20 @@ public class AudioPlayerService {
 
     public void setOnError(Runnable callback) {
         this.customErrorCallback = callback;
+    }
+    
+    /**
+     * Temporarily suppress error dialogs during library scanning operations.
+     * This prevents recursive dialog windows when many files fail to load.
+     */
+    public void setSuppressErrorDialogs(boolean suppress) {
+        this.suppressErrorDialogs = suppress;
+    }
+    
+    /**
+     * Check if error dialogs are currently suppressed.
+     */
+    public boolean isErrorDialogsSuppressed() {
+        return suppressErrorDialogs;
     }
 }

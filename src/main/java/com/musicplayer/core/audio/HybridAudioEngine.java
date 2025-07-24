@@ -87,6 +87,21 @@ public class HybridAudioEngine implements AudioEngine {
         // Load the song with the active engine
         boolean loaded = activeEngine.loadSong(song);
         
+        // If JavaFX fails to load MP3 on Linux, try JavaZoom as fallback
+        if (!loaded && activeEngine == javaFXEngine && "mp3".equals(fileExtension)) {
+            LOGGER.info("JavaFX failed to load MP3, attempting JavaZoom fallback for: " + song.getTitle());
+            
+            // Switch to JavaZoom engine for this MP3
+            switchEngine(javaZoomEngine, fileExtension);
+            loaded = activeEngine.loadSong(song);
+            
+            if (loaded) {
+                LOGGER.info("Successfully loaded MP3 with JavaZoom fallback: " + song.getTitle());
+            } else {
+                LOGGER.severe("Both JavaFX and JavaZoom failed to load MP3: " + song.getTitle());
+            }
+        }
+        
         if (loaded) {
             LOGGER.info("Successfully loaded song with " + getEngineName(activeEngine) + 
                        " engine: " + song.getTitle() + " [" + fileExtension + "]");

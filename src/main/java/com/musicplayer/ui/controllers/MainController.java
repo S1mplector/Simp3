@@ -253,6 +253,9 @@ public class MainController implements Initializable, IControllerCommunication {
                 pinboardPanel.addActivity(ActivityFeedItem.ActivityType.SCAN_COMPLETE, 
                     "Library updated: " + updatedSongs.size() + " songs");
             }
+            
+            // Re-enable error dialogs after library scan completes
+            audioPlayerService.setSuppressErrorDialogs(false);
         });
         
         // Set up callback to update UI when playlists change
@@ -367,6 +370,8 @@ public class MainController implements Initializable, IControllerCommunication {
         if (musicLibraryManager.getSongCount() == 0 && musicLibraryManager.getCurrentMusicFolder() == null) {
             File selectedFolder = FirstRunWizard.show(selectMusicFolderButton.getScene().getWindow());
             if (selectedFolder != null) {
+                // Suppress error dialogs during initial library scan
+                audioPlayerService.setSuppressErrorDialogs(true);
                 musicLibraryManager.scanMusicFolder(selectedFolder, true);
             }
         }
@@ -483,14 +488,20 @@ public class MainController implements Initializable, IControllerCommunication {
                 
                 alert.showAndWait().ifPresent(response -> {
                     if (response == clearAndScan) {
+                        // Suppress error dialogs during library scan
+                        audioPlayerService.setSuppressErrorDialogs(true);
                         musicLibraryManager.scanMusicFolder(selectedDirectory, true);
                     } else if (response == addToLibrary) {
+                        // Suppress error dialogs during library scan
+                        audioPlayerService.setSuppressErrorDialogs(true);
                         musicLibraryManager.scanMusicFolder(selectedDirectory, false);
                     }
                     // If cancel, do nothing
                 });
             } else {
                 // No existing data, just scan normally
+                // Suppress error dialogs during library scan
+                audioPlayerService.setSuppressErrorDialogs(true);
                 musicLibraryManager.scanMusicFolder(selectedDirectory, true);
             }
             
@@ -962,6 +973,12 @@ public class MainController implements Initializable, IControllerCommunication {
 
 
     private void handleMissingFiles() {
+        // Check if error dialogs are suppressed (e.g., during library scanning)
+        if (audioPlayerService.isErrorDialogsSuppressed()) {
+            System.out.println("Error dialogs suppressed - skipping missing files dialog");
+            return;
+        }
+        
         javafx.application.Platform.runLater(() -> {
             if (pinboardPanel != null) {
                 pinboardPanel.addActivity(ActivityFeedItem.ActivityType.FILES_MISSING, 
