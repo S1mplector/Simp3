@@ -217,128 +217,24 @@ public class MusicLibraryManager {
     }
     
     /**
-     * Rescans the music library by checking all existing songs and their directories.
-     * This method:
-     * - Removes songs whose files no longer exist
-     * - Finds new songs in existing directories
-     * - Preserves songs from multiple directories
+     * Rescans the current music folder by performing a complete clear and rescan.
+     * This method uses the same reliable logic as "Clear & Scan New Folder" to ensure
+     * a thorough and consistent library refresh.
      */
     public void rescanCurrentFolder() {
-        Thread rescanThread = new Thread(() -> {
-            try {
-                System.out.println("Starting intelligent rescan of music library...");
-                
-                // Get all existing songs
-                List<Song> existingSongs = getAllSongs();
-                if (existingSongs.isEmpty() && currentMusicFolder == null) {
-                    System.out.println("No existing songs or music folder to rescan.");
-                    return;
-                }
-                
-                // Track which songs still exist
-                java.util.Set<String> existingFilePaths = new java.util.HashSet<>();
-                java.util.Set<File> directoriesToScan = new java.util.HashSet<>();
-                
-                // First pass: check existing songs and collect directories
-                for (Song song : existingSongs) {
-                    if (song.getFilePath() != null) {
-                        File songFile = new File(song.getFilePath());
-                        if (songFile.exists()) {
-                            existingFilePaths.add(song.getFilePath());
-                            // Add parent directory to scan list
-                            File parentDir = songFile.getParentFile();
-                            if (parentDir != null && parentDir.exists()) {
-                                directoriesToScan.add(parentDir);
-                            }
-                        } else {
-                            // File no longer exists, remove the song
-                            System.out.println("Removing missing file: " + song.getFilePath());
-                            songRepository.delete(song.getId());
-                        }
-                    }
-                }
-                
-                // Also add the current music folder if set
-                if (currentMusicFolder != null && currentMusicFolder.exists()) {
-                    directoriesToScan.add(currentMusicFolder);
+        if (currentMusicFolder == null || !currentMusicFolder.exists()) {
+            System.out.println("No current music folder set or folder doesn't exist. Cannot rescan.");
+            return;
         }
-                
-                // Find common root directories to avoid scanning subdirectories multiple times
-                java.util.Set<File> rootDirectories = findRootDirectories(directoriesToScan);
-                
-                // Second pass: scan directories for new songs
-                System.out.println("Scanning " + rootDirectories.size() + " root directories for new songs...");
-                int newSongCount = 0;
-                
-                for (File dir : rootDirectories) {
-                    System.out.println("Scanning: " + dir.getAbsolutePath());
-                    List<Song> scannedSongs = MusicScanner.scanDirectory(dir);
-                    
-                    // Add only new songs
-                    for (Song song : scannedSongs) {
-                        if (!existingFilePaths.contains(song.getFilePath())) {
-                            songRepository.save(song);
-                            newSongCount++;
-                        }
-                    }
-                }
-                
-                System.out.println("Rescan complete. Added " + newSongCount + " new songs. Total: " + getSongCount());
-                
-                // Notify callback of library update
-                if (libraryUpdateCallback != null) {
-                    javafx.application.Platform.runLater(() -> {
-                        libraryUpdateCallback.accept(getAllSongs());
-                    });
-                }
-                
-            } catch (Exception e) {
-                System.err.println("Error during rescan: " + e.getMessage());
-                e.printStackTrace();
-            }
-        });
         
-        rescanThread.setDaemon(true);
-        rescanThread.setName("MusicRescan");
-        rescanThread.start();
+        System.out.println("Starting full rescan of current music folder: " + currentMusicFolder.getAbsolutePath());
+        
+        // Use the proven scanMusicFolder logic with clearExisting=true
+        // This ensures a complete refresh just like "Clear & Scan New Folder"
+        scanMusicFolder(currentMusicFolder, true);
     }
     
-    /**
-     * Finds the root directories from a set of directories.
-     * Removes subdirectories if their parent is already in the set.
-     */
-    private java.util.Set<File> findRootDirectories(java.util.Set<File> directories) {
-        java.util.Set<File> roots = new java.util.HashSet<>();
-        
-        for (File dir : directories) {
-            boolean isSubdirectory = false;
-            for (File other : directories) {
-                if (dir != other && isSubdirectoryOf(dir, other)) {
-                    isSubdirectory = true;
-                    break;
-                }
-            }
-            if (!isSubdirectory) {
-                roots.add(dir);
-            }
-        }
-        
-        return roots;
-    }
-    
-    /**
-     * Checks if child is a subdirectory of parent.
-     */
-    private boolean isSubdirectoryOf(File child, File parent) {
-        File current = child;
-        while (current != null) {
-            if (current.equals(parent)) {
-                return true;
-            }
-            current = current.getParentFile();
-        }
-        return false;
-    }
+
     
 
     
