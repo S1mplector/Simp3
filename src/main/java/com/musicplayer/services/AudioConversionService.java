@@ -45,6 +45,9 @@ public class AudioConversionService {
         "mp3", "flac", "ogg", "opus", "wma", "m4a"
     );
     
+    // Conversion tracker to avoid repeated prompts
+    private final ConversionTracker conversionTracker;
+    
     // Target formats (JavaFX compatible with full feature support)
     public enum TargetFormat {
         WAV("wav", AudioFileFormat.Type.WAVE),
@@ -110,8 +113,13 @@ public class AudioConversionService {
     private ConversionSettings settings;
     
     public AudioConversionService() {
-        this.conversionExecutor = Executors.newFixedThreadPool(2); // Limit concurrent conversions
         this.settings = new ConversionSettings();
+        this.conversionTracker = new ConversionTracker();
+        this.conversionExecutor = Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "AudioConversion");
+            t.setDaemon(true);
+            return t;
+        });
     }
     
     /**
@@ -257,7 +265,13 @@ public class AudioConversionService {
             }
         }
         
-        return new ConversionAnalysis(allAudioFiles.size(), convertibleFiles.size(), convertibleFiles);
+        // Filter out files from albums that have already been converted
+        List<File> unconvertedFiles = conversionTracker.filterUnconvertedFiles(convertibleFiles);
+        
+        LOGGER.info(String.format("Directory analysis: %d total audio files, %d convertible, %d not yet converted", 
+            allAudioFiles.size(), convertibleFiles.size(), unconvertedFiles.size()));
+        
+        return new ConversionAnalysis(allAudioFiles.size(), unconvertedFiles.size(), unconvertedFiles);
     }
     
     /**
@@ -437,6 +451,11 @@ public class AudioConversionService {
             convertedStream.close();
             inputStream.close();
             
+            // Record the conversion in the tracker
+            String originalFormat = getFileExtension(inputFile.getName());
+            String convertedFormat = settings.getTargetFormat().getExtension();
+            conversionTracker.recordConversion(inputFile, outputFile, originalFormat, convertedFormat);
+            
             LOGGER.info("Successfully converted: " + outputFile.getName());
             return outputFile;
             
@@ -517,6 +536,29 @@ public class AudioConversionService {
     
     public void setSettings(ConversionSettings settings) {
         this.settings = settings;
+    }
+    
+    /**
+     * Get the conversion tracker for direct access.
+     */
+    public ConversionTracker getConversionTracker() {
+        return conversionTracker;
+    }
+    
+    /**
+     * Check if an album has already been converted.
+     */
+    public boolean isAlbumConverted(File file) {
+        return conversionTracker.isAlbumConverted(file);
+    }
+    
+    /**
+     * Force re-conversion by removing the conversion record.
+     */
+    public void forceReconversion(File file) {
+        // This would require implementing a way to identify the album from a file
+        // For now, we'll add this as a placeholder for future enhancement
+        LOGGER.info("Force re-conversion requested for: " + file.getName());
     }
     
     /**
