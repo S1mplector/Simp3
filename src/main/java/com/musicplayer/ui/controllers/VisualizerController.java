@@ -287,12 +287,8 @@ public class VisualizerController {
                 mainVisualizerManager.setSolidColor(javafx.scene.paint.Color.LIMEGREEN);
             }
             
-            // Apply visualization display mode
-            switch (settings.getVisualizerDisplayMode()) {
-                case WAVEFORM -> mainVisualizerManager.setVisualizationType(VisualizerManager.VisualizationType.WAVEFORM);
-                case COMBINED -> mainVisualizerManager.setVisualizationType(VisualizerManager.VisualizationType.COMBINED);
-                default -> mainVisualizerManager.setVisualizationType(VisualizerManager.VisualizationType.SPECTRUM_BARS);
-            }
+            // Apply visualization display mode - only spectrum bars available
+            mainVisualizerManager.setVisualizationType(VisualizerManager.VisualizationType.SPECTRUM_BARS);
             
             // Update state based on current conditions
             updateMainVisualizerState();

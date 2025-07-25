@@ -35,7 +35,7 @@ public class SettingsController {
     
     @FXML private CheckBox visualizerEnabledCheckBox;
     @FXML private VBox colorModeSection;
-    @FXML private ChoiceBox<com.musicplayer.data.models.Settings.VisualizerDisplayMode> visualizerModeChoiceBox;
+
     @FXML private RadioButton gradientCyclingRadio;
     @FXML private RadioButton solidColorRadio;
     @FXML private ToggleGroup colorModeGroup;
@@ -91,11 +91,7 @@ public class SettingsController {
      */
     @FXML
     public void initialize() {
-        // Populate visualizer mode choices if control exists
-    if (visualizerModeChoiceBox != null) {
-        visualizerModeChoiceBox.getItems().setAll(com.musicplayer.data.models.Settings.VisualizerDisplayMode.values());
-    }
-    
+
     // Enable/disable color options based on visualizer state
         visualizerEnabledCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
             colorModeSection.setDisable(!newVal);
@@ -171,11 +167,7 @@ public class SettingsController {
         // Set visualizer enabled state
         visualizerEnabledCheckBox.setSelected(settings.isVisualizerEnabled());
         
-        // Set display mode
-        if (visualizerModeChoiceBox != null) {
-            visualizerModeChoiceBox.setValue(settings.getVisualizerDisplayMode());
-        }
-        
+
         // Set color mode
         if (settings.getVisualizerColorMode() == Settings.VisualizerColorMode.GRADIENT_CYCLING) {
             gradientCyclingRadio.setSelected(true);
@@ -238,9 +230,6 @@ public class SettingsController {
      */
     public void saveSettings() {
         // Update settings from UI
-    if (visualizerModeChoiceBox != null && visualizerModeChoiceBox.getValue() != null) {
-        settings.setVisualizerDisplayMode(visualizerModeChoiceBox.getValue());
-    }
         settings.setVisualizerEnabled(visualizerEnabledCheckBox.isSelected());
         
         if (gradientCyclingRadio.isSelected()) {

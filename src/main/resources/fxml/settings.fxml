@@ -55,12 +55,6 @@
                                 <ColorPicker fx:id="solidColorPicker" prefWidth="100"/>
                             </HBox>
                             
-                            <!-- Visualizer Style -->
-                            <HBox alignment="CENTER_LEFT" spacing="10">
-                                <Label text="Visualizer Style:"/>
-                                <ChoiceBox fx:id="visualizerModeChoiceBox" prefWidth="150"/>
-                            </HBox>
-                            
                         </VBox>
                         
                         <!-- Updates Section -->

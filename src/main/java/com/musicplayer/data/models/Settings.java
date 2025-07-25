@@ -11,7 +11,7 @@ public class Settings {
     private boolean visualizerEnabled = true;
     private VisualizerColorMode visualizerColorMode = VisualizerColorMode.GRADIENT_CYCLING;
     private String visualizerSolidColor = "#32CD32"; // Default lime green
-    private VisualizerDisplayMode visualizerDisplayMode = VisualizerDisplayMode.SPECTRUM_BARS;
+
     
     // Mini player settings
     private double miniPlayerX = -1; // -1 means use default position
@@ -32,18 +32,6 @@ public class Settings {
     private DistributionType preferredDistributionType = DistributionType.UNKNOWN;
     private boolean rememberDistributionChoice = false;
     
-    /**
-     * Enum for visualizer color modes.
-     */
-    public enum VisualizerDisplayMode {
-        SPECTRUM_BARS("Spectrum Bars"),
-        WAVEFORM("Waveform"),
-        COMBINED("Combined");
-        private final String displayName;
-        VisualizerDisplayMode(String displayName){this.displayName = displayName;}
-        public String getDisplayName(){return displayName;}
-    }
-
     public enum VisualizerColorMode {
         GRADIENT_CYCLING("Gradient Cycling"),
         SOLID_COLOR("Solid Color");
@@ -76,8 +64,6 @@ public class Settings {
         this.visualizerColorMode = visualizerColorMode;
     }
     
-    public VisualizerDisplayMode getVisualizerDisplayMode(){return visualizerDisplayMode;}
-    public void setVisualizerDisplayMode(VisualizerDisplayMode mode){this.visualizerDisplayMode = mode;}
 
     public String getVisualizerSolidColor() {
         return visualizerSolidColor;
