@@ -122,6 +122,8 @@ public class AudioPlayerService {
         
         if (audioEngine.loadSong(song)) {
             audioEngine.play();
+            // Ensure spectrum listener is active for visualizer updates
+            refreshSpectrumListener();
         }
     }
     
@@ -296,5 +298,18 @@ public class AudioPlayerService {
      */
     public boolean isErrorDialogsSuppressed() {
         return suppressErrorDialogs;
+    }
+    
+    /**
+     * Refresh the spectrum listener to ensure visualizer updates properly.
+     * This helps prevent visualizer freezing when songs are changed via different methods.
+     */
+    private void refreshSpectrumListener() {
+        // Get current listener and reattach it to ensure proper connection
+        javafx.scene.media.AudioSpectrumListener currentListener = audioEngine.getAudioSpectrumListener();
+        if (currentListener != null) {
+            audioEngine.setAudioSpectrumListener(null);
+            audioEngine.setAudioSpectrumListener(currentListener);
+        }
     }
 }

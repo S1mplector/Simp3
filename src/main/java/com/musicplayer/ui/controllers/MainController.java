@@ -1414,4 +1414,14 @@ public class MainController implements Initializable, IControllerCommunication {
         alert.setContentText(message);
         alert.showAndWait();
     }
+    
+    @Override
+    public void onVisualizerUpdateRequired() {
+        // Force visualizer state update when song is changed via double-click
+        if (visualizerController != null) {
+            Platform.runLater(() -> {
+                visualizerController.updateMainVisualizerState();
+            });
+        }
+    }
 }

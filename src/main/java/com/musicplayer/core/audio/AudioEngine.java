@@ -105,4 +105,11 @@ public interface AudioEngine {
     void setOnError(Runnable callback);
 
     void setAudioSpectrumListener(javafx.scene.media.AudioSpectrumListener listener);
+    
+    /**
+     * Gets the current audio spectrum listener.
+     * 
+     * @return The current audio spectrum listener, or null if none is set
+     */
+    javafx.scene.media.AudioSpectrumListener getAudioSpectrumListener();
 }

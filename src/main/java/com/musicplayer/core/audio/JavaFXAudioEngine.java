@@ -251,6 +251,11 @@ public class JavaFXAudioEngine implements AudioEngine {
         }
     }
     
+    @Override
+    public javafx.scene.media.AudioSpectrumListener getAudioSpectrumListener() {
+        return this.spectrumListener;
+    }
+    
     private String formatTime(double seconds) {
         int minutes = (int) seconds / 60;
         int secs = (int) seconds % 60;

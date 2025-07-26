@@ -39,4 +39,9 @@ public interface IControllerCommunication {
      * Request to refresh the song table view.
      */
     void requestRefreshSongTable();
+    
+    /**
+     * Called when the visualizer needs to be updated.
+     */
+    void onVisualizerUpdateRequired();
 }

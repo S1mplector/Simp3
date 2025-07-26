@@ -94,6 +94,12 @@ public class VisualizerController {
             deactivateMainVisualizer(miniPlayerActive);
         }
         
+        // Always ensure spectrum listener is properly attached when playing
+        if (isPlaying && visualizerEnabled && mainSpectrumListener != null && audioPlayerService != null) {
+            // Force reattach spectrum listener to prevent freezing
+            audioPlayerService.setAudioSpectrumListener(mainSpectrumListener);
+        }
+        
         // Update layout
         updateMainVisualizerLayout();
     }

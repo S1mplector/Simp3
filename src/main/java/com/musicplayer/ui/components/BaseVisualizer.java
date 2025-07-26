@@ -89,18 +89,23 @@ public abstract class BaseVisualizer extends Canvas {
             return;
         }
         
-        int len = Math.min(newMagnitudes.length, numBands);
-        for (int i = 0; i < len; i++) {
-            float newVal = newMagnitudes[i];
-            // Exponential smoothing
-            displayMagnitudes[i] = (float) (SMOOTHING_FACTOR * displayMagnitudes[i] + 
-                                           (1 - SMOOTHING_FACTOR) * newVal);
+        try {
+            int len = Math.min(newMagnitudes.length, numBands);
+            for (int i = 0; i < len; i++) {
+                float newVal = newMagnitudes[i];
+                // Exponential smoothing
+                displayMagnitudes[i] = (float) (SMOOTHING_FACTOR * displayMagnitudes[i] + 
+                                               (1 - SMOOTHING_FACTOR) * newVal);
+            }
+            
+            // Allow subclasses to perform additional updates
+            updateSpecificData(newMagnitudes);
+            
+            draw();
+        } catch (Exception e) {
+            // Log error but don't crash - prevent visualizer freezing
+            System.err.println("Error updating visualizer: " + e.getMessage());
         }
-        
-        // Allow subclasses to perform additional updates
-        updateSpecificData(newMagnitudes);
-        
-        draw();
     }
     
     /**

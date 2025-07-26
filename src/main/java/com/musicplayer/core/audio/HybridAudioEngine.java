@@ -335,4 +335,9 @@ public class HybridAudioEngine implements AudioEngine {
             activeEngine.setAudioSpectrumListener(listener);
         }
     }
+    
+    @Override
+    public AudioSpectrumListener getAudioSpectrumListener() {
+        return this.spectrumListener;
+    }
 }

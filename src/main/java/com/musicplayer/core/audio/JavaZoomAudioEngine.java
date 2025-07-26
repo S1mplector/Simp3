@@ -287,6 +287,11 @@ public class JavaZoomAudioEngine implements AudioEngine, BasicPlayerListener {
         LOGGER.info("Audio spectrum listener set (not implemented for BasicPlayer)");
     }
     
+    @Override
+    public AudioSpectrumListener getAudioSpectrumListener() {
+        return this.spectrumListener;
+    }
+    
     // BasicPlayerListener implementation
     
     @Override
