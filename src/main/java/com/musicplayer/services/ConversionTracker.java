@@ -125,7 +125,20 @@ public class ConversionTracker {
      */
     public boolean isAlbumConverted(File file) {
         String albumKey = generateAlbumKeyFromPath(file);
-        return conversionHistory.containsKey(albumKey);
+        ConversionRecord record = conversionHistory.get(albumKey);
+
+        if (record == null) {
+            return false;
+        }
+
+        // Verify that the converted file still exists on disk; if not, clear record
+        if (record.getConvertedFilePath() == null || !(new File(record.getConvertedFilePath()).exists())) {
+            // Converted file missing – purge stale record
+            conversionHistory.remove(albumKey);
+            saveConversionHistory();
+            return false;
+        }
+        return true;
     }
     
     /**

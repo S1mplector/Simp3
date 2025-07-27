@@ -304,7 +304,7 @@ public class AudioConversionDialog extends Stage {
         aiffRadio = new RadioButton("AIFF");
         aiffRadio.setToggleGroup(formatGroup);
         
-        Label formatInfoLabel = new Label("Both formats provide full JavaFX compatibility with visualizer support.");
+        Label formatInfoLabel = new Label("Both formats provide full JavaFX compatibility.");
         formatInfoLabel.setStyle("-fx-text-fill: #666666; -fx-font-size: 12px;");
         
         box.getChildren().addAll(titleLabel, wavRadio, aiffRadio, formatInfoLabel);

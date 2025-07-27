@@ -90,7 +90,7 @@ public class ConversionPromptDialog {
         benefitsArea.setWrapText(true);
         benefitsArea.setText(
             "Converting MP3, FLAC, and OGG files to WAV format will:\n" +
-            "• Enable the audio visualizer and spectrum analyzer\n" +
+            "• Enable better visualizer performance\n" +
             "• Improve playback performance and reliability on Linux\n" +
             "• Ensure all audio controls work consistently\n" +
             "• Provide better long-term compatibility"

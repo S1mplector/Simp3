@@ -29,6 +29,7 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.tag.Tag;
+import org.jaudiotagger.tag.FieldKey;
 
 import com.musicplayer.data.models.Song;
 
@@ -499,14 +500,40 @@ public class AudioConversionService {
     private void copyMetadata(File sourceFile, File targetFile) {
         try {
             AudioFile sourceAudioFile = AudioFileIO.read(sourceFile);
-            AudioFile targetAudioFile = AudioFileIO.read(targetFile);
-            
             Tag sourceTag = sourceAudioFile.getTag();
-            if (sourceTag != null) {
-                targetAudioFile.setTag(sourceTag);
-                AudioFileIO.write(targetAudioFile);
-                LOGGER.fine("Metadata copied from " + sourceFile.getName() + " to " + targetFile.getName());
+
+            if (sourceTag == null) {
+                LOGGER.fine("No metadata found in source file " + sourceFile.getName());
+                return;
             }
+
+            AudioFile targetAudioFile = AudioFileIO.read(targetFile);
+            Tag targetTag = targetAudioFile.getTagOrCreateAndSetDefault();
+
+            // Copy commonly used fields one by one to avoid unsupported tag exceptions
+            FieldKey[] keysToCopy = {
+                FieldKey.TITLE,
+                FieldKey.ARTIST,
+                FieldKey.ALBUM,
+                FieldKey.ALBUM_ARTIST,
+                FieldKey.GENRE,
+                FieldKey.YEAR,
+                FieldKey.TRACK
+            };
+
+            for (FieldKey key : keysToCopy) {
+                try {
+                    String value = sourceTag.getFirst(key);
+                    if (value != null && !value.isBlank()) {
+                        targetTag.setField(key, value);
+                    }
+                } catch (Exception ex) {
+                    // Some keys may not be supported for the target format – ignore
+                }
+            }
+
+            targetAudioFile.commit();
+            LOGGER.fine("Metadata copied from " + sourceFile.getName() + " to " + targetFile.getName());
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Failed to copy metadata: " + e.getMessage(), e);
             // Non-fatal error, continue
