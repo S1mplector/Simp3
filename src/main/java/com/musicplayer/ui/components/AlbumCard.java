@@ -126,7 +126,8 @@ public class AlbumCard extends StackPane {
         Button settingsButton = new Button();
         settingsButton.setFocusTraversable(false);
         settingsButton.getStyleClass().add("icon-button");
-        settingsButton.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; -fx-background-radius: 50%; -fx-min-width: 20px; -fx-min-height: 20px; -fx-max-width: 20px; -fx-max-height: 20px;");
+        settingsButton.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;");
+        settingsButton.setPrefSize(24, 24);
         
         // Add settings icon
         try {
@@ -143,14 +144,7 @@ public class AlbumCard extends StackPane {
         StackPane.setAlignment(settingsButton, Pos.TOP_RIGHT);
         StackPane.setMargin(settingsButton, new Insets(2, 2, 0, 0));
         
-        // Add hover effect
-        settingsButton.setOnMouseEntered(e -> {
-            settingsButton.setStyle(settingsButton.getStyle() + " -fx-background-color: rgba(255, 255, 255, 0.2);");
-        });
-        
-        settingsButton.setOnMouseExited(e -> {
-            settingsButton.setStyle(settingsButton.getStyle().replace(" -fx-background-color: rgba(255, 255, 255, 0.2);", ""));
-        });
+        // No custom hover handlers – inherit subtle hover from global .button:hover rule
         
         // Handle settings button click
         settingsButton.setOnAction(e -> openAlbumSettingsDialog());
@@ -165,7 +159,8 @@ public class AlbumCard extends StackPane {
         Button deleteButton = new Button();
         deleteButton.setFocusTraversable(false);
         deleteButton.getStyleClass().add("icon-button");
-        deleteButton.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; -fx-background-radius: 50%; -fx-min-width: 20px; -fx-min-height: 20px; -fx-max-width: 20px; -fx-max-height: 20px;");
+        deleteButton.setStyle("-fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 0; -fx-focus-color: transparent; -fx-faint-focus-color: transparent;");
+        deleteButton.setPrefSize(24, 24);
         
         // Add trash icon
         try {
@@ -182,14 +177,7 @@ public class AlbumCard extends StackPane {
         StackPane.setAlignment(deleteButton, Pos.TOP_LEFT);
         StackPane.setMargin(deleteButton, new Insets(2, 0, 0, 2));
         
-        // Add hover effect
-        deleteButton.setOnMouseEntered(e -> {
-            deleteButton.setStyle(deleteButton.getStyle() + " -fx-background-color: rgba(255, 0, 0, 0.3);");
-        });
-        
-        deleteButton.setOnMouseExited(e -> {
-            deleteButton.setStyle(deleteButton.getStyle().replace(" -fx-background-color: rgba(255, 0, 0, 0.3);", ""));
-        });
+        // No custom hover handlers – inherit subtle hover from global .button:hover rule
         
         // Handle delete button click
         deleteButton.setOnAction(e -> openDeleteConfirmationDialog());

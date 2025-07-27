@@ -182,34 +182,30 @@
 }
 
 /* Icon button styles for dialogs */
+
+/* Refined icon-button base to match subtle sizing of regular buttons */
 .icon-button {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
-    -fx-padding: 8;
+    -fx-padding: 2;
     -fx-cursor: hand;
-    -fx-background-radius: 25;
-    -fx-border-radius: 25;
-    -fx-min-width: 40;
-    -fx-min-height: 40;
-    -fx-pref-width: 40;
-    -fx-pref-height: 40;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-min-width: 24;
+    -fx-min-height: 24;
+    -fx-pref-width: 24;
+    -fx-pref-height: 24;
 }
 
+/* Harmonize icon-button hover with standard button for subtle effect */
 .icon-button:hover {
-    -fx-background-color: linear-gradient(to bottom,
-        rgba(76, 175, 80, 0.15),
-        rgba(76, 175, 80, 0.1));
-    -fx-effect: dropshadow(gaussian, rgba(76, 175, 80, 0.4), 15, 0, 0, 3);
-    -fx-scale-x: 1.1;
-    -fx-scale-y: 1.1;
+    /* No additional background – match subtlety of main control icons */
+    -fx-background-color: transparent;
+    -fx-effect: null;
 }
 
 .icon-button:pressed {
-    -fx-background-color: linear-gradient(to bottom,
-        rgba(76, 175, 80, 0.25),
-        rgba(76, 175, 80, 0.2));
-    -fx-scale-x: 0.95;
-    -fx-scale-y: 0.95;
+    -fx-background-color: transparent;
 }
 
 .icon-button:focused {
