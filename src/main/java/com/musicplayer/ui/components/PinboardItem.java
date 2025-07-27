@@ -4,11 +4,9 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.control.Label;
-import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
-import javafx.scene.paint.Color;
 
 /**
  * Represents a pinned item (album/playlist) in the pinboard.
@@ -65,9 +63,9 @@ public class PinboardItem extends HBox {
         
         // Hover effect
         setOnMouseEntered(e -> {
-            // Semi-transparent lime overlay
+            // Semi-transparent lime overlay without blur
             setStyle("-fx-background-color: #32cd3246; -fx-background-radius: 3;");
-            setEffect(new DropShadow(1, Color.BLACK));
+            // Removed DropShadow to avoid blurring text
         });
         
         setOnMouseExited(e -> {

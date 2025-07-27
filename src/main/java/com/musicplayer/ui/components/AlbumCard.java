@@ -3,19 +3,15 @@ package com.musicplayer.ui.components;
 import com.musicplayer.data.models.Album;
 import com.musicplayer.data.repositories.AlbumRepository;
 import com.musicplayer.data.repositories.SongRepository;
-import com.musicplayer.ui.controllers.AlbumEditController;
 import com.musicplayer.ui.util.AlbumArtLoader;
 
 import javafx.application.Platform;
-import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.Dialog;
-import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
@@ -157,7 +153,7 @@ public class AlbumCard extends StackPane {
         });
         
         // Handle settings button click
-        settingsButton.setOnAction(e -> openAlbumEditDialog());
+        settingsButton.setOnAction(e -> openAlbumSettingsDialog());
         
         return settingsButton;
     }
@@ -365,78 +361,54 @@ public class AlbumCard extends StackPane {
     }
     
     /**
-     * Open the album edit dialog.
+     * Open the album settings dialog which now shows statistics as well as edit options.
      */
-    private void openAlbumEditDialog() {
+    private void openAlbumSettingsDialog() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/album-edit.fxml"));
-            DialogPane dialogPane = loader.load();
-            AlbumEditController controller = loader.getController();
-            controller.setAlbum(album);
-            
-            // Create a custom dialog without default buttons
-            Dialog<ButtonType> dialog = new Dialog<>();
-            dialog.setDialogPane(dialogPane);
-            dialog.setTitle("Edit Album - " + album.getTitle());
-            dialog.initOwner(getScene().getWindow());
-            
-            // Apply CSS for styling
-            try {
-                dialogPane.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
-            } catch (Exception e) {
-                // CSS not found, continue without styling
-            }
-            
-            // Add a hidden button type to allow dialog to be closeable
-            dialog.getDialogPane().getButtonTypes().add(ButtonType.CANCEL);
-            dialog.getDialogPane().lookupButton(ButtonType.CANCEL).setVisible(false);
-            dialog.getDialogPane().lookupButton(ButtonType.CANCEL).setManaged(false);
-            
-            // Handle custom buttons
-            controller.setOnSave(result -> {
-                // Handle the save operation
-                handleAlbumEdit(result);
-                dialog.setResult(ButtonType.OK);
-                dialog.close();
-            });
-            
-            controller.getSaveButton().setOnAction(e -> {
-                controller.saveChanges();
-            });
-            
-            controller.getCancelButton().setOnAction(e -> {
-                dialog.setResult(ButtonType.CANCEL);
-                dialog.close();
-            });
-            
-            // Also handle ESC key to close dialog
-            dialogPane.setOnKeyPressed(event -> {
-                if (event.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
-                    dialog.setResult(ButtonType.CANCEL);
-                    dialog.close();
-                }
-            });
-            
-            dialog.showAndWait();
-        } catch (Exception e) {
-            e.printStackTrace();
-            Alert alert = new Alert(Alert.AlertType.ERROR);
+            com.musicplayer.ui.dialogs.AlbumSettingsDialog dlg = new com.musicplayer.ui.dialogs.AlbumSettingsDialog(album);
+            dlg.initOwner(getScene().getWindow());
+
+            // When the dialog finishes with a save action we handle the result
+            dlg.setOnSave(this::handleAlbumEdit);
+
+            dlg.showAndWait();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
             alert.setTitle("Error");
-            alert.setHeaderText("Could not open album edit dialog");
-            alert.setContentText("An error occurred while opening the album edit dialog.");
+            alert.setHeaderText("Could not open album settings dialog");
+            alert.setContentText("An error occurred while opening the album settings dialog.");
             alert.showAndWait();
         }
+    }
+
+    // Deprecated method kept for compatibility, now delegates to the new dialog
+    private void openAlbumEditDialog() {
+        openAlbumSettingsDialog();
     }
     
     /**
      * Handle the result of album editing.
      */
-    private void handleAlbumEdit(AlbumEditController.AlbumEditResult result) {
+    private void handleAlbumEdit(com.musicplayer.ui.dialogs.AlbumSettingsDialog.AlbumEditResult result) {
         try {
             // Update album name if it changed
             if (!result.getNewName().equals(album.getTitle())) {
+                // Physically rename the album directory and update all song paths
+                try {
+                    renameAlbumDirectory(result.getNewName());
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+                    alert.setTitle("Rename Error");
+                    alert.setHeaderText("Could not rename album directory");
+                    alert.setContentText("The album name was changed, but the underlying folder could not be renamed: " + ex.getMessage());
+                    alert.showAndWait();
+                }
+
+                // Update album object title after successful rename
                 album.setTitle(result.getNewName());
-                
+
                 // Update the title label in the UI
                 VBox content = (VBox) getChildren().get(0);
                 Label titleLabel = (Label) content.getChildren().get(1);
@@ -462,8 +434,9 @@ public class AlbumCard extends StackPane {
                     }, Platform::runLater);
             }
             
-            // Save the album changes to the repository
+            // Persist album and song changes
             albumRepository.save(album);
+            album.getSongs().forEach(songRepository::save);
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -526,5 +499,51 @@ public class AlbumCard extends StackPane {
             return filename.substring(lastDotIndex + 1).toLowerCase();
         }
         return "png"; // Default extension
+    }
+
+    /**
+     * Rename the directory containing this album's songs to match the new album name.
+     * Updates all song file paths and cover art paths accordingly.
+     */
+    private void renameAlbumDirectory(String newAlbumName) throws Exception {
+        // Determine old directory: based on the first song that has a file path
+        java.io.File oldDir = null;
+        for (com.musicplayer.data.models.Song s : album.getSongs()) {
+            if (s.getFilePath() != null && !s.getFilePath().isBlank()) {
+                oldDir = new java.io.File(s.getFilePath()).getParentFile();
+                break;
+            }
+        }
+        if (oldDir == null || !oldDir.exists()) {
+            throw new IllegalStateException("Could not determine album directory");
+        }
+
+        // Create sanitized new directory name
+        String sanitizedName = newAlbumName.replaceAll("[^a-zA-Z0-9 _()-]", "_").trim();
+        java.io.File newDir = new java.io.File(oldDir.getParentFile(), sanitizedName);
+
+        if (newDir.equals(oldDir)) {
+            // Directory already matches desired name
+            return;
+        }
+
+        // Perform the move (rename)
+        java.nio.file.Files.move(oldDir.toPath(), newDir.toPath());
+
+        // Update song file paths
+        for (com.musicplayer.data.models.Song s : album.getSongs()) {
+            String oldPath = s.getFilePath();
+            if (oldPath != null && oldPath.startsWith(oldDir.getAbsolutePath())) {
+                String relative = oldPath.substring(oldDir.getAbsolutePath().length());
+                String newPath = newDir.getAbsolutePath() + relative;
+                s.setFilePath(newPath);
+            }
+        }
+
+        // Update cover art path if inside album directory
+        if (album.getCoverArtPath() != null && album.getCoverArtPath().startsWith(oldDir.getAbsolutePath())) {
+            String relative = album.getCoverArtPath().substring(oldDir.getAbsolutePath().length());
+            album.setCoverArtPath(newDir.getAbsolutePath() + relative);
+        }
     }
 } 
