@@ -3,10 +3,19 @@ package com.musicplayer.ui.dialogs;
 import java.io.File;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.collections.FXCollections;
+import javafx.scene.control.ListView;
+import javafx.scene.control.cell.CheckBoxListCell;
+import javafx.util.Callback;
 
 import com.musicplayer.services.AudioConversionService;
 import com.musicplayer.services.AudioConversionService.ConversionSettings;
 import com.musicplayer.services.AudioConversionService.TargetFormat;
+import com.musicplayer.services.ConversionTracker.ConversionRecord;
 
 import javafx.application.Platform;
 import javafx.concurrent.Task;
@@ -41,6 +50,16 @@ public class AudioConversionDialog extends Stage {
     private final AudioConversionService conversionService;
     private final List<File> filesToConvert;
     private ConversionSettings settings;
+
+    // Optional: records of already converted albums to display in the dialog
+    private Map<String, ConversionRecord> convertedRecords;
+
+    // Mapping of album name -> files belonging to that album that can be converted
+    private Map<String, java.util.List<File>> convertibleAlbumFiles;
+
+    // Album selection UI
+    private ListView<String> albumListView;
+    private java.util.Set<String> selectedAlbums = new java.util.HashSet<>();
     
     // UI Components
     private RadioButton wavRadio;
@@ -58,11 +77,34 @@ public class AudioConversionDialog extends Stage {
     private Button convertButton;
     private Button cancelButton;
     
-    public AudioConversionDialog(Window owner, AudioConversionService conversionService, List<File> filesToConvert) {
+    public AudioConversionDialog(Window owner,
+                                 AudioConversionService conversionService,
+                                 List<File> filesToConvert) {
+        this(owner, conversionService, filesToConvert, null);
+    }
+
+    /**
+     * Extended constructor that also accepts a map of already converted albums so that we can present
+     * a full overview (converted vs convertible) to the user.
+     */
+    public AudioConversionDialog(Window owner,
+                                 AudioConversionService conversionService,
+                                 List<File> filesToConvert,
+                                 Map<String, ConversionRecord> convertedRecords) {
         this.conversionService = conversionService;
         this.filesToConvert = filesToConvert;
         this.settings = new ConversionSettings();
-        
+        this.convertedRecords = convertedRecords;
+
+        // Build album -> files mapping for selection list
+        this.convertibleAlbumFiles = new java.util.HashMap<>();
+        for (File f : this.filesToConvert) {
+            File parent = f.getParentFile();
+            String albumName = parent != null ? parent.getName() : f.getName();
+            convertibleAlbumFiles.computeIfAbsent(albumName, k -> new java.util.ArrayList<>()).add(f);
+        }
+        selectedAlbums.addAll(convertibleAlbumFiles.keySet()); // default select all
+ 
         initOwner(owner);
         setTitle("Audio Conversion Settings");
         setResizable(false);
@@ -78,14 +120,20 @@ public class AudioConversionDialog extends Stage {
         root.setStyle("-fx-background-color: white;");
         
         // Header
-        Label headerLabel = new Label("Audio Conversion Settings");
+        Label headerLabel = new Label("Audio Conversion Overview & Settings");
         headerLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
         
         Label descLabel = new Label(
             "Converting to WAV/AIFF enables visualizer and full playback controls.\n" +
-            "Files to convert: " + filesToConvert.size()
+            "Potential files to convert: " + filesToConvert.size()
         );
         descLabel.setStyle("-fx-text-fill: #666666;");
+
+        // Added overview of converted & convertible albums (if data provided)
+        VBox overviewBox = null;
+        if (convertedRecords != null) {
+            overviewBox = createOverviewBox();
+        }
         
         // Create scrollable content area
         VBox contentBox = new VBox(15);
@@ -118,12 +166,126 @@ public class AudioConversionDialog extends Stage {
         // Buttons - always at the bottom
         HBox buttonBox = createButtonBox(progressBox);
         
-        root.getChildren().addAll(
-            headerLabel, descLabel, scrollPane, progressBox, buttonBox
-        );
+        // Album selector box
+        VBox albumSelectorBox = createAlbumSelectorBox();
+
+        if (overviewBox != null) {
+            root.getChildren().addAll(headerLabel, descLabel, overviewBox, albumSelectorBox, scrollPane, progressBox, buttonBox);
+        } else {
+            root.getChildren().addAll(headerLabel, descLabel, albumSelectorBox, scrollPane, progressBox, buttonBox);
+        }
         
         Scene scene = new Scene(root, 520, 650);
         setScene(scene);
+    }
+
+    /**
+     * Build an overview box listing albums that are already converted and those that can be converted.
+     */
+    private VBox createOverviewBox() {
+        VBox box = new VBox(6);
+        box.setStyle("-fx-border-color: #cccccc; -fx-border-radius: 5; -fx-padding: 10;");
+
+        // Already converted albums
+        int convertedCount = convertedRecords != null ? convertedRecords.size() : 0;
+        Label convertedHeader = new Label("Already Converted Albums: " + convertedCount);
+        convertedHeader.setStyle("-fx-font-weight: bold;");
+
+        javafx.scene.control.TextArea convertedArea = new javafx.scene.control.TextArea();
+        convertedArea.setEditable(false);
+        convertedArea.setWrapText(true);
+        convertedArea.setPrefRowCount(Math.min(convertedCount, 6));
+
+        if (convertedRecords != null && !convertedRecords.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            convertedRecords.values().stream()
+                .limit(20) // avoid huge walls of text
+                .forEach(rec -> sb.append("• ").append(rec.getAlbumKey()).append(" (")
+                                   .append(rec.getConvertedFormat().toUpperCase()).append(")\n"));
+            if (convertedRecords.size() > 20) {
+                sb.append("… and ").append(convertedRecords.size() - 20).append(" more");
+            }
+            convertedArea.setText(sb.toString());
+        } else {
+            convertedArea.setText("None");
+        }
+
+        // Albums that can be converted (based on filesToConvert list)
+        Set<String> convertibleAlbumNames = new HashSet<>();
+        for (File f : filesToConvert) {
+            File parent = f.getParentFile();
+            if (parent != null) {
+                convertibleAlbumNames.add(parent.getName());
+            }
+        }
+
+        Label convertibleHeader = new Label("Albums Containing Convertible Files: " + convertibleAlbumNames.size());
+        convertibleHeader.setStyle("-fx-font-weight: bold;");
+
+        javafx.scene.control.TextArea convertibleArea = new javafx.scene.control.TextArea();
+        convertibleArea.setEditable(false);
+        convertibleArea.setWrapText(true);
+        convertibleArea.setPrefRowCount(Math.min(convertibleAlbumNames.size(), 6));
+
+        if (!convertibleAlbumNames.isEmpty()) {
+            StringBuilder sb2 = new StringBuilder();
+            convertibleAlbumNames.stream()
+                .limit(20)
+                .forEach(name -> sb2.append("• ").append(name).append("\n"));
+            if (convertibleAlbumNames.size() > 20) {
+                sb2.append("… and ").append(convertibleAlbumNames.size() - 20).append(" more");
+            }
+            convertibleArea.setText(sb2.toString());
+        } else {
+            convertibleArea.setText("None – your library is fully optimized!");
+        }
+
+        box.getChildren().addAll(convertedHeader, convertedArea, convertibleHeader, convertibleArea);
+        return box;
+    }
+
+    /**
+     * Creates a box that lets the user pick which albums to convert.
+     */
+    private VBox createAlbumSelectorBox() {
+        VBox box = new VBox(6);
+        box.setStyle("-fx-border-color: #cccccc; -fx-border-radius: 5; -fx-padding: 10;");
+
+        Label title = new Label("Select Albums to Convert (default: all)");
+        title.setStyle("-fx-font-weight: bold;");
+
+        albumListView = new ListView<>(FXCollections.observableArrayList(convertibleAlbumFiles.keySet()));
+        albumListView.setPrefHeight(150);
+
+        albumListView.setCellFactory(CheckBoxListCell.forListView(new Callback<String, javafx.beans.value.ObservableValue<Boolean>>() {
+            @Override
+            public javafx.beans.value.ObservableValue<Boolean> call(String item) {
+                SimpleBooleanProperty prop = new SimpleBooleanProperty(selectedAlbums.contains(item));
+                prop.addListener((obs, wasSel, isSel) -> {
+                    if (isSel) {
+                        selectedAlbums.add(item);
+                    } else {
+                        selectedAlbums.remove(item);
+                    }
+                });
+                return prop;
+            }
+        }));
+
+        // Select All / None controls
+        javafx.scene.control.CheckBox selectAllCheck = new javafx.scene.control.CheckBox("Select All");
+        selectAllCheck.setSelected(true);
+        selectAllCheck.selectedProperty().addListener((obs, was, now) -> {
+            if (now) {
+                selectedAlbums.addAll(convertibleAlbumFiles.keySet());
+            } else {
+                selectedAlbums.clear();
+            }
+            albumListView.refresh();
+        });
+
+        box.getChildren().addAll(title, selectAllCheck, albumListView);
+        return box;
     }
     
     private VBox createFormatSelectionBox() {
@@ -314,17 +476,25 @@ public class AudioConversionDialog extends Stage {
         // Disable convert button
         convertButton.setDisable(true);
         
-        // Filter files that can be converted
-        List<File> convertibleFiles = filesToConvert.stream()
+        // Determine files based on album selection
+        List<File> convertibleFiles = new java.util.ArrayList<>();
+        for (String album : selectedAlbums) {
+            List<File> list = convertibleAlbumFiles.get(album);
+            if (list != null) {
+                convertibleFiles.addAll(list);
+            }
+        }
+        // Ensure still respect format filter
+        final java.util.List<File> filesToProcess = convertibleFiles.stream()
             .filter(file -> {
                 String ext = getFileExtension(file.getName());
                 return conversionService.isConvertible(ext) && !conversionService.isJavaFXCompatible(ext);
             })
             .collect(Collectors.toList());
-        
-        if (convertibleFiles.isEmpty()) {
-            showInfo("No Conversion Needed", "All selected files are already in JavaFX-compatible formats.");
-            close();
+
+        if (filesToProcess.isEmpty()) {
+            showInfo("No Albums Selected", "Please select at least one album containing convertible files.");
+            convertButton.setDisable(false);
             return;
         }
         
@@ -332,7 +502,7 @@ public class AudioConversionDialog extends Stage {
         Task<List<File>> conversionTask = new Task<List<File>>() {
             @Override
             protected List<File> call() throws Exception {
-                return conversionService.convertFiles(convertibleFiles, new AudioConversionService.ConversionProgressCallback() {
+                return conversionService.convertFiles(filesToProcess, new AudioConversionService.ConversionProgressCallback() {
                     @Override
                     public void onProgress(String fileName, int current, int total, double percentage) {
                         Platform.runLater(() -> {

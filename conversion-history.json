@@ -1,18 +1,1 @@
-{
-  "katawa shoujo enigmatic box of sound" : {
-    "albumKey" : "katawa shoujo enigmatic box of sound",
-    "originalFormat" : "mp3",
-    "convertedFormat" : "wav",
-    "originalFilePath" : "/home/sim/Desktop/Files/Music/1-13-nocturne/Katawa Shoujo Enigmatic Box of Sound/2-22 Romance in Andante II.mp3",
-    "convertedFilePath" : "/home/sim/Desktop/Files/Music/Katawa Shoujo OST - wav/2-22 Romance in Andante II_converted.wav",
-    "conversionDate" : "2025-07-25 13:41:18"
-  },
-  "clannad" : {
-    "albumKey" : "clannad",
-    "originalFormat" : "m4a",
-    "convertedFormat" : "wav",
-    "originalFilePath" : "/Users/ilgazmehmetoglu/Desktop/Music/Clannad/43 Yuigina Jikanno Sugoshikata -Sax-.m4a",
-    "convertedFilePath" : "/Users/ilgazmehmetoglu/Desktop/Music/Clannad/43 Yuigina Jikanno Sugoshikata -Sax-_converted.wav",
-    "conversionDate" : "2025-07-26 00:30:50"
-  }
-}
+{ }

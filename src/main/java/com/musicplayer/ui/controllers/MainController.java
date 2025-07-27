@@ -84,6 +84,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import com.musicplayer.ui.dialogs.AudioConversionDialog;
 
 public class MainController implements Initializable, IControllerCommunication {
     
@@ -378,6 +379,13 @@ public class MainController implements Initializable, IControllerCommunication {
         if (musicLibraryManager.getSongCount() == 0 && musicLibraryManager.getCurrentMusicFolder() == null) {
             File selectedFolder = FirstRunWizard.show(selectMusicFolderButton.getScene().getWindow());
             if (selectedFolder != null) {
+                // Reset conversion history for fresh library
+                if (audioConversionController != null) {
+                    audioConversionController.getConversionService()
+                        .getConversionTracker()
+                        .clearHistory();
+                }
+
                 // Suppress error dialogs during initial library scan
                 audioPlayerService.setSuppressErrorDialogs(true);
                 musicLibraryManager.scanMusicFolder(selectedFolder, true);
@@ -496,6 +504,12 @@ public class MainController implements Initializable, IControllerCommunication {
                 
                 alert.showAndWait().ifPresent(response -> {
                     if (response == clearAndScan) {
+                        // New library – reset conversion history
+                        if (audioConversionController != null) {
+                            audioConversionController.getConversionService()
+                                .getConversionTracker()
+                                .clearHistory();
+                        }
                         // Suppress error dialogs during library scan
                         audioPlayerService.setSuppressErrorDialogs(true);
                         musicLibraryManager.scanMusicFolder(selectedDirectory, true);
@@ -517,7 +531,13 @@ public class MainController implements Initializable, IControllerCommunication {
                     // If cancel, do nothing
                 });
             } else {
-                // No existing data, just scan normally
+                // No existing data, just scan normally – reset conversion history
+                if (audioConversionController != null) {
+                    audioConversionController.getConversionService()
+                        .getConversionTracker()
+                        .clearHistory();
+                }
+
                 // Suppress error dialogs during library scan
                 audioPlayerService.setSuppressErrorDialogs(true);
                 musicLibraryManager.scanMusicFolder(selectedDirectory, true);
@@ -885,20 +905,31 @@ public class MainController implements Initializable, IControllerCommunication {
      */
     @FXML
     private void handleAudioConversion() {
-        if (audioConversionController != null) {
-            // Get the current music folder from the library manager
-            File musicDir = musicLibraryManager.getCurrentMusicFolder();
-            if (musicDir != null && musicDir.exists() && musicDir.isDirectory()) {
-                // Use the directory-based conversion check
-                audioConversionController.checkDirectoryForConversion(
-                    selectMusicFolderButton.getScene().getWindow(), musicDir);
-            } else {
-                // Show dialog to select music folder first
-                showInfo("No Music Folder", "Please select a music folder first using the 'Select Music Folder' button.");
-            }
-        } else {
+        if (audioConversionController == null) {
             showError("Error", "Audio conversion service is not available.");
+            return;
         }
+
+        // Get the current music folder from the library manager
+        File musicDir = musicLibraryManager.getCurrentMusicFolder();
+        if (musicDir == null || !musicDir.exists() || !musicDir.isDirectory()) {
+            showInfo("No Music Folder", "Please select a music folder first using the 'Select Music Folder' button.");
+            return;
+        }
+
+        // Gather conversion data – always show dialog even if library is already optimized
+        var conversionService = audioConversionController.getConversionService();
+        var analysis = conversionService.analyzeDirectory(musicDir);
+        var convertedRecords = conversionService.getConversionTracker().getAllConversionRecords();
+
+        // Build and show enhanced conversion dialog
+        AudioConversionDialog dialog = new AudioConversionDialog(
+            selectMusicFolderButton.getScene().getWindow(),
+            conversionService,
+            analysis.getFilesToConvert(),
+            convertedRecords
+        );
+        dialog.showAndWait();
     }
     
     /**
