@@ -32,6 +32,7 @@
                 <Menu mnemonicParsing="false" text="Tools">
                     <items>
                         <MenuItem fx:id="audioConversionMenuItem" mnemonicParsing="false" text="Audio Conversion..." onAction="#handleAudioConversion" />
+                        <MenuItem fx:id="youtubeDownloadMenuItem" mnemonicParsing="false" text="Download from YouTube..." onAction="#handleYouTubeDownload" />
                     </items>
                 </Menu>
                 <Menu mnemonicParsing="false" text="Help">

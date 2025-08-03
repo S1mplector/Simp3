@@ -38,6 +38,7 @@ import com.musicplayer.ui.controllers.AudioConversionController;
 import com.musicplayer.ui.dialogs.FirstRunWizard;
 import com.musicplayer.ui.dialogs.MissingFilesDialog;
 import com.musicplayer.ui.dialogs.PlaylistSelectionPopup;
+import com.musicplayer.ui.dialogs.YouTubeDownloadDialog;
 import com.musicplayer.ui.dialogs.UpdateDialog;
 import com.musicplayer.ui.handlers.PlaylistActionHandler;
 import com.musicplayer.ui.util.AlbumArtLoader;
@@ -935,6 +936,12 @@ public class MainController implements Initializable, IControllerCommunication {
     /**
      * Handle the settings button click.
      */
+    @FXML
+    private void handleYouTubeDownload() {
+        YouTubeDownloadDialog dialog = new YouTubeDownloadDialog(selectMusicFolderButton.getScene().getWindow(), musicLibraryManager, albumRepository, songRepository);
+        dialog.show();
+    }
+
     @FXML
     private void handleSettings() {
         try {
