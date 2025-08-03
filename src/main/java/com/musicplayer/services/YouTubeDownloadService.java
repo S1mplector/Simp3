@@ -146,6 +146,86 @@ public class YouTubeDownloadService {
         return -1;
     }
 
+    /* ---------------------- Info fetching ---------------------- */
+
+    public static class InfoResult {
+        private final boolean playlist;
+        private final String title;
+        private final List<String> entries; // video titles when playlist
+        public InfoResult(boolean playlist, String title, List<String> entries) {
+            this.playlist = playlist;
+            this.title = title;
+            this.entries = entries;
+        }
+        public boolean isPlaylist() { return playlist; }
+        public String getTitle() { return title; }
+        public List<String> getEntries() { return entries; }
+    }
+
+    public interface InfoListener {
+        void onSuccess(InfoResult info);
+        void onError(String errorMessage, Exception exception);
+    }
+
+    /**
+     * Fetches metadata (title, entries) for a YouTube/playlist URL without downloading.
+     * Requires yt-dlp.
+     */
+    public void fetchInfo(String url, InfoListener listener) {
+        if (url == null || url.isBlank()) {
+            if (listener != null) listener.onError("URL is empty", null);
+            return;
+        }
+        if (!isYtDlpInstalled()) {
+            if (listener != null) listener.onError("yt-dlp not installed", null);
+            return;
+        }
+        List<String> cmd = new ArrayList<>();
+        cmd.add("yt-dlp");
+        cmd.add("--dump-single-json");
+        cmd.add("--no-warnings");
+        cmd.add("--flat-playlist");
+        cmd.add(url);
+
+        Thread worker = new Thread(() -> {
+            try {
+                Process proc = new ProcessBuilder(cmd).redirectErrorStream(true).start();
+                StringBuilder sb = new StringBuilder();
+                try (BufferedReader r = new BufferedReader(new InputStreamReader(proc.getInputStream()))) {
+                    String line;
+                    while ((line = r.readLine()) != null) {
+                        sb.append(line);
+                    }
+                }
+                int exit = proc.waitFor();
+                if (exit != 0) {
+                    if (listener != null) listener.onError("yt-dlp exited with code " + exit, null);
+                    return;
+                }
+                String json = sb.toString();
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(json);
+                boolean isPlaylist = root.has("entries");
+                String title = root.hasNonNull("title") ? root.get("title").asText() : "(unknown)";
+                List<String> entries = new ArrayList<>();
+                if (isPlaylist) {
+                    for (com.fasterxml.jackson.databind.JsonNode entry : root.get("entries")) {
+                        if (entry.hasNonNull("title")) {
+                            entries.add(entry.get("title").asText());
+                        }
+                    }
+                }
+                InfoResult res = new InfoResult(isPlaylist, title, entries);
+                if (listener != null) listener.onSuccess(res);
+            } catch (Exception ex) {
+                if (listener != null) listener.onError("Failed to fetch info", ex);
+            }
+        }, "yt-dlp-info-worker");
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    /* ---------------------- Internals ---------------------- */
     private File getMostRecentFile(File dir, String extension) {
         File[] files = dir.listFiles((d, name) -> name.toLowerCase().endsWith("." + extension));
         if (files == null || files.length == 0) return null;

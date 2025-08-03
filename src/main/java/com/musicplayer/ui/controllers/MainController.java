@@ -878,7 +878,20 @@ public class MainController implements Initializable, IControllerCommunication {
 
     private void onAlbumSelected(Album album) {
         songs.clear();
-        songs.setAll(album.getSongs());
+        if (album.getSongs() != null && !album.getSongs().isEmpty()) {
+            songs.setAll(album.getSongs());
+        } else {
+            // Fallback: gather songs from library by matching album title
+            List<Song> matching = musicLibraryManager.getAllSongs().stream()
+                    .filter(s -> album.getTitle() != null && album.getTitle().equalsIgnoreCase(s.getAlbum()))
+                    .toList();
+            songs.setAll(matching);
+            // Update album object's list for next time
+            if (!matching.isEmpty()) {
+                album.setSongs(new java.util.ArrayList<>(matching));
+                albumRepository.save(album);
+            }
+        }
         audioPlayerService.setPlaylist(songs);
         playbackController.updatePlaylist(songs);
         // Clear any playlist selection since we're now showing album songs

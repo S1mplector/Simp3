@@ -16,6 +16,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
@@ -47,6 +48,8 @@ public class YouTubeDownloadDialog extends Stage {
     private CheckBox playlistCheck;
     private ProgressBar progressBar;
     private Label progressLabel;
+    private Label infoLabel;
+    private ListView<String> entriesList;
     private Button downloadBtn;
     private Button cancelBtn;
 
@@ -73,7 +76,20 @@ public class YouTubeDownloadDialog extends Stage {
         Label linkLabel = new Label("YouTube (or supported) URL:");
         urlField = new TextField();
         urlField.setPrefColumnCount(40);
+        urlField.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isBlank()) {
+                fetchInfo(newVal.trim());
+            } else {
+                clearInfo();
+            }
+        });
         playlistCheck = new CheckBox("Download entire playlist (if URL is a playlist)");
+        
+        infoLabel = new Label();
+        infoLabel.setStyle("-fx-font-weight: bold;");
+        entriesList = new ListView<>();
+        entriesList.setPrefHeight(150);
+        entriesList.setVisible(false);
 
         // --- Download options ---
         Label optionsLabel = new Label("Download Options:");
@@ -117,7 +133,7 @@ public class YouTubeDownloadDialog extends Stage {
         downloadBtn.setOnAction(e -> startDownload());
         cancelBtn.setOnAction(e -> close());
 
-        root.getChildren().addAll(linkLabel, urlField, playlistCheck, optionsLabel, optionsBox, albumLabel, albumGrid, newAlbumBtn, outDirLabel, outDirBox, progressBar, progressLabel, btnBox);
+        root.getChildren().addAll(linkLabel, urlField, infoLabel, entriesList, playlistCheck, optionsLabel, optionsBox, albumLabel, albumGrid, newAlbumBtn, outDirLabel, outDirBox, progressBar, progressLabel, btnBox);
 
         Scene scene = new Scene(root);
         setScene(scene);
@@ -263,6 +279,43 @@ public class YouTubeDownloadDialog extends Stage {
                 selectedAlbum = album;
             }
         });
+    }
+
+    private void fetchInfo(String url) {
+        infoLabel.setText("Fetching info...");
+        entriesList.getItems().clear();
+        entriesList.setVisible(false);
+        playlistCheck.setSelected(false);
+
+        downloadService.fetchInfo(url, new YouTubeDownloadService.InfoListener() {
+            @Override
+            public void onSuccess(YouTubeDownloadService.InfoResult info) {
+                Platform.runLater(() -> {
+                    if (info.isPlaylist()) {
+                        playlistCheck.setSelected(true);
+                        infoLabel.setText("Playlist: " + info.getTitle() + " (" + info.getEntries().size() + " items)");
+                        entriesList.getItems().setAll(info.getEntries());
+                        entriesList.setVisible(true);
+                    } else {
+                        infoLabel.setText("Video: " + info.getTitle());
+                        entriesList.setVisible(false);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String errorMessage, Exception exception) {
+                Platform.runLater(() -> {
+                    infoLabel.setText("Could not fetch info");
+                });
+            }
+        });
+    }
+
+    private void clearInfo() {
+        infoLabel.setText("");
+        entriesList.getItems().clear();
+        entriesList.setVisible(false);
     }
 
     private void showError(String msg) {
