@@ -23,7 +23,7 @@ public class YouTubeDownloadService {
 
     /** Convenience overload that uses default format (mp3) and quality */
     public void downloadAudio(String url, File outputDirectory, DownloadListener listener) {
-        downloadAudio(url, outputDirectory, "mp3", null, listener);
+        downloadAudio(url, outputDirectory, "mp3", null, false, listener);
     }
 
     /** Callback interface for long-running download operations. */
@@ -64,7 +64,7 @@ public class YouTubeDownloadService {
      * @param outputDirectory  directory to place the resulting file
      * @param listener         optional progress callback, may be null
      */
-    public void downloadAudio(String url, File outputDirectory, String audioFormat, String audioQuality, DownloadListener listener) {
+    public void downloadAudio(String url, File outputDirectory, String audioFormat, String audioQuality, boolean downloadPlaylist, DownloadListener listener) {
         if (url == null || url.isBlank()) {
             if (listener != null) listener.onError("URL is empty", null);
             return;
@@ -86,8 +86,14 @@ public class YouTubeDownloadService {
             cmd.add("--audio-quality");
             cmd.add(audioQuality);
         }
-        cmd.add("-o");
-        cmd.add("%(title)s.%(ext)s");
+        if (downloadPlaylist) {
+            cmd.add("-o");
+            cmd.add("%(playlist_title)s/%(playlist_index|05d)s - %(title)s.%(ext)s");
+        } else {
+            cmd.add("--no-playlist");
+            cmd.add("-o");
+            cmd.add("%(title)s.%(ext)s");
+        }
         cmd.add(url);
 
         ProcessBuilder pb = new ProcessBuilder(cmd);

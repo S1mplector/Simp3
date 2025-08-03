@@ -13,6 +13,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
@@ -43,6 +44,7 @@ public class YouTubeDownloadDialog extends Stage {
     private ComboBox<String> formatCombo;
     private ComboBox<String> qualityCombo;
     private com.musicplayer.data.models.Album selectedAlbum;
+    private CheckBox playlistCheck;
     private ProgressBar progressBar;
     private Label progressLabel;
     private Button downloadBtn;
@@ -71,6 +73,7 @@ public class YouTubeDownloadDialog extends Stage {
         Label linkLabel = new Label("YouTube (or supported) URL:");
         urlField = new TextField();
         urlField.setPrefColumnCount(40);
+        playlistCheck = new CheckBox("Download entire playlist (if URL is a playlist)");
 
         // --- Download options ---
         Label optionsLabel = new Label("Download Options:");
@@ -114,7 +117,7 @@ public class YouTubeDownloadDialog extends Stage {
         downloadBtn.setOnAction(e -> startDownload());
         cancelBtn.setOnAction(e -> close());
 
-        root.getChildren().addAll(linkLabel, urlField, optionsLabel, optionsBox, albumLabel, albumGrid, newAlbumBtn, outDirLabel, outDirBox, progressBar, progressLabel, btnBox);
+        root.getChildren().addAll(linkLabel, urlField, playlistCheck, optionsLabel, optionsBox, albumLabel, albumGrid, newAlbumBtn, outDirLabel, outDirBox, progressBar, progressLabel, btnBox);
 
         Scene scene = new Scene(root);
         setScene(scene);
@@ -149,10 +152,9 @@ public class YouTubeDownloadDialog extends Stage {
         if (!outputDirField.getText().isBlank()) {
             outDir = new File(outputDirField.getText());
         } else {
-            // Default: <musicFolder>/Downloaded or user's home Music
-            File musicFolder = libraryManager.getCurrentMusicFolder();
-            if (musicFolder != null) {
-                outDir = new File(musicFolder, "Downloaded");
+            File base = determineRootMusicFolder();
+            if (base != null) {
+                outDir = new File(base, "Downloaded");
             } else {
                 outDir = new File(System.getProperty("user.home"), "Music/Downloaded");
             }
@@ -167,6 +169,10 @@ public class YouTubeDownloadDialog extends Stage {
         String albumName;
         if (selectedAlbum != null) {
             albumName = selectedAlbum.getTitle();
+            // ensure physical directory
+            File albumDir = new File(determineRootMusicFolder(), albumName);
+            if (!albumDir.exists()) albumDir.mkdirs();
+            outDir = albumDir;
         } else {
             albumName = "Downloaded";
         }
@@ -182,7 +188,7 @@ public class YouTubeDownloadDialog extends Stage {
         // Map quality to yt-dlp argument (strip text before space or keep raw like 320K)
         String qualityArg = qualitySel.contains(" ") ? qualitySel.split(" ")[0] : qualitySel;
 
-        downloadService.downloadAudio(url, outDir, format, qualityArg, new YouTubeDownloadService.DownloadListener() {
+        downloadService.downloadAudio(url, outDir, format, qualityArg, playlistCheck.isSelected(), new YouTubeDownloadService.DownloadListener() {
             @Override
             public void onProgress(int percentage, String message) {
                 Platform.runLater(() -> {
@@ -232,6 +238,13 @@ public class YouTubeDownloadDialog extends Stage {
     private String stripExtension(String name) {
         int idx = name.lastIndexOf('.');
         return idx > 0 ? name.substring(0, idx) : name;
+    }
+
+    private File determineRootMusicFolder() {
+        File musicFolder = libraryManager.getCurrentMusicFolder();
+        if (musicFolder == null) return null;
+        File parent = musicFolder.getParentFile();
+        return parent != null ? parent : musicFolder;
     }
 
     private void createNewAlbum(com.musicplayer.ui.components.AlbumGridView grid) {
