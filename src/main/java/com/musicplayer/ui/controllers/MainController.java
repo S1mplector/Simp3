@@ -97,6 +97,7 @@ public class MainController implements Initializable, IControllerCommunication {
     @FXML private TableColumn<Song, String> artistColumn;
     @FXML private TableColumn<Song, String> albumColumn;
     @FXML private TableColumn<Song, String> durationColumn;
+    @FXML private TableColumn<Song, Void> reorderColumn;
     @FXML private Button previousButton;
     @FXML private Button playPauseButton;
     @FXML private Button nextButton;
@@ -266,8 +267,19 @@ public class MainController implements Initializable, IControllerCommunication {
         
         // Set up callback to update UI when playlists change
         playlistManager.setPlaylistUpdateCallback(updatedPlaylists -> {
+            Playlist currentlySelected = playlistsListView.getSelectionModel().getSelectedItem();
+            Long selectedId = currentlySelected != null ? currentlySelected.getId() : null;
+
             playlists.clear();
             playlists.addAll(updatedPlaylists);
+
+            if (selectedId != null) {
+                playlists.stream()
+                        .filter(pl -> pl.getId() == selectedId)
+                        .findFirst()
+                        .ifPresent(pl -> playlistsListView.getSelectionModel().select(pl));
+            }
+
             if (pinboardPanel != null) {
                 pinboardPanel.addActivity(ActivityFeedItem.ActivityType.PLAYLIST_SAVED, 
                     "Playlist updated");
@@ -311,6 +323,9 @@ public class MainController implements Initializable, IControllerCommunication {
             long durationInSeconds = cellData.getValue().getDuration();
             return new javafx.beans.property.SimpleStringProperty(formatDuration(durationInSeconds));
         });
+        
+        // Set up reorder column (up/down buttons)
+        setupReorderColumn();
         
         // Bind the table to the songs list
         songsTableView.setItems(filteredSongs);
@@ -1461,5 +1476,66 @@ public class MainController implements Initializable, IControllerCommunication {
                 visualizerController.updateMainVisualizerState();
             });
         }
+    }
+
+    /**
+     * Sets up the reorder column with up and down arrow buttons.
+     */
+    private void setupReorderColumn() {
+        reorderColumn.setVisible(false);
+        playlistsListView.getSelectionModel().selectedItemProperty().addListener((obs, oldPl, newPl) -> {
+            reorderColumn.setVisible(newPl != null);
+        });
+        reorderColumn.setCellFactory(col -> new TableCell<Song, Void>() {
+            private final Button upButton = new Button("\u25B2");
+            private final Button downButton = new Button("\u25BC");
+            private final HBox container = new HBox(2, upButton, downButton);
+            {
+                container.setAlignment(Pos.CENTER);
+                upButton.setStyle("-fx-background-color: transparent; -fx-padding: 2;");
+                downButton.setStyle("-fx-background-color: transparent; -fx-padding: 2;");
+
+                upButton.setOnAction(e -> moveSong(-1));
+                downButton.setOnAction(e -> moveSong(1));
+            }
+
+            private void moveSong(int direction) {
+                int index = getIndex();
+                int newIndex = index + direction;
+                if (newIndex < 0 || newIndex >= songs.size()) {
+                    return;
+                }
+                Song song = songs.get(index);
+                songs.remove(index);
+                songs.add(newIndex, song);
+                songsTableView.getSelectionModel().select(newIndex);
+
+                Playlist selectedPl = playlistsListView.getSelectionModel().getSelectedItem();
+                if (selectedPl != null) {
+                    selectedPl.setSongs(new ArrayList<>(songs));
+                    playlistManager.updatePlaylistSongs(selectedPl.getId(), selectedPl.getSongs());
+                }
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    boolean playlistSelected = playlistsListView.getSelectionModel().getSelectedItem() != null;
+
+                    if (!playlistSelected) {
+                        setGraphic(null);
+                        return;
+                    }
+
+                    upButton.setDisable(getIndex() == 0);
+                    downButton.setDisable(getIndex() == songs.size() - 1);
+
+                    setGraphic(container);
+                }
+            }
+        });
     }
 }
