@@ -50,6 +50,7 @@ public class YouTubeDownloadDialog extends Stage {
     private Label progressLabel;
     private Label infoLabel;
     private ListView<String> entriesList;
+    private javafx.scene.image.ImageView coverView;
     private Button downloadBtn;
     private Button cancelBtn;
 
@@ -87,6 +88,10 @@ public class YouTubeDownloadDialog extends Stage {
         
         infoLabel = new Label();
         infoLabel.setStyle("-fx-font-weight: bold;");
+        coverView = new javafx.scene.image.ImageView();
+        coverView.setFitWidth(160);
+        coverView.setFitHeight(160);
+        coverView.setPreserveRatio(true);
         entriesList = new ListView<>();
         entriesList.setPrefHeight(150);
         entriesList.setVisible(false);
@@ -133,7 +138,7 @@ public class YouTubeDownloadDialog extends Stage {
         downloadBtn.setOnAction(e -> startDownload());
         cancelBtn.setOnAction(e -> close());
 
-        root.getChildren().addAll(linkLabel, urlField, infoLabel, entriesList, playlistCheck, optionsLabel, optionsBox, albumLabel, albumGrid, newAlbumBtn, outDirLabel, outDirBox, progressBar, progressLabel, btnBox);
+        root.getChildren().addAll(linkLabel, urlField, infoLabel, coverView, entriesList, playlistCheck, optionsLabel, optionsBox, albumLabel, albumGrid, newAlbumBtn, outDirLabel, outDirBox, progressBar, progressLabel, btnBox);
 
         Scene scene = new Scene(root);
         setScene(scene);
@@ -300,6 +305,11 @@ public class YouTubeDownloadDialog extends Stage {
                         infoLabel.setText("Video: " + info.getTitle());
                         entriesList.setVisible(false);
                     }
+                    if (info.getThumbnailUrl() != null) {
+                        coverView.setImage(new javafx.scene.image.Image(info.getThumbnailUrl(), true));
+                    } else {
+                        coverView.setImage(null);
+                    }
                 });
             }
 
@@ -316,6 +326,7 @@ public class YouTubeDownloadDialog extends Stage {
         infoLabel.setText("");
         entriesList.getItems().clear();
         entriesList.setVisible(false);
+        coverView.setImage(null);
     }
 
     private void showError(String msg) {

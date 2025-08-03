@@ -152,14 +152,17 @@ public class YouTubeDownloadService {
         private final boolean playlist;
         private final String title;
         private final List<String> entries; // video titles when playlist
-        public InfoResult(boolean playlist, String title, List<String> entries) {
+        private final String thumbnailUrl;
+        public InfoResult(boolean playlist, String title, List<String> entries, String thumbnailUrl) {
             this.playlist = playlist;
             this.title = title;
             this.entries = entries;
+            this.thumbnailUrl = thumbnailUrl;
         }
         public boolean isPlaylist() { return playlist; }
         public String getTitle() { return title; }
         public List<String> getEntries() { return entries; }
+        public String getThumbnailUrl() { return thumbnailUrl; }
     }
 
     public interface InfoListener {
@@ -171,6 +174,24 @@ public class YouTubeDownloadService {
      * Fetches metadata (title, entries) for a YouTube/playlist URL without downloading.
      * Requires yt-dlp.
      */
+    private String extractVideoId(String url) {
+        try {
+            if (url == null) return null;
+            if (url.contains("youtu.be/")) {
+                return url.substring(url.lastIndexOf('/') + 1).split("[?&]")[0];
+            }
+            if (url.contains("v=")) {
+                String[] parts = url.split("[?&]");
+                for (String p : parts) {
+                    if (p.startsWith("v=")) {
+                        return p.substring(2);
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
     public void fetchInfo(String url, InfoListener listener) {
         if (url == null || url.isBlank()) {
             if (listener != null) listener.onError("URL is empty", null);
@@ -208,14 +229,25 @@ public class YouTubeDownloadService {
                 boolean isPlaylist = root.has("entries");
                 String title = root.hasNonNull("title") ? root.get("title").asText() : "(unknown)";
                 List<String> entries = new ArrayList<>();
+                String thumbnail = null;
                 if (isPlaylist) {
+                    com.fasterxml.jackson.databind.JsonNode first = root.get("entries").size() > 0 ? root.get("entries").get(0) : null;
+                    String firstId = first != null && first.hasNonNull("id") ? first.get("id").asText() : null;
+                    if (firstId != null) {
+                        thumbnail = "https://img.youtube.com/vi/" + firstId + "/hqdefault.jpg";
+                    }
                     for (com.fasterxml.jackson.databind.JsonNode entry : root.get("entries")) {
                         if (entry.hasNonNull("title")) {
                             entries.add(entry.get("title").asText());
                         }
                     }
+                } else {
+                    String vidId = root.hasNonNull("id") ? root.get("id").asText() : extractVideoId(url);
+                    if (vidId != null) {
+                        thumbnail = "https://img.youtube.com/vi/" + vidId + "/hqdefault.jpg";
+                    }
                 }
-                InfoResult res = new InfoResult(isPlaylist, title, entries);
+                InfoResult res = new InfoResult(isPlaylist, title, entries, thumbnail);
                 if (listener != null) listener.onSuccess(res);
             } catch (Exception ex) {
                 if (listener != null) listener.onError("Failed to fetch info", ex);
