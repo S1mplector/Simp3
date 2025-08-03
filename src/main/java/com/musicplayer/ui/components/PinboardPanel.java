@@ -99,29 +99,45 @@ public class PinboardPanel extends VBox {
         return label;
     }
     
-    // Library stats update methods
+    // Library stats update methods (thread-safe)
     public void updateLibraryStats(int totalSongs, int totalAlbums, String musicFolder) {
-        totalSongsLabel.setText("Songs: " + totalSongs);
-        totalAlbumsLabel.setText("Albums: " + totalAlbums);
-        if (musicFolder != null && !musicFolder.isEmpty()) {
-            // Show only folder name or last two directories for brevity
-            File folder = new File(musicFolder);
-            String displayPath = folder.getName();
-            if (folder.getParentFile() != null) {
-                displayPath = folder.getParentFile().getName() + "/" + displayPath;
+        Runnable uiUpdate = () -> {
+            totalSongsLabel.setText("Songs: " + totalSongs);
+            totalAlbumsLabel.setText("Albums: " + totalAlbums);
+            if (musicFolder != null && !musicFolder.isEmpty()) {
+                // Show only folder name or last two directories for brevity
+                File folder = new File(musicFolder);
+                String displayPath = folder.getName();
+                if (folder.getParentFile() != null) {
+                    displayPath = folder.getParentFile().getName() + "/" + displayPath;
+                }
+                musicFolderLabel.setText("Folder: " + displayPath);
+            } else {
+                musicFolderLabel.setText("Folder: Not set");
             }
-            musicFolderLabel.setText("Folder: " + displayPath);
+        };
+
+        // Ensure the update happens on the JavaFX Application Thread
+        if (javafx.application.Platform.isFxApplicationThread()) {
+            uiUpdate.run();
         } else {
-            musicFolderLabel.setText("Folder: Not set");
+            javafx.application.Platform.runLater(uiUpdate);
         }
     }
     
-    // Listening stats update methods
+    // Listening stats update methods (thread-safe)
     public void updateListeningStats(int todayCount, int weeklyCount, int monthlyCount, String mostPlayed) {
-        listenedTodayLabel.setText("Today: " + todayCount + " songs");
-        listenedWeeklyLabel.setText("This week: " + weeklyCount + " songs");
-        listenedMonthlyLabel.setText("This month: " + monthlyCount + " songs");
-        mostPlayedLabel.setText("Most played: " + (mostPlayed != null ? mostPlayed : "-"));
+        Runnable uiUpdate = () -> {
+            listenedTodayLabel.setText("Today: " + todayCount + " songs");
+            listenedWeeklyLabel.setText("This week: " + weeklyCount + " songs");
+            listenedMonthlyLabel.setText("This month: " + monthlyCount + " songs");
+            mostPlayedLabel.setText("Most played: " + (mostPlayed != null ? mostPlayed : "-"));
+        };
+        if (javafx.application.Platform.isFxApplicationThread()) {
+            uiUpdate.run();
+        } else {
+            javafx.application.Platform.runLater(uiUpdate);
+        }
     }
     
     // Existing pinboard methods remain the same

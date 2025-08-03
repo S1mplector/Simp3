@@ -1,1 +1,10 @@
-{ }
+{
+  "clannad" : {
+    "albumKey" : "clannad",
+    "originalFormat" : "m4a",
+    "convertedFormat" : "wav",
+    "originalFilePath" : "/Users/ilgazmehmetoglu/Desktop/Music/Clannad/43 Yuigina Jikanno Sugoshikata -Sax-.m4a",
+    "convertedFilePath" : "/Users/ilgazmehmetoglu/Desktop/Music/Clannad/43 Yuigina Jikanno Sugoshikata -Sax-_converted.wav",
+    "conversionDate" : "2025-08-03 03:44:18"
+  }
+}
