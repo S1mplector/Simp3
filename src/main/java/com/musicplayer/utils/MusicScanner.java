@@ -93,7 +93,11 @@ public class MusicScanner {
             if (tag != null) {
                 song.setTitle(getTagValue(tag, FieldKey.TITLE, file.getName()));
                 song.setArtist(getTagValue(tag, FieldKey.ARTIST, "Unknown Artist"));
-                song.setAlbum(getTagValue(tag, FieldKey.ALBUM, "Unknown Album"));
+                String albumTag = getTagValue(tag, FieldKey.ALBUM, "Unknown Album");
+                if (albumTag.equals("Unknown Album") || albumTag.isBlank()) {
+                    albumTag = file.getParentFile() != null ? file.getParentFile().getName() : "Unknown Album";
+                }
+                song.setAlbum(albumTag);
                 song.setGenre(getTagValue(tag, FieldKey.GENRE, "Unknown"));
                 
                 // Parse track number

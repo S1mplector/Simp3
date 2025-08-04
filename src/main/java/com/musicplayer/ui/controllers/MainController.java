@@ -221,6 +221,9 @@ public class MainController implements Initializable, IControllerCommunication {
         settingsService = new SettingsService();
         
         // Initialize update service
+        javafx.application.Platform.runLater(this::applyTheme);
+        
+        // Initialize update service
         updateService = new UpdateService(settingsService);
         
         // Set up error handling for missing files
@@ -1032,7 +1035,33 @@ public class MainController implements Initializable, IControllerCommunication {
     /**
      * Apply the current visualizer settings.
      */
+    /**
+     * Apply the current theme (light/dark) based on settings.
+     */
+    private void applyTheme() {
+        if (settingsService == null || selectMusicFolderButton == null) {
+            return;
+        }
+        javafx.scene.Scene scene = selectMusicFolderButton.getScene();
+        if (scene == null) {
+            return;
+        }
+        java.net.URL darkUrl = getClass().getResource("/css/dark.css");
+        if (darkUrl == null) {
+            return; // stylesheet missing
+        }
+        String darkCss = darkUrl.toExternalForm();
+        if (settingsService.getSettings().getTheme() == com.musicplayer.data.models.Settings.Theme.DARK) {
+            if (!scene.getStylesheets().contains(darkCss)) {
+                scene.getStylesheets().add(darkCss);
+            }
+        } else {
+            scene.getStylesheets().remove(darkCss);
+        }
+    }
+
     private void applyVisualizerSettings() {
+        applyTheme();
         if (visualizerController != null) {
             visualizerController.applySettings();
         }

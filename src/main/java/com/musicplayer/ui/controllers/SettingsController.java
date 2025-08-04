@@ -42,6 +42,9 @@ public class SettingsController {
     @FXML private HBox colorPickerSection;
     @FXML private ColorPicker solidColorPicker;
     
+    // Theme controls
+    @FXML private ChoiceBox<com.musicplayer.data.models.Settings.Theme> themeChoiceBox;
+
     // Update settings controls
     @FXML private CheckBox autoCheckUpdatesCheckBox;
     @FXML private HBox updateIntervalSection;
@@ -92,7 +95,28 @@ public class SettingsController {
     @FXML
     public void initialize() {
 
-    // Enable/disable color options based on visualizer state
+            // Populate theme choice box
+        if (themeChoiceBox != null) {
+            themeChoiceBox.getItems().setAll(com.musicplayer.data.models.Settings.Theme.values());
+            // Display user-friendly names
+            themeChoiceBox.setConverter(new javafx.util.StringConverter<com.musicplayer.data.models.Settings.Theme>() {
+                @Override
+                public String toString(com.musicplayer.data.models.Settings.Theme theme) {
+                    if (theme == null) return "";
+                    switch (theme) {
+                        case DARK: return "Dark";
+                        case LIGHT:
+                        default: return "Light";
+                    }
+                }
+                @Override
+                public com.musicplayer.data.models.Settings.Theme fromString(String string) {
+                    return "Dark".equalsIgnoreCase(string) ? com.musicplayer.data.models.Settings.Theme.DARK : com.musicplayer.data.models.Settings.Theme.LIGHT;
+                }
+            });
+        }
+
+        // Enable/disable color options based on visualizer state
         visualizerEnabledCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
             colorModeSection.setDisable(!newVal);
             colorPickerSection.setDisable(!newVal || !solidColorRadio.isSelected());
@@ -164,6 +188,11 @@ public class SettingsController {
      * Load current settings into the UI.
      */
     private void loadSettings() {
+        // Set theme selection
+        if (themeChoiceBox != null) {
+            themeChoiceBox.setValue(settings.getTheme());
+        }
+        
         // Set visualizer enabled state
         visualizerEnabledCheckBox.setSelected(settings.isVisualizerEnabled());
         
@@ -230,6 +259,9 @@ public class SettingsController {
      */
     public void saveSettings() {
         // Update settings from UI
+        if (themeChoiceBox != null) {
+            settings.setTheme(themeChoiceBox.getValue());
+        }
         settings.setVisualizerEnabled(visualizerEnabledCheckBox.isSelected());
         
         if (gradientCyclingRadio.isSelected()) {

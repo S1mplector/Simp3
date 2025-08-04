@@ -29,8 +29,8 @@
                         <!-- Visuals Section -->
                         <VBox spacing="10">
                             <Label text="Visuals" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
-                            <Separator/>
-                            
+                                                        <Separator/>
+                            <Label text="Audio Visualizer" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
                             <!-- Visualizer Enabled -->
                             <HBox alignment="CENTER_LEFT" spacing="10">
                                 <CheckBox fx:id="visualizerEnabledCheckBox" text="Enable Audio Visualizer"/>
@@ -50,10 +50,18 @@
                             </VBox>
                             
                             <!-- Color Picker -->
-                            <HBox alignment="CENTER_LEFT" spacing="10" fx:id="colorPickerSection">
-                                <Label text="Solid Color:"/>
-                                <ColorPicker fx:id="solidColorPicker" prefWidth="100"/>
-                            </HBox>
+                        <HBox alignment="CENTER_LEFT" spacing="10" fx:id="colorPickerSection">
+                            <Label text="Solid Color:"/>
+                            <ColorPicker fx:id="solidColorPicker" prefWidth="100"/>
+                        </HBox>
+
+                        <!-- Application Theme -->
+                        <Separator/>
+                        <Label text="Application Theme" style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <Label text="Theme:"/>
+                            <ChoiceBox fx:id="themeChoiceBox" prefWidth="120" />
+                        </HBox>
                             
                         </VBox>
                         

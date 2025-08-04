@@ -109,8 +109,30 @@ public class MusicLibraryManager {
                 // Scan the folder for music files
                 List<Song> scannedSongs = MusicScanner.scanDirectory(folder);
                 
-                // Add all scanned songs to the repository
+                // Build set of existing file paths to avoid duplicates
+                java.util.Set<String> existing = new java.util.HashSet<>();
+                for (Song s : songRepository.findAll()) {
+                    if (s.getFilePath() != null) existing.add(s.getFilePath());
+                }
+
                 for (Song song : scannedSongs) {
+                    if (song.getFilePath() == null) continue;
+                    if (existing.contains(song.getFilePath())) {
+                        // Update metadata in case tags changed
+                        Song existingSong = songRepository.findAll().stream()
+                                .filter(x -> song.getFilePath().equals(x.getFilePath()))
+                                .findFirst().orElse(null);
+                        if (existingSong != null) {
+                            existingSong.setTitle(song.getTitle());
+                            existingSong.setArtist(song.getArtist());
+                            existingSong.setAlbum(song.getAlbum());
+                            existingSong.setGenre(song.getGenre());
+                            existingSong.setDuration(song.getDuration());
+                            existingSong.setTrackNumber(song.getTrackNumber());
+                            songRepository.save(existingSong);
+                        }
+                        continue;
+                    }
                     songRepository.save(song);
                 }
                 

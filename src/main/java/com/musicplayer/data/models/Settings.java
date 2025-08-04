@@ -13,6 +13,13 @@ public class Settings {
     private String visualizerSolidColor = "#32CD32"; // Default lime green
 
     
+    // Theme settings
+    public enum Theme {
+        LIGHT,
+        DARK;
+    }
+    private Theme theme = Theme.LIGHT;
+
     // Mini player settings
     private double miniPlayerX = -1; // -1 means use default position
     private double miniPlayerY = -1; // -1 means use default position
@@ -136,6 +143,15 @@ public class Settings {
     
     public void setDownloadUpdatesInBackground(boolean downloadUpdatesInBackground) {
         this.downloadUpdatesInBackground = downloadUpdatesInBackground;
+    }
+
+    // Theme getter and setter
+    public Theme getTheme() {
+        return theme;
+    }
+
+    public void setTheme(Theme theme) {
+        this.theme = theme;
     }
     
     public boolean isShowPreReleaseVersions() {
