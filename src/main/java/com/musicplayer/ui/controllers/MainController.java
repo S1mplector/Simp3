@@ -1421,6 +1421,7 @@ public class MainController implements Initializable, IControllerCommunication {
         List<Album> persisted = albumRepository.findAll();
         List<Album> engineAlbums = libraryService.getAllAlbums();
 
+        // --- Add missing albums ---
         for (Album engineAlbum : engineAlbums) {
             boolean exists = persisted.stream().anyMatch(persistedAlbum -> {
                 // Match by title first
@@ -1428,7 +1429,6 @@ public class MainController implements Initializable, IControllerCommunication {
                     persistedAlbum.getTitle().equalsIgnoreCase(engineAlbum.getTitle())) {
                     return true;
                 }
-
                 // Fallback: If any song file path overlaps, consider it the same album
                 if (persistedAlbum.getSongs() != null && engineAlbum.getSongs() != null) {
                     return persistedAlbum.getSongs().stream().anyMatch(ps ->
@@ -1439,12 +1439,44 @@ public class MainController implements Initializable, IControllerCommunication {
             });
 
             if (!exists) {
-                // Assign an ID via repository save (it will auto-generate one)
-                albumRepository.save(engineAlbum);
+                albumRepository.save(engineAlbum); // persist new album
             }
         }
+
+        // --- Remove albums that no longer exist in the engine (orphaned) ---
+        java.util.concurrent.atomic.AtomicBoolean albumsRemoved = new java.util.concurrent.atomic.AtomicBoolean(false);
+        for (Album persistedAlbum : persisted) {
+            boolean stillExists = engineAlbums.stream().anyMatch(engineAlbum -> {
+                if (persistedAlbum.getTitle() != null && engineAlbum.getTitle() != null &&
+                    persistedAlbum.getTitle().equalsIgnoreCase(engineAlbum.getTitle())) {
+                    return true;
+                }
+                if (persistedAlbum.getSongs() != null && engineAlbum.getSongs() != null) {
+                    return persistedAlbum.getSongs().stream().anyMatch(ps ->
+                        engineAlbum.getSongs().stream().anyMatch(es -> es.getFilePath() != null && ps.getFilePath() != null &&
+                            ps.getFilePath().equals(es.getFilePath())));
+                }
+                return false;
+            });
+            if (!stillExists) {
+                albumRepository.delete(persistedAlbum.getId());
+                albumsRemoved.set(true);
+            }
+        }
+
+        if (albumsRemoved.get() && albumGridView != null) {
+            javafx.application.Platform.runLater(() -> {
+                albumGridView.refresh(albumRepository.findAll());
+                if (pinboardPanel != null) {
+                    int totalAlbums = albumRepository.findAll().size();
+                    File musicFolderFile = musicLibraryManager.getCurrentMusicFolder();
+                    String musicFolder = musicFolderFile != null ? musicFolderFile.getAbsolutePath() : null;
+                    pinboardPanel.updateLibraryStats(libraryService.getSongCount(), totalAlbums, musicFolder);
+                }
+            });
+        }
     }
-    
+
     // Implementation of IControllerCommunication interface methods
     
     @Override
