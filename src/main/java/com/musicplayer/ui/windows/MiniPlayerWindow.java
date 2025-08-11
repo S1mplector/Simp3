@@ -84,6 +84,7 @@ public class MiniPlayerWindow {
     private Button queueButton;
     private Button pinButton;
     private Button closeButton;
+    private Button compactModeButton;
     private Slider progressSlider;
     private Slider volumeSlider;
     private StackPane albumArtContainer;
@@ -97,6 +98,7 @@ public class MiniPlayerWindow {
     private ListView<Song> queueListView;
     private boolean isQueueVisible = false;
     private VBox mainContainer;
+    private CompactMiniPlayerWindow compactWindow;
     
     // Icons
     private final Image playIcon;
@@ -275,7 +277,9 @@ public class MiniPlayerWindow {
         
         HBox windowControls = new HBox(5);
         windowControls.setAlignment(Pos.CENTER_RIGHT);
-        windowControls.getChildren().addAll(queueButton, moreOptionsButton, pinButton, closeButton);
+        // Add compact mode switch button
+        compactModeButton = createWindowButton("◱", "Switch to Compact Mini Player");
+        windowControls.getChildren().addAll(queueButton, moreOptionsButton, compactModeButton, pinButton, closeButton);
         
         // Layout
         VBox centerContent = new VBox(3);
@@ -328,6 +332,9 @@ public class MiniPlayerWindow {
         
         // Setup queue button action
         queueButton.setOnAction(e -> toggleQueue());
+
+        // Setup compact mode switch
+        compactModeButton.setOnAction(e -> switchToCompact());
         
         // Load saved position or use default
         loadWindowPosition();
@@ -501,6 +508,42 @@ public class MiniPlayerWindow {
                 restoreMainWindow();
             }
         });
+    }
+
+    /**
+     * Switch to the ultra-compact mini player window.
+     */
+    private void switchToCompact() {
+        if (compactWindow == null) {
+            compactWindow = new CompactMiniPlayerWindow(audioPlayerService, settingsService);
+            compactWindow.setOnSwitchToNormal(() -> {
+                // Position this window to where compact currently is
+                if (compactWindow.getStage() != null) {
+                    miniStage.setX(compactWindow.getStage().getX());
+                    miniStage.setY(compactWindow.getStage().getY());
+                }
+                // First hide compact (detaches its spectrum listener), then show this (attaches ours)
+                compactWindow.hide();
+                if (!miniStage.isShowing()) {
+                    show();
+                }
+            });
+        }
+        // Position compact window roughly where the current window is
+        double x = miniStage.getX();
+        double y = miniStage.getY();
+
+        // Detach our listener before showing compact to avoid overlap
+        disconnectSpectrumListener();
+
+        compactWindow.show();
+        if (compactWindow.getStage() != null) {
+            compactWindow.getStage().setX(x);
+            compactWindow.getStage().setY(y);
+        }
+
+        // Now hide this window (already disconnected)
+        miniStage.hide();
     }
     
     private void setupDragHandling() {
