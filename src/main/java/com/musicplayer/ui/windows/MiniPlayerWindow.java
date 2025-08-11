@@ -52,6 +52,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -152,7 +153,8 @@ public class MiniPlayerWindow {
     }
     
     private void initializeUI() {
-        miniStage.initStyle(StageStyle.UNDECORATED);
+        // Use a transparent stage so rounded corners are perfectly smooth with no rectangular backdrop
+        miniStage.initStyle(StageStyle.TRANSPARENT);
         miniStage.setTitle("SiMP3 Mini Player");
         miniStage.setAlwaysOnTop(isPinned);
         miniStage.setResizable(false);
@@ -292,16 +294,27 @@ public class MiniPlayerWindow {
         mainLayout.setAlignment(Pos.CENTER_LEFT);
         mainLayout.setPadding(new Insets(10));
         mainLayout.getChildren().addAll(albumArtContainer, centerContent, spacer, rightContent);
-        mainLayout.getStyleClass().add("mini-player-root");
         
         // Create queue panel
         setupQueuePanel();
         
         // Main container that holds both player and queue
         mainContainer = new VBox(0);
+        mainContainer.getStyleClass().add("mini-player-root");
         mainContainer.getChildren().addAll(mainLayout, queuePanel);
+
+        // Clip the container to rounded rect so all children respect rounded corners
+        Rectangle clip = new Rectangle();
+        // Match CSS radius in mini-player.css (.mini-player-root has radius 10)
+        clip.setArcWidth(10);
+        clip.setArcHeight(10);
+        clip.widthProperty().bind(mainContainer.widthProperty());
+        clip.heightProperty().bind(mainContainer.heightProperty());
+        mainContainer.setClip(clip);
         
         Scene scene = new Scene(mainContainer, 480, 120);
+        // Make scene background transparent to avoid any rigid rectangular backdrop
+        scene.setFill(Color.TRANSPARENT);
         scene.getStylesheets().add(getClass().getResource("/css/mini-player.css").toExternalForm());
         miniStage.setScene(scene);
         
