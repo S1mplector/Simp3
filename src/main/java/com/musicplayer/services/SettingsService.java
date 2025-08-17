@@ -13,7 +13,14 @@ import com.musicplayer.data.models.Settings;
  */
 public class SettingsService {
     
-    private static final String SETTINGS_FILE = "data/settings.json";
+    /**
+     * System property to override data directory location for settings persistence.
+     * Useful for tests to isolate filesystem effects.
+     */
+    private static final String DATA_DIR_PROP = "simp3.data.dir";
+
+    /** Settings file resolved at runtime (default: data/settings.json) */
+    private final File settingsFile;
     private final ObjectMapper objectMapper;
     private Settings settings;
     
@@ -24,6 +31,10 @@ public class SettingsService {
         this.objectMapper.registerModule(new JavaTimeModule());
         // Disable writing dates as timestamps
         this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        // Resolve data directory from system property or fallback to default "data"
+        String dataDirPath = System.getProperty(DATA_DIR_PROP, "data");
+        this.settingsFile = new File(dataDirPath, "settings.json");
         loadSettings();
     }
     
@@ -31,8 +42,6 @@ public class SettingsService {
      * Load settings from file or create default settings.
      */
     private void loadSettings() {
-        File settingsFile = new File(SETTINGS_FILE);
-        
         if (settingsFile.exists()) {
             try {
                 settings = objectMapper.readValue(settingsFile, Settings.class);
@@ -51,13 +60,13 @@ public class SettingsService {
      * Save current settings to file.
      */
     public void saveSettings() {
-        File dataDir = new File("data");
+        File dataDir = settingsFile.getParentFile();
         if (!dataDir.exists()) {
             dataDir.mkdirs();
         }
         
         try {
-            objectMapper.writeValue(new File(SETTINGS_FILE), settings);
+            objectMapper.writeValue(settingsFile, settings);
             System.out.println("Settings saved to file");
         } catch (IOException e) {
             System.err.println("Failed to save settings: " + e.getMessage());
