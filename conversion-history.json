@@ -1,10 +1,1 @@
-{
-  "a - first" : {
-    "albumKey" : "a - first",
-    "originalFormat" : "flac",
-    "convertedFormat" : "mp3",
-    "originalFilePath" : "/var/folders/ht/jxvrppn505dgksy_ds7r5tfh0000gn/T/junit8630683821642740355/A - First/a.flac",
-    "convertedFilePath" : "/var/folders/ht/jxvrppn505dgksy_ds7r5tfh0000gn/T/junit8630683821642740355/A - First/a.mp3",
-    "conversionDate" : "2025-08-17 14:53:35"
-  }
-}
+{ }

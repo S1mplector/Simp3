@@ -21,7 +21,12 @@ import com.musicplayer.data.models.Song;
 public class FavoritesService {
     
     private static final String FAVORITES_FILE = "favorites.json";
-    private static final String DATA_DIR = "data";
+    /**
+     * System property to override data directory location for persistence.
+     * Matches the property used in SettingsService for consistency.
+     */
+    private static final String DATA_DIR_PROP = "simp3.data.dir";
+    private static final String DEFAULT_DATA_DIR = "data";
     
     private final Set<Long> favoriteSongIds;
     private final ObjectMapper objectMapper;
@@ -31,13 +36,15 @@ public class FavoritesService {
         this.favoriteSongIds = new HashSet<>();
         this.objectMapper = new ObjectMapper();
         
+        // Resolve data directory from system property or fallback to default "data"
+        String dataDirPath = System.getProperty(DATA_DIR_PROP, DEFAULT_DATA_DIR);
         // Ensure data directory exists
-        File dataDir = new File(DATA_DIR);
+        File dataDir = new File(dataDirPath);
         if (!dataDir.exists()) {
             dataDir.mkdirs();
         }
         
-        this.favoritesPath = Paths.get(DATA_DIR, FAVORITES_FILE);
+        this.favoritesPath = Paths.get(dataDirPath, FAVORITES_FILE);
         
         // Load existing favorites
         loadFavorites();
