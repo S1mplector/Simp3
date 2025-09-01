@@ -2,6 +2,7 @@ package com.musicplayer.services;
 
 import com.musicplayer.data.models.Settings;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -15,11 +16,25 @@ public class SettingsServiceTest {
 
     @TempDir
     Path tempDir;
+    
+    private String originalDataDir;
 
     @BeforeEach
     void setDataDir() {
+        // Save original system property
+        originalDataDir = System.getProperty("simp3.data.dir");
         // Point SettingsService to an isolated data directory inside the temp dir
         System.setProperty("simp3.data.dir", tempDir.resolve("data").toString());
+    }
+    
+    @AfterEach
+    void restoreDataDir() {
+        // Restore original system property
+        if (originalDataDir != null) {
+            System.setProperty("simp3.data.dir", originalDataDir);
+        } else {
+            System.clearProperty("simp3.data.dir");
+        }
     }
 
     @Test
@@ -29,7 +44,7 @@ public class SettingsServiceTest {
         assertFalse(Files.exists(settingsFile));
 
         SettingsService svc = new SettingsService();
-        // defaults per model
+        // defaults per model - visualizer color mode should default to GRADIENT_CYCLING when no file exists
         Settings s = svc.getSettings();
         assertTrue(s.isVisualizerEnabled());
         assertEquals(Settings.VisualizerColorMode.GRADIENT_CYCLING, s.getVisualizerColorMode());
@@ -43,7 +58,7 @@ public class SettingsServiceTest {
         svc.setVisualizerSolidColor("#FF0000");
         assertTrue(Files.size(settingsFile) > 0);
 
-        // New instance should load what was saved
+        // New instance should load what was saved from file (this is the key behavior we want)
         SettingsService svc2 = new SettingsService();
         Settings loaded = svc2.getSettings();
         assertFalse(loaded.isVisualizerEnabled());

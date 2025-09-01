@@ -20,11 +20,11 @@
 
 ##  Overview
 
-SiMP3 is a resource-friendly music player designed for users who want a clean, efficient way to manage and enjoy their music collection. Built with JavaFX, it offers a modern interface while maintaining excellent performance on modest hardware.
+SiMP3 is a resource friendly multi-format music player designed for users who want a clean, efficient way to manage and enjoy their music collection. Built with JavaFX, it offers a modern interface while maintaining excellent performance on modest hardware.
 
 ### Why SiMP3?
 
-- **Lightweight**: Minimal resource usage, perfect for older systems
+- **Lightweight**: Minimal resource usage, great performance on older systems
 - **Modern UI**: Clean, intuitive interface built with JavaFX
 - **Auto-Updates**: Stay current with automatic update checking via GitHub
 - **Smart Library**: Automatic music scanning and organization
@@ -160,7 +160,7 @@ simp3/
 1. **Install Prerequisites**
    - JDK 17 or higher
    - Maven 3.6+
-   - Your favorite IDE (IntelliJ IDEA, Eclipse, VS Code)
+   - Your favorite IDE 
 
 2. **Clone and Import**
    ```bash
@@ -213,7 +213,7 @@ Contributors are always welcome. Here's how you can help:
 - Audio visualizer may impact performance on older systems (can be disabled in settings)
 - Some FLAC files with unusual encoding may not play correctly
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 

@@ -1,6 +1,6 @@
 # Contributing to SiMP3
 
-First off, thank you for considering contributing to SiMP3! It's people like you that make SiMP3 such a great tool. 🎵
+First off, thank you for considering contributing to SiMP3! It's people like you that make SiMP3 such a great tool.
 
 ## Table of Contents
 
@@ -35,7 +35,7 @@ This project and everyone participating in it is governed by our Code of Conduct
 
 ## How Can I Contribute?
 
-### 🐛 Reporting Bugs
+### Reporting Bugs
 
 Before creating bug reports, please check existing issues to avoid duplicates. When creating a bug report, include:
 
@@ -46,7 +46,7 @@ Before creating bug reports, please check existing issues to avoid duplicates. W
 - **Screenshots** (if applicable)
 - **System information** (OS, Java version, etc.)
 
-### 💡 Suggesting Enhancements
+### Suggesting Additions
 
 Enhancement suggestions are welcome! Please provide:
 
@@ -55,7 +55,7 @@ Enhancement suggestions are welcome! Please provide:
 - **Alternatives considered** - What other solutions did you think about?
 - **Additional context** - Mockups, examples, etc.
 
-### 🔧 Code Contributions
+### Code Contributions
 
 #### Your First Code Contribution
 
@@ -89,20 +89,20 @@ Unsure where to begin? Look for these labels in our issues:
 
 ## Development Process
 
-### 1. 🔍 Before You Start
+### 1. Before You Start
 
 - Check if an issue already exists for your change
 - For major changes, open an issue first to discuss
 - Ensure your fork is up to date with the main branch
 
-### 2. 🛠️ Making Changes
+### 2. Making Changes
 
 - Write clean, readable code
 - Add/update tests as needed
 - Update documentation if required
 - Test your changes thoroughly
 
-### 3. 📝 Committing
+### 3. Committing
 
 - Make small, focused commits
 - Write clear commit messages (see below)
@@ -279,4 +279,4 @@ Feel free to:
 - Join our [discussions](https://github.com/yourusername/simp3/discussions)
 - Contact the maintainers
 
-Thank you for contributing to SiMP3! 🎉
+Thank you for contributing to SiMP3!

@@ -5,6 +5,8 @@ import java.io.IOException;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.musicplayer.data.models.Settings;
 
@@ -31,6 +33,9 @@ public class SettingsService {
         this.objectMapper.registerModule(new JavaTimeModule());
         // Disable writing dates as timestamps
         this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // Be lenient when reading enums so we don't drop the whole file on unknown/empty values
+        this.objectMapper.configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
+        this.objectMapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true);
 
         // Resolve data directory from system property or fallback to default "data"
         String dataDirPath = System.getProperty(DATA_DIR_PROP, "data");
@@ -53,6 +58,62 @@ public class SettingsService {
         } else {
             settings = new Settings(); // Use defaults
             saveSettings(); // Save defaults to file
+        }
+        
+        // Always normalize visualizer color mode after loading (handles both new Settings and loaded ones)
+        normalizeVisualizerColorMode();
+    }
+    
+    /**
+     * Normalize visualizer color mode if missing/invalid.
+     * This ensures the setting is always properly initialized from file data or sensible defaults.
+     */
+    private void normalizeVisualizerColorMode() {
+        if (settings.getVisualizerColorMode() == null) {
+            boolean needsSave = false;
+            
+            // Try to read the raw value from file if it exists
+            if (settingsFile.exists()) {
+                try {
+                    JsonNode root = objectMapper.readTree(settingsFile);
+                    JsonNode modeNode = root.get("visualizerColorMode");
+                    JsonNode solidNode = root.get("visualizerSolidColor");
+                    
+                    if (modeNode != null && modeNode.isTextual()) {
+                        String raw = modeNode.asText();
+                        if (raw != null && !raw.isBlank()) {
+                            try {
+                                settings.setVisualizerColorMode(Settings.VisualizerColorMode.valueOf(raw));
+                            } catch (IllegalArgumentException iae) {
+                                // Invalid enum value, fall through to inference logic
+                            }
+                        }
+                    }
+                    
+                    // If still null, infer from presence of a solid color value
+                    if (settings.getVisualizerColorMode() == null) {
+                        if (solidNode != null && solidNode.isTextual() && !solidNode.asText("").isBlank()) {
+                            settings.setVisualizerColorMode(Settings.VisualizerColorMode.SOLID_COLOR);
+                        } else {
+                            settings.setVisualizerColorMode(Settings.VisualizerColorMode.GRADIENT_CYCLING);
+                        }
+                        needsSave = true;
+                    }
+                } catch (IOException ioe) {
+                    // File read failed, apply sensible default
+                    settings.setVisualizerColorMode(Settings.VisualizerColorMode.GRADIENT_CYCLING);
+                    needsSave = true;
+                }
+            } else {
+                // No file exists, use default
+                settings.setVisualizerColorMode(Settings.VisualizerColorMode.GRADIENT_CYCLING);
+                needsSave = true;
+            }
+            
+            // Persist normalization if we made changes
+            if (needsSave) {
+                saveSettings();
+            }
         }
     }
     

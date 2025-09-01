@@ -9,7 +9,7 @@ public class Settings {
     
     // Visual settings
     private boolean visualizerEnabled = true;
-    private VisualizerColorMode visualizerColorMode = VisualizerColorMode.GRADIENT_CYCLING;
+    private VisualizerColorMode visualizerColorMode; // No default - will be set from settings.json or inferred
     private String visualizerSolidColor = "#32CD32"; // Default lime green
 
     
