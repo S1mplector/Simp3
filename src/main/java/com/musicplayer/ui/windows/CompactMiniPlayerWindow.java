@@ -249,6 +249,8 @@ public class CompactMiniPlayerWindow {
         audioPlayerService.setAudioSpectrumListener(visualizer::updateSpectrum);
         listenerAttached = true;
         updateVisualizerState();
+        // Ensure play/pause icon reflects current playback state immediately
+        syncPlayPauseIcon();
         stage.show();
     }
 
@@ -260,6 +262,17 @@ public class CompactMiniPlayerWindow {
             visualizer.stop();
         }
         stage.hide();
+    }
+
+    /**
+     * Sync the play/pause button icon with the current playback state.
+     */
+    private void syncPlayPauseIcon() {
+        if (btnPlayPause != null && btnPlayPause.getGraphic() instanceof ImageView) {
+            ImageView iv = (ImageView) btnPlayPause.getGraphic();
+            boolean isPlaying = audioPlayerService.isPlaying();
+            iv.setImage(isPlaying ? pauseIcon : playIcon);
+        }
     }
 
     public boolean isShowing() {

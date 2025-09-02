@@ -1122,6 +1122,9 @@ public class MiniPlayerWindow {
         
         // Update visualizer state based on current settings
         updateVisualizerState();
+        
+        // Ensure play/pause icon reflects current playback state immediately
+        syncPlayPauseIcon();
     }
     
     public void hide() {
@@ -1264,6 +1267,17 @@ public class MiniPlayerWindow {
         // Stop the visualizer animation
         if (visualizer != null && visualizer.isActive()) {
             visualizer.stop();
+        }
+    }
+
+    /**
+     * Sync the play/pause button icon with the current playback state.
+     */
+    private void syncPlayPauseIcon() {
+        if (playPauseButton != null && playPauseButton.getGraphic() instanceof ImageView) {
+            ImageView imageView = (ImageView) playPauseButton.getGraphic();
+            boolean isPlaying = audioPlayerService.isPlaying();
+            imageView.setImage(isPlaying ? pauseIcon : playIcon);
         }
     }
     
