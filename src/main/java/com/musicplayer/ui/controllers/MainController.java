@@ -165,6 +165,9 @@ public class MainController implements Initializable, IControllerCommunication {
 
     private MiniPlayerWindow miniPlayerWindow;
 
+    // Internal flag to avoid resetting last position to 0.0 when we are restoring a session
+    private boolean suppressNextSongChangeReset = false;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // Initialize storage and repositories
@@ -415,7 +418,12 @@ public class MainController implements Initializable, IControllerCommunication {
         audioPlayerService.currentSongProperty().addListener((o, oldSong, newSong) -> {
             if (newSong != null) {
                 settingsService.setLastSongId(newSong.getId());
-                settingsService.setLastPositionSeconds(0.0);
+                if (suppressNextSongChangeReset) {
+                    // Skip resetting position when we're restoring last session
+                    suppressNextSongChangeReset = false;
+                } else {
+                    settingsService.setLastPositionSeconds(0.0);
+                }
             }
         });
 
@@ -673,6 +681,10 @@ public class MainController implements Initializable, IControllerCommunication {
             System.out.println("Favorites data saved to storage");
         }
         
+        // Persist a final snapshot of playback state BEFORE disposing audio resources
+        // so we capture the real currentTime and volume instead of reset defaults.
+        persistLastPlaybackSnapshot();
+
         // Cleanup visualizer controller
         if (visualizerController != null) {
             visualizerController.cleanup();
@@ -684,9 +696,6 @@ public class MainController implements Initializable, IControllerCommunication {
             playbackController.cleanup();
             System.out.println("Playback controller cleanup completed");
         }
-
-        // Persist a final snapshot of playback state
-        persistLastPlaybackSnapshot();
         
         // Shutdown update service
         if (updateService != null) {
@@ -723,10 +732,26 @@ public class MainController implements Initializable, IControllerCommunication {
         // Find song and restore without auto-playing
         Song target = songRepository.findById(songId);
         if (target != null) {
+            // Capture saved position BEFORE loading (loading triggers song change listeners)
+            final double savedPos = Math.max(0.0, settingsService.getLastPositionSeconds());
+            suppressNextSongChangeReset = true;
             boolean loaded = audioPlayerService.loadTrack(target);
             if (loaded) {
-                double pos = Math.max(0.0, Math.min(settingsService.getLastPositionSeconds(), audioPlayerService.getTotalTime()));
-                audioPlayerService.seek(pos);
+                // Wait for media to be ready (total time known) before seeking
+                javafx.beans.value.ChangeListener<Number> seekWhenReady = new javafx.beans.value.ChangeListener<Number>() {
+                    @Override
+                    public void changed(javafx.beans.value.ObservableValue<? extends Number> obs, Number ov, Number nv) {
+                        double total = nv.doubleValue();
+                        if (total > 0) {
+                            audioPlayerService.totalTimeProperty().removeListener(this);
+                            double clamped = Math.min(savedPos, total);
+                            audioPlayerService.seek(clamped);
+                        }
+                    }
+                };
+                audioPlayerService.totalTimeProperty().addListener(seekWhenReady);
+            } else {
+                suppressNextSongChangeReset = false; // safety
             }
         }
         // Re-apply volume after bindings are established to avoid UI overriding it
