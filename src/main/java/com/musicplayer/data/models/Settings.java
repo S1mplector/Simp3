@@ -26,6 +26,12 @@ public class Settings {
 
     // Whether mini player window should stay always on top
     private boolean miniPlayerPinned = true;
+
+    // Resume playback settings
+    private boolean resumeOnStartup = true;
+    private long lastSongId = -1; // -1 means none
+    private double lastPositionSeconds = 0.0;
+    private double lastVolume = 0.5; // default volume
     
     // Update settings
     private boolean autoCheckForUpdates = true;
@@ -102,6 +108,39 @@ public class Settings {
 
     public void setMiniPlayerPinned(boolean miniPlayerPinned) {
         this.miniPlayerPinned = miniPlayerPinned;
+    }
+
+    // Resume playback getters/setters
+    public boolean isResumeOnStartup() {
+        return resumeOnStartup;
+    }
+
+    public void setResumeOnStartup(boolean resumeOnStartup) {
+        this.resumeOnStartup = resumeOnStartup;
+    }
+
+    public long getLastSongId() {
+        return lastSongId;
+    }
+
+    public void setLastSongId(long lastSongId) {
+        this.lastSongId = lastSongId;
+    }
+
+    public double getLastPositionSeconds() {
+        return lastPositionSeconds;
+    }
+
+    public void setLastPositionSeconds(double lastPositionSeconds) {
+        this.lastPositionSeconds = lastPositionSeconds;
+    }
+
+    public double getLastVolume() {
+        return lastVolume;
+    }
+
+    public void setLastVolume(double lastVolume) {
+        this.lastVolume = lastVolume;
     }
     
     // Update settings getters and setters

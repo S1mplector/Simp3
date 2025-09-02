@@ -247,7 +247,6 @@ public class AudioController {
         // Bind volume slider to volume property
         volumeSlider.valueProperty().bindBidirectional(audioPlayerService.volumeProperty());
         volumeSlider.setMax(1.0); // Volume range 0.0 to 1.0
-        volumeSlider.setValue(0.5); // Default volume
         
         // Set up volume icon and percentage display
         Image volIcon = new Image(getClass().getResourceAsStream("/images/icons/vol.png"));
@@ -269,8 +268,8 @@ public class AudioController {
             }
         });
         
-        // Set initial percentage
-        int initialPercentage = (int) Math.round(volumeSlider.getValue() * 100);
+        // Set initial percentage from current audio volume (avoids overriding persisted value)
+        int initialPercentage = (int) Math.round(audioPlayerService.getVolume() * 100);
         volumePercentageLabel.setText(initialPercentage + "%");
     }
     

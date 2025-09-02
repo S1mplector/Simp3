@@ -212,4 +212,41 @@ public class SettingsService {
     public boolean isMiniPlayerPinned() {
         return settings.isMiniPlayerPinned();
     }
+
+    // Resume playback settings
+    public boolean isResumeOnStartup() {
+        return settings.isResumeOnStartup();
+    }
+
+    public void setResumeOnStartup(boolean resume) {
+        settings.setResumeOnStartup(resume);
+        saveSettings();
+    }
+
+    public long getLastSongId() {
+        return settings.getLastSongId();
+    }
+
+    public void setLastSongId(long songId) {
+        settings.setLastSongId(songId);
+        saveSettings();
+    }
+
+    public double getLastPositionSeconds() {
+        return settings.getLastPositionSeconds();
+    }
+
+    public void setLastPositionSeconds(double seconds) {
+        settings.setLastPositionSeconds(seconds);
+        saveSettings();
+    }
+
+    public double getLastVolume() {
+        return settings.getLastVolume();
+    }
+
+    public void setLastVolume(double volume) {
+        settings.setLastVolume(volume);
+        saveSettings();
+    }
 }

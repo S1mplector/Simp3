@@ -384,6 +384,8 @@ public class MainController implements Initializable, IControllerCommunication {
             if (playPauseButton != null && playPauseButton.getScene() != null && playPauseButton.getScene().getWindow() != null) {
                 Stage stage = (Stage) playPauseButton.getScene().getWindow();
                 visualizerController.initializeMainVisualizer(stage);
+                // Apply settings now that the visualizer has been created to avoid default overrides
+                visualizerController.applySettings();
             }
         });
         
@@ -391,6 +393,34 @@ public class MainController implements Initializable, IControllerCommunication {
         updateService.startAutoUpdateCheck();
         
         System.out.println("MainController initialized.");
+
+        // Apply last known volume immediately
+        try {
+            audioPlayerService.setVolume(settingsService.getLastVolume());
+        } catch (Exception ignored) {}
+
+        // Persist volume on change
+        audioPlayerService.volumeProperty().addListener((o, ov, nv) -> {
+            settingsService.setLastVolume(nv.doubleValue());
+        });
+
+        // Persist position and song when pausing or stopping
+        audioPlayerService.playingProperty().addListener((o, wasPlaying, isPlaying) -> {
+            if (wasPlaying && !isPlaying) {
+                persistLastPlaybackSnapshot();
+            }
+        });
+
+        // Also persist when the current song changes (start of a new song)
+        audioPlayerService.currentSongProperty().addListener((o, oldSong, newSong) -> {
+            if (newSong != null) {
+                settingsService.setLastSongId(newSong.getId());
+                settingsService.setLastPositionSeconds(0.0);
+            }
+        });
+
+        // Attempt to restore last session after UI settles and library is loaded
+        Platform.runLater(this::restoreLastSessionIfEnabled);
     }
     
     private void checkFirstRun() {
@@ -654,6 +684,9 @@ public class MainController implements Initializable, IControllerCommunication {
             playbackController.cleanup();
             System.out.println("Playback controller cleanup completed");
         }
+
+        // Persist a final snapshot of playback state
+        persistLastPlaybackSnapshot();
         
         // Shutdown update service
         if (updateService != null) {
@@ -662,6 +695,44 @@ public class MainController implements Initializable, IControllerCommunication {
         }
         
         System.out.println("Application shutdown complete");
+    }
+
+    private void persistLastPlaybackSnapshot() {
+        if (audioPlayerService != null && settingsService != null) {
+            var current = audioPlayerService.getCurrentSong();
+            if (current != null) {
+                settingsService.setLastSongId(current.getId());
+                settingsService.setLastPositionSeconds(audioPlayerService.getCurrentTime());
+            }
+            settingsService.setLastVolume(audioPlayerService.getVolume());
+        }
+    }
+
+    private void restoreLastSessionIfEnabled() {
+        if (settingsService == null || !settingsService.isResumeOnStartup()) {
+            return;
+        }
+        long songId = settingsService.getLastSongId();
+        if (songId <= 0) return;
+
+        // Ensure playlist is set to all songs so the target song can be loaded
+        if (songs != null) {
+            audioPlayerService.setPlaylist(songs);
+        }
+
+        // Find song and restore without auto-playing
+        Song target = songRepository.findById(songId);
+        if (target != null) {
+            boolean loaded = audioPlayerService.loadTrack(target);
+            if (loaded) {
+                double pos = Math.max(0.0, Math.min(settingsService.getLastPositionSeconds(), audioPlayerService.getTotalTime()));
+                audioPlayerService.seek(pos);
+            }
+        }
+        // Re-apply volume after bindings are established to avoid UI overriding it
+        try {
+            audioPlayerService.setVolume(settingsService.getLastVolume());
+        } catch (Exception ignored) {}
     }
     
     /**

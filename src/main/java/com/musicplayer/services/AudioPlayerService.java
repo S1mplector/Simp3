@@ -126,6 +126,31 @@ public class AudioPlayerService {
             refreshSpectrumListener();
         }
     }
+
+    /**
+     * Loads a specific song from the current playlist without starting playback.
+     * Useful for restoring last session state to a paused position.
+     *
+     * @param song The song to load
+     * @return true if loaded successfully
+     */
+    public boolean loadTrack(Song song) {
+        if (song == null) {
+            return false;
+        }
+        // Set current song in playlist engine
+        List<Song> playlist = playlistEngine.getPlaylist();
+        int index = playlist.indexOf(song);
+        if (index != -1) {
+            playlistEngine.setCurrentIndex(index);
+        }
+        boolean ok = audioEngine.loadSong(song);
+        if (ok) {
+            // Ensure spectrum listener is active for visualizer updates
+            refreshSpectrumListener();
+        }
+        return ok;
+    }
     
     /**
      * Plays the track at the specified index.
