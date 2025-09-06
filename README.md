@@ -1,4 +1,4 @@
-<div align="center">
+<div align="left">
     <img src="src/main/resources/images/icons/app.png" width="128">
     <br><br>
 </div>
