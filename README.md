@@ -20,7 +20,7 @@
 
 ##  Overview
 
-SiMP3 is a resource friendly multi-format music player designed for users who want a clean, efficient way to manage and enjoy their music collection. Built with JavaFX, it offers a modern interface while maintaining excellent performance on modest hardware.
+SiMP3 is a resource friendly multi-format and multithreaded music player designed for users who want a clean, efficient way to manage and enjoy their music collection. Built with JavaFX, it offers a modern interface while maintaining excellent performance on modest hardware.
 
 ### Why SiMP3?
 
