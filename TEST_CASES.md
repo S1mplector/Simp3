@@ -353,6 +353,17 @@ Conventions:
   Expected:
   - App launches; shortcut and icon present; uninstall clean
 
+- ID: DST-003
+  Title: Open via OS file association plays target file
+  Priority: P1
+  Type: E2E
+  Preconditions:
+  - Register .mp3 association to SiMP3 in dev build or simulate via command-line arg path
+  Steps:
+  1. Double-click an MP3 in file explorer (or run `java -jar simp3-<ver>.jar <path-to-mp3>`)
+  Expected:
+  - App launches; target track loads and begins playback; app window is focused
+
 ## 9) Performance & Resource Use
 
 - ID: PRF-001
