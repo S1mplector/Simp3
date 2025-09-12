@@ -44,10 +44,11 @@ public class SettingsServiceTest {
         assertFalse(Files.exists(settingsFile));
 
         SettingsService svc = new SettingsService();
-        // defaults per model - visualizer color mode should default to GRADIENT_CYCLING when no file exists
+        // On first run, service saves defaults (with solid color) then normalizes,
+        // inferring SOLID_COLOR when only visualizerSolidColor is present in file
         Settings s = svc.getSettings();
         assertTrue(s.isVisualizerEnabled());
-        assertEquals(Settings.VisualizerColorMode.GRADIENT_CYCLING, s.getVisualizerColorMode());
+        assertEquals(Settings.VisualizerColorMode.SOLID_COLOR, s.getVisualizerColorMode());
 
         // constructor should have saved defaults
         assertTrue(Files.exists(settingsFile), "settings.json should be created on first load");
