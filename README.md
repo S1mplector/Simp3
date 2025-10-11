@@ -92,8 +92,8 @@ SiMP3 is a resource friendly multi-format and multithreaded music player designe
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/simp3.git
-cd simp3
+git clone https://github.com/S1mplector/Simp3.git
+cd Simp3
 
 # Build with Maven
 mvn clean compile
