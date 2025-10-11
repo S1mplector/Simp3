@@ -1,6 +1,12 @@
 package com.musicplayer.ui.controllers;
 
 import java.io.File;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -83,6 +89,8 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
+import javafx.stage.StageStyle;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import com.musicplayer.ui.dialogs.AudioConversionDialog;
@@ -1077,46 +1085,40 @@ public class MainController implements Initializable, IControllerCommunication {
             SettingsController controller = loader.getController();
             controller.setSettingsService(settingsService);
             controller.setUpdateService(updateService);
-            
-            // Create a custom dialog without default buttons
+
             Dialog<ButtonType> dialog = new Dialog<>();
             dialog.setDialogPane(dialogPane);
             dialog.setTitle("Settings");
             dialog.initOwner(settingsButton.getScene().getWindow());
-            
-            // Apply CSS for icon button styling
+
             dialogPane.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
-            
-            // Add a hidden button type to allow dialog to be closeable
+
             dialog.getDialogPane().getButtonTypes().add(ButtonType.CANCEL);
             dialog.getDialogPane().lookupButton(ButtonType.CANCEL).setVisible(false);
             dialog.getDialogPane().lookupButton(ButtonType.CANCEL).setManaged(false);
-            
-            // Handle custom buttons
+
             controller.getSaveButton().setOnAction(e -> {
                 controller.saveSettings();
                 applyVisualizerSettings();
-                // Also update mini player visualizer settings if it exists
                 if (miniPlayerWindow != null) {
                     miniPlayerWindow.updateVisualizerSettings();
                 }
                 dialog.setResult(ButtonType.OK);
                 dialog.close();
             });
-            
+
             controller.getCancelButton().setOnAction(e -> {
                 dialog.setResult(ButtonType.CANCEL);
                 dialog.close();
             });
-            
-            // Also handle ESC key to close dialog
+
             dialogPane.setOnKeyPressed(event -> {
                 if (event.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
                     dialog.setResult(ButtonType.CANCEL);
                     dialog.close();
                 }
             });
-            
+
             dialog.showAndWait();
         } catch (Exception e) {
             e.printStackTrace();
@@ -1127,10 +1129,215 @@ public class MainController implements Initializable, IControllerCommunication {
             alert.showAndWait();
         }
     }
-    
-    /**
-     * Apply the current visualizer settings.
-     */
+
+    // ========================
+    // File menu handlers
+    // ========================
+    @FXML
+    private void handleExit() {
+        try { cleanup(); } catch (Exception ignored) {}
+        Platform.exit();
+    }
+
+    @FXML
+    private void handleImportPlaylist() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Import Playlist");
+        chooser.getExtensionFilters().addAll(
+            new FileChooser.ExtensionFilter("Playlists (*.m3u, *.m3u8, *.pls)", "*.m3u", "*.m3u8", "*.pls"),
+            new FileChooser.ExtensionFilter("M3U Playlists", "*.m3u", "*.m3u8"),
+            new FileChooser.ExtensionFilter("PLS Playlists", "*.pls")
+        );
+        File file = chooser.showOpenDialog(playPauseButton.getScene().getWindow());
+        if (file == null) return;
+
+        java.util.List<String> paths;
+        try {
+            paths = parsePlaylistFile(file);
+        } catch (IOException e) {
+            Alert err = new Alert(Alert.AlertType.ERROR);
+            err.setTitle("Import Failed");
+            err.setHeaderText("Could not read playlist file");
+            err.setContentText(e.getMessage());
+            err.showAndWait();
+            return;
+        }
+
+        if (paths.isEmpty()) {
+            Alert info = new Alert(Alert.AlertType.INFORMATION);
+            info.setTitle("No Entries");
+            info.setHeaderText("No tracks found in playlist file");
+            info.setContentText("The selected playlist contains no importable entries.");
+            info.showAndWait();
+            return;
+        }
+
+        // Map file paths to existing songs in library
+        java.util.List<Song> allSongs = musicLibraryManager.getAllSongs();
+        java.util.List<Song> toImport = new ArrayList<>();
+        for (String p : paths) {
+            String abs = new File(p).getAbsolutePath();
+            for (Song s : allSongs) {
+                if (s.getFilePath() != null && new File(s.getFilePath()).getAbsolutePath().equals(abs)) {
+                    toImport.add(s);
+                    break;
+                }
+            }
+        }
+
+        if (toImport.isEmpty()) {
+            Alert info = new Alert(Alert.AlertType.INFORMATION);
+            info.setTitle("No Matches");
+            info.setHeaderText("No tracks from the playlist are in your library");
+            info.setContentText("Add the music folder containing these files to the library first.");
+            info.showAndWait();
+            return;
+        }
+
+        // Choose target playlist: select existing or create new using same window as normal
+        Playlist target = null;
+        if (!playlists.isEmpty()) {
+            java.util.Optional<Playlist> chosen = PlaylistSelectionPopup.show(playPauseButton.getScene().getWindow(), playlists);
+            if (chosen.isPresent()) {
+                target = chosen.get();
+            }
+        }
+        if (target == null) {
+            // Use the same TextInputDialog flow as handleAddPlaylist()
+            javafx.scene.control.TextInputDialog dialog = new javafx.scene.control.TextInputDialog();
+            dialog.setTitle("New Playlist");
+            dialog.setHeaderText("Create a new playlist");
+            dialog.setContentText("Enter playlist name:");
+            java.util.Optional<String> res = dialog.showAndWait();
+            if (res.isEmpty() || res.get().trim().isEmpty()) {
+                return;
+            }
+            try {
+                target = playlistManager.createPlaylist(res.get().trim());
+            } catch (IllegalArgumentException e) {
+                Alert warn = new Alert(Alert.AlertType.WARNING);
+                warn.setTitle("Creation Failed");
+                warn.setHeaderText("Could not create playlist");
+                warn.setContentText(e.getMessage());
+                warn.showAndWait();
+                return;
+            }
+        }
+
+        // Add songs to target playlist
+        for (Song s : toImport) {
+            playlistManager.addSongToPlaylist(target.getId(), s);
+        }
+
+        // If target is currently selected, refresh view
+        if (target.equals(playlistsListView.getSelectionModel().getSelectedItem())) {
+            songs.setAll(target.getSongs());
+            songsTableView.refresh();
+        }
+
+        Alert done = new Alert(Alert.AlertType.INFORMATION);
+        done.setTitle("Import Complete");
+        done.setHeaderText("Imported tracks into '" + target.getName() + "'");
+        done.setContentText("Imported " + toImport.size() + " tracks.");
+        done.showAndWait();
+    }
+
+    @FXML
+    private void handleExportPlaylist() {
+        Playlist selected = playlistsListView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            Alert info = new Alert(Alert.AlertType.INFORMATION);
+            info.setTitle("Export Playlist");
+            info.setHeaderText("No playlist selected");
+            info.setContentText("Select a playlist from the left to export.");
+            info.showAndWait();
+            return;
+        }
+
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Export Playlist");
+        chooser.getExtensionFilters().addAll(
+            new FileChooser.ExtensionFilter("M3U Playlist (*.m3u)", "*.m3u")
+        );
+        chooser.setInitialFileName(selected.getName() + ".m3u");
+        File file = chooser.showSaveDialog(playPauseButton.getScene().getWindow());
+        if (file == null) return;
+
+        try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(file)))) {
+            out.println("#EXTM3U");
+            for (Song s : selected.getSongs()) {
+                if (s == null || s.getFilePath() == null) continue;
+                long dur = s.getDuration();
+                String artist = s.getArtist() != null ? s.getArtist() : "";
+                String title = s.getTitle() != null ? s.getTitle() : new File(s.getFilePath()).getName();
+                out.println("#EXTINF:" + dur + "," + artist + " - " + title);
+                out.println(s.getFilePath());
+            }
+        } catch (IOException e) {
+            Alert err = new Alert(Alert.AlertType.ERROR);
+            err.setTitle("Export Failed");
+            err.setHeaderText("Could not write playlist file");
+            err.setContentText(e.getMessage());
+            err.showAndWait();
+            return;
+        }
+
+        Alert done = new Alert(Alert.AlertType.INFORMATION);
+        done.setTitle("Export Complete");
+        done.setHeaderText("Exported playlist");
+        done.setContentText("Saved to: " + file.getAbsolutePath());
+        done.showAndWait();
+    }
+
+    // --- Helpers ---
+    private java.util.List<String> parsePlaylistFile(File file) throws IOException {
+        String name = file.getName().toLowerCase();
+        if (name.endsWith(".pls")) {
+            return parsePls(file);
+        }
+        // default to M3U/M3U8
+        return parseM3u(file);
+    }
+
+    private java.util.List<String> parseM3u(File file) throws IOException {
+        java.util.List<String> result = new ArrayList<>();
+        File base = file.getParentFile();
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) continue;
+                File p = new File(line);
+                if (!p.isAbsolute()) p = new File(base, line);
+                result.add(p.getAbsolutePath());
+            }
+        }
+        return result;
+    }
+
+    private java.util.List<String> parsePls(File file) throws IOException {
+        java.util.List<String> result = new ArrayList<>();
+        File base = file.getParentFile();
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#") || line.startsWith("[")) continue;
+                int eq = line.indexOf('=');
+                if (eq > 0) {
+                    String key = line.substring(0, eq);
+                    if (key.toLowerCase().startsWith("file")) {
+                        String val = line.substring(eq + 1).trim();
+                        File p = new File(val);
+                        if (!p.isAbsolute()) p = new File(base, val);
+                        result.add(p.getAbsolutePath());
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
     /**
      * Apply the current theme (light/dark) based on settings.
      */

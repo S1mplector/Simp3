@@ -7,6 +7,7 @@
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.SeparatorMenuItem?>
 <?import javafx.scene.control.Slider?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TableColumn?>
@@ -26,7 +27,13 @@
             <menus>
                 <Menu mnemonicParsing="false" text="File">
                     <items>
-                        <MenuItem mnemonicParsing="false" text="Exit" />
+                        <MenuItem mnemonicParsing="false" text="New Playlist..." onAction="#handleAddPlaylist" accelerator="Ctrl+N" />
+                        <MenuItem mnemonicParsing="false" text="Import Playlist..." onAction="#handleImportPlaylist" accelerator="Ctrl+I" />
+                        <MenuItem mnemonicParsing="false" text="Export Playlist..." onAction="#handleExportPlaylist" accelerator="Ctrl+E" />
+                        <MenuItem mnemonicParsing="false" text="Add Folder to Library..." onAction="#handleSelectMusicFolder" accelerator="Ctrl+O" />
+                        <MenuItem mnemonicParsing="false" text="Settings..." onAction="#handleSettings" accelerator="Ctrl+COMMA" />
+                        <SeparatorMenuItem />
+                        <MenuItem mnemonicParsing="false" text="Exit" onAction="#handleExit" accelerator="Ctrl+Q" />
                     </items>
                 </Menu>
                 <Menu mnemonicParsing="false" text="Tools">
@@ -211,3 +218,4 @@
         </VBox>
     </bottom>
 </BorderPane>
+
