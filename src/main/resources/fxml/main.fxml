@@ -8,6 +8,9 @@
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.SeparatorMenuItem?>
+<?import javafx.scene.control.CheckMenuItem?>
+<?import javafx.scene.control.RadioMenuItem?>
+<?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.control.Slider?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TableColumn?>
@@ -21,9 +24,12 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.Region?>
 
-<BorderPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.musicplayer.ui.controllers.MainController" stylesheets="@../css/app.css">
+<BorderPane fx:id="rootPane" prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.musicplayer.ui.controllers.MainController" stylesheets="@../css/app.css">
     <top>
         <MenuBar BorderPane.alignment="CENTER">
+            <fx:define>
+                <ToggleGroup fx:id="themeToggleGroup" />
+            </fx:define>
             <menus>
                 <Menu mnemonicParsing="false" text="File">
                     <items>
@@ -34,6 +40,22 @@
                         <MenuItem mnemonicParsing="false" text="Settings..." onAction="#handleSettings" accelerator="Ctrl+COMMA" />
                         <SeparatorMenuItem />
                         <MenuItem mnemonicParsing="false" text="Exit" onAction="#handleExit" accelerator="Ctrl+Q" />
+                    </items>
+                </Menu>
+                <Menu mnemonicParsing="false" text="View">
+                    <items>
+                        <MenuItem mnemonicParsing="false" text="Toggle Mini Player" onAction="#handleMiniPlayer" accelerator="Ctrl+M" />
+                        <CheckMenuItem fx:id="toggleVisualizerMenuItem" mnemonicParsing="false" text="Toggle Visualizer" onAction="#handleToggleVisualizer" accelerator="Ctrl+V" />
+                        <SeparatorMenuItem />
+                        <Menu mnemonicParsing="false" text="Theme">
+                            <items>
+                                <RadioMenuItem fx:id="themeLightMenuItem" mnemonicParsing="false" text="Light" onAction="#handleThemeLight" toggleGroup="$themeToggleGroup" />
+                                <RadioMenuItem fx:id="themeDarkMenuItem" mnemonicParsing="false" text="Dark" onAction="#handleThemeDark" toggleGroup="$themeToggleGroup" />
+                                
+                            </items>
+                        </Menu>
+                        <CheckMenuItem fx:id="showStatusBarMenuItem" mnemonicParsing="false" text="Show Status Bar" onAction="#handleShowStatusBar" selected="true" />
+                        
                     </items>
                 </Menu>
                 <Menu mnemonicParsing="false" text="Tools">
@@ -197,7 +219,7 @@
                         </Button>
                     </children>
                 </HBox>
-                <HBox alignment="CENTER" spacing="10.0">
+                <HBox fx:id="statusBar" alignment="CENTER" spacing="10.0">
                     <children>
                         <Label fx:id="currentTimeLabel" text="0:00" />
                         <Slider fx:id="timeSlider" HBox.hgrow="ALWAYS" />

@@ -68,6 +68,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
+import javafx.scene.control.CheckMenuItem;
+import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SelectionMode;
@@ -170,6 +172,14 @@ public class MainController implements Initializable, IControllerCommunication {
     private PinboardPanel pinboardPanel;
     private NowPlayingBar nowPlayingBar;
     @FXML private HBox controlBar;
+    @FXML private HBox statusBar;
+    @FXML private BorderPane rootPane;
+
+    // View -> menu items
+    @FXML private CheckMenuItem toggleVisualizerMenuItem;
+    @FXML private CheckMenuItem showStatusBarMenuItem;
+    @FXML private RadioMenuItem themeLightMenuItem;
+    @FXML private RadioMenuItem themeDarkMenuItem;
 
     private MiniPlayerWindow miniPlayerWindow;
 
@@ -398,6 +408,20 @@ public class MainController implements Initializable, IControllerCommunication {
                 // Apply settings now that the visualizer has been created to avoid default overrides
                 visualizerController.applySettings();
             }
+            // Initialize View menu states
+            try {
+                if (toggleVisualizerMenuItem != null && settingsService != null && settingsService.getSettings() != null) {
+                    toggleVisualizerMenuItem.setSelected(settingsService.getSettings().isVisualizerEnabled());
+                }
+                if (showStatusBarMenuItem != null && statusBar != null) {
+                    showStatusBarMenuItem.setSelected(statusBar.isVisible());
+                }
+                if (settingsService != null && settingsService.getSettings() != null) {
+                    var theme = settingsService.getSettings().getTheme();
+                    if (themeLightMenuItem != null) themeLightMenuItem.setSelected(theme == com.musicplayer.data.models.Settings.Theme.LIGHT);
+                    if (themeDarkMenuItem != null) themeDarkMenuItem.setSelected(theme == com.musicplayer.data.models.Settings.Theme.DARK);
+                }
+            } catch (Exception ignored) {}
         });
         
         // Start auto-update check after initialization
@@ -438,6 +462,46 @@ public class MainController implements Initializable, IControllerCommunication {
         // Attempt to restore last session after UI settles and library is loaded
         Platform.runLater(this::restoreLastSessionIfEnabled);
     }
+
+    // ========================
+    // View menu handlers
+    // ========================
+    @FXML
+    private void handleToggleVisualizer() {
+        if (settingsService == null || settingsService.getSettings() == null) return;
+        boolean enabled = toggleVisualizerMenuItem != null ? toggleVisualizerMenuItem.isSelected() : !settingsService.getSettings().isVisualizerEnabled();
+        settingsService.getSettings().setVisualizerEnabled(enabled);
+        applyVisualizerSettings();
+    }
+
+    @FXML
+    private void handleShowStatusBar() {
+        if (statusBar == null) return;
+        boolean show = showStatusBarMenuItem == null ? !statusBar.isVisible() : showStatusBarMenuItem.isSelected();
+        statusBar.setManaged(show);
+        statusBar.setVisible(show);
+    }
+
+    @FXML
+    private void handleThemeLight() {
+        setTheme(com.musicplayer.data.models.Settings.Theme.LIGHT);
+    }
+
+    @FXML
+    private void handleThemeDark() {
+        setTheme(com.musicplayer.data.models.Settings.Theme.DARK);
+    }
+
+    private void setTheme(com.musicplayer.data.models.Settings.Theme theme) {
+        if (settingsService == null || settingsService.getSettings() == null) return;
+        settingsService.getSettings().setTheme(theme);
+        applyTheme();
+        // Update radio checks to reflect current theme
+        if (themeLightMenuItem != null) themeLightMenuItem.setSelected(theme == com.musicplayer.data.models.Settings.Theme.LIGHT);
+        if (themeDarkMenuItem != null) themeDarkMenuItem.setSelected(theme == com.musicplayer.data.models.Settings.Theme.DARK);
+    }
+
+    // (Zoom UI removed)
     
     private void checkFirstRun() {
         // Check if this is first run (no songs in library and no music folder set)
