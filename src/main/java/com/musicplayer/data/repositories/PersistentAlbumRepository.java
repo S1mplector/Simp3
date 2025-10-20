@@ -59,6 +59,8 @@ public class PersistentAlbumRepository implements AlbumRepository {
     
     /**
      * Saves all albums to persistent storage.
+     * What's meant by persistent storage is the root
+     * folder that the user has set initially
      */
     private void saveToStorage() {
         try {
