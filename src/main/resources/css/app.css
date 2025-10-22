@@ -225,3 +225,20 @@
 .icon-button:hover .image-view {
     -fx-effect: dropshadow(gaussian, rgba(76, 175, 80, 0.6), 8, 0, 0, 0);
 }
+
+/* Rating column styles */
+.rating-cell {
+    -fx-alignment: CENTER_LEFT;
+}
+.rating-cell .star {
+    -fx-text-fill: #aaaaaa;
+    -fx-opacity: 0.4;
+    -fx-font-size: 14px;
+}
+.rating-cell .star-filled {
+    -fx-text-fill: #FFD54F; /* amber */
+    -fx-opacity: 1.0;
+}
+.rating-cell .star:hover {
+    -fx-opacity: 0.8;
+}

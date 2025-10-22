@@ -67,6 +67,7 @@ public class Song {
      * Whether this song is marked as a favorite.
      */
     private boolean favorite;
+    private int rating;
 
     /**
      * Default constructor.
@@ -200,6 +201,14 @@ public class Song {
 
     public void setFavorite(boolean favorite) {
         this.favorite = favorite;
+    }
+
+    public int getRating() {
+        return rating;
+    }
+
+    public void setRating(int rating) {
+        this.rating = rating;
     }
 
     /**

@@ -6,9 +6,20 @@ import java.util.List;
 
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.Separator;
+import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.Button;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.stage.FileChooser;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
 /**
  * Combined pinboard, library stats, and listening stats panel.
@@ -19,6 +30,7 @@ public class PinboardPanel extends VBox {
     private final VBox pinboardSection;
     private final VBox listeningStatsSection;
     private final List<PinboardItem> pinnedItems = new ArrayList<>();
+    private Button manageButton;
     
     // Labels for library stats
     private Label totalSongsLabel;
@@ -55,7 +67,25 @@ public class PinboardPanel extends VBox {
         Label pinboardLabel = new Label("Pinboard");
         pinboardLabel.setFont(Font.font(14));
         pinboardLabel.getStyleClass().add("sidebar-header");
-        
+
+        manageButton = new Button();
+        manageButton.getStyleClass().add("icon-button");
+        manageButton.setFocusTraversable(false);
+        manageButton.setPrefSize(24, 24);
+        manageButton.setMinSize(24, 24);
+        try {
+            ImageView iv = new ImageView(new Image(getClass().getResourceAsStream("/images/icons/settings.png")));
+            iv.setFitWidth(16);
+            iv.setFitHeight(16);
+            iv.setPreserveRatio(true);
+            manageButton.setGraphic(iv);
+        } catch (Exception ignored) {}
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox header = new HBox(6, pinboardLabel, spacer, manageButton);
+        header.setPadding(new Insets(0, 0, 0, 0));
+
         pinboardSection = new VBox(5);
         pinboardSection.setPadding(new Insets(5, 0, 10, 0));
         
@@ -85,7 +115,7 @@ public class PinboardPanel extends VBox {
         getChildren().addAll(
             libraryStatsSection,
             new Separator(),
-            pinboardLabel,
+            header,
             pinboardSection,
             new Separator(),
             listeningStatsLabel,
@@ -141,15 +171,18 @@ public class PinboardPanel extends VBox {
     }
     
     // Existing pinboard methods remain the same
-    public void addPinnedItem(String id, String name, PinboardItem.ItemType type, Runnable onClickAction) {
+    public PinboardItem addPinnedItem(String id, String name, PinboardItem.ItemType type, Runnable onClickAction) {
         // Check if already pinned
         if (pinnedItems.stream().anyMatch(item -> item.getItemId().equals(id))) {
-            return;
+            // Return the existing item
+            return pinnedItems.stream().filter(item -> item.getItemId().equals(id)).findFirst().orElse(null);
         }
         
         PinboardItem item = new PinboardItem(id, name, type, onClickAction);
         pinnedItems.add(item);
         pinboardSection.getChildren().add(item);
+        attachItemContextMenu(item);
+        return item;
     }
     
     public void removePinnedItem(String id) {
@@ -166,6 +199,14 @@ public class PinboardPanel extends VBox {
         return pinnedItems.stream().anyMatch(item -> item.getItemId().equals(id));
     }
     
+    public Button getManageButton() {
+        return manageButton;
+    }
+    
+    public List<PinboardItem> getPinnedItems() {
+        return pinnedItems;
+    }
+    
     // Keep the activity notification method for future toast implementation
     // This will be repurposed later
     public void addActivity(ActivityFeedItem.ActivityType type, String message) {
@@ -176,4 +217,51 @@ public class PinboardPanel extends VBox {
     public void clearActivities() {
         // No-op for now, preserved for compatibility
     }
-} 
+
+    private void attachItemContextMenu(PinboardItem item) {
+        ContextMenu menu = new ContextMenu();
+        MenuItem moveUp = new MenuItem("Move Up");
+        MenuItem moveDown = new MenuItem("Move Down");
+        Menu changeCat = new Menu("Change Icon");
+        MenuItem asAlbum = new MenuItem("Album");
+        MenuItem asPlaylist = new MenuItem("Playlist");
+        MenuItem asArtist = new MenuItem("Artist");
+        MenuItem asCustom = new MenuItem("Custom...");
+        changeCat.getItems().addAll(asAlbum, asPlaylist, asArtist, new SeparatorMenuItem(), asCustom);
+        menu.getItems().addAll(moveUp, moveDown, new SeparatorMenuItem(), changeCat);
+
+        moveUp.setOnAction(e -> moveItem(item, -1));
+        moveDown.setOnAction(e -> moveItem(item, +1));
+        asAlbum.setOnAction(e -> item.setType(PinboardItem.ItemType.ALBUM));
+        asPlaylist.setOnAction(e -> item.setType(PinboardItem.ItemType.PLAYLIST));
+        asArtist.setOnAction(e -> item.setType(PinboardItem.ItemType.ARTIST));
+        asCustom.setOnAction(e -> {
+            FileChooser fc = new FileChooser();
+            fc.setTitle("Choose Custom Icon");
+            fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Images", "*.png", "*.jpg", "*.jpeg", "*.gif"));
+            File f = fc.showOpenDialog(item.getScene().getWindow());
+            if (f != null) {
+                item.setCustomIconFile(f);
+            }
+        });
+
+        item.setOnContextMenuRequested(ev -> {
+            menu.show(item, ev.getScreenX(), ev.getScreenY());
+            ev.consume();
+        });
+    }
+
+    private void moveItem(PinboardItem item, int delta) {
+        int idx = pinboardSection.getChildren().indexOf(item);
+        if (idx < 0) return;
+        int newIdx = idx + delta;
+        if (newIdx < 0 || newIdx >= pinboardSection.getChildren().size()) return;
+
+        pinboardSection.getChildren().remove(idx);
+        pinboardSection.getChildren().add(newIdx, item);
+
+        // Keep internal list in sync
+        pinnedItems.remove(item);
+        pinnedItems.add(newIdx, item);
+    }
+}

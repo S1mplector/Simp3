@@ -1,5 +1,6 @@
 package com.musicplayer.ui.controllers;
 
+import java.awt.Desktop;
 import java.io.File;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -107,6 +108,7 @@ public class MainController implements Initializable, IControllerCommunication {
     @FXML private TableColumn<Song, String> artistColumn;
     @FXML private TableColumn<Song, String> albumColumn;
     @FXML private TableColumn<Song, String> durationColumn;
+    @FXML private TableColumn<Song, Integer> ratingColumn;
     @FXML private TableColumn<Song, Void> reorderColumn;
     @FXML private Button previousButton;
     @FXML private Button playPauseButton;
@@ -349,6 +351,7 @@ public class MainController implements Initializable, IControllerCommunication {
             long durationInSeconds = cellData.getValue().getDuration();
             return new javafx.beans.property.SimpleStringProperty(formatDuration(durationInSeconds));
         });
+        setupRatingColumn();
         
         // Set up reorder column (up/down buttons)
         setupReorderColumn();
@@ -964,13 +967,45 @@ public class MainController implements Initializable, IControllerCommunication {
         int index = parentBox.getChildren().indexOf(libraryListView);
         parentBox.getChildren().set(index, pinboardPanel);
         
-        // Add default pins for quick access
-        pinboardPanel.addPinnedItem("all-songs", "All Songs", PinboardItem.ItemType.PLAYLIST, 
+        // Add default pins for quick access (and tag with action ids)
+        PinboardItem pinAll = pinboardPanel.addPinnedItem("all-songs", "All Songs", PinboardItem.ItemType.PLAYLIST, 
             () -> showAllSongs());
-        pinboardPanel.addPinnedItem("albums", "Albums", PinboardItem.ItemType.ALBUM, 
+        if (pinAll != null) pinAll.setActionId("all-songs");
+        PinboardItem pinAlbums = pinboardPanel.addPinnedItem("albums", "Albums", PinboardItem.ItemType.ALBUM, 
              () -> showAlbumsOnly());
-        pinboardPanel.addPinnedItem("favorites", "Favorites", PinboardItem.ItemType.PLAYLIST,
+        if (pinAlbums != null) pinAlbums.setActionId("albums");
+        PinboardItem pinFav = pinboardPanel.addPinnedItem("favorites", "Favorites", PinboardItem.ItemType.PLAYLIST,
             () -> showFavorites());
+        if (pinFav != null) pinFav.setActionId("favorites");
+        PinboardItem pinRecent = pinboardPanel.addPinnedItem("recently-played", "Recently Played", PinboardItem.ItemType.PLAYLIST,
+            () -> showRecentlyPlayed());
+        if (pinRecent != null) pinRecent.setActionId("recently-played");
+        PinboardItem pinTop = pinboardPanel.addPinnedItem("top-played", "Top Played", PinboardItem.ItemType.PLAYLIST,
+            () -> showTopPlayed());
+        if (pinTop != null) pinTop.setActionId("top-played");
+
+        // Wire manage button to open Pinboard Manager dialog
+        if (pinboardPanel.getManageButton() != null) {
+            pinboardPanel.getManageButton().setOnAction(e -> {
+                java.util.LinkedHashMap<String, String> actionLabels = new java.util.LinkedHashMap<>();
+                actionLabels.put("all-songs", "All Songs");
+                actionLabels.put("albums", "Albums");
+                actionLabels.put("favorites", "Favorites");
+                actionLabels.put("recently-played", "Recently Played");
+                actionLabels.put("top-played", "Top Played");
+
+                java.util.Map<String, Runnable> actionMap = new java.util.HashMap<>();
+                actionMap.put("all-songs", () -> showAllSongs());
+                actionMap.put("albums", () -> showAlbumsOnly());
+                actionMap.put("favorites", () -> showFavorites());
+                actionMap.put("recently-played", () -> showRecentlyPlayed());
+                actionMap.put("top-played", () -> showTopPlayed());
+
+                com.musicplayer.ui.dialogs.PinboardManagerDialog dlg = new com.musicplayer.ui.dialogs.PinboardManagerDialog(
+                    pinboardPanel.getScene().getWindow(), pinboardPanel, actionLabels, actionMap);
+                dlg.showAndWait();
+            });
+        }
         
         // Initialize library stats
         int totalSongs = musicLibraryManager.getSongCount();
@@ -1007,6 +1042,32 @@ public class MainController implements Initializable, IControllerCommunication {
         playlistsListView.getSelectionModel().clearSelection();
         
         // Hide album view when showing favorites
+        if (albumGridView != null) {
+            albumGridView.setVisible(false);
+        }
+        songsTableView.setVisible(true);
+    }
+
+    private void showRecentlyPlayed() {
+        List<Song> recent = listeningStatsService.getRecentlyPlayed(100);
+        songs.clear();
+        songs.addAll(recent);
+        audioPlayerService.setPlaylist(songs);
+        playbackController.updatePlaylist(songs);
+        playlistsListView.getSelectionModel().clearSelection();
+        if (albumGridView != null) {
+            albumGridView.setVisible(false);
+        }
+        songsTableView.setVisible(true);
+    }
+
+    private void showTopPlayed() {
+        List<Song> top = listeningStatsService.getTopPlayedSongs(100);
+        songs.clear();
+        songs.addAll(top);
+        audioPlayerService.setPlaylist(songs);
+        playbackController.updatePlaylist(songs);
+        playlistsListView.getSelectionModel().clearSelection();
         if (albumGridView != null) {
             albumGridView.setVisible(false);
         }
@@ -1383,6 +1444,24 @@ public class MainController implements Initializable, IControllerCommunication {
         return result;
     }
 
+    @FXML
+    private void handleShowRootMusicFolder() {
+        File folder = musicLibraryManager != null ? musicLibraryManager.getCurrentMusicFolder() : null;
+        if (folder == null || !folder.exists()) {
+            showInfo("No Music Folder", "No music folder is set. Use 'Add Folder to Library...' first.");
+            return;
+        }
+        try {
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().open(folder);
+            } else {
+                showInfo("Not Supported", "Opening folders is not supported on this platform.");
+            }
+        } catch (Exception e) {
+            showError("Open Folder Failed", "Could not open: " + folder.getAbsolutePath());
+        }
+    }
+
     private java.util.List<String> parsePls(File file) throws IOException {
         java.util.List<String> result = new ArrayList<>();
         File base = file.getParentFile();
@@ -1436,6 +1515,60 @@ public class MainController implements Initializable, IControllerCommunication {
         if (visualizerController != null) {
             visualizerController.applySettings();
         }
+    }
+
+    private void setupRatingColumn() {
+        if (ratingColumn == null) return;
+        ratingColumn.setCellValueFactory(cd -> new javafx.beans.property.SimpleIntegerProperty(cd.getValue().getRating()).asObject());
+        ratingColumn.setCellFactory(col -> new TableCell<Song, Integer>() {
+            private final HBox container = new HBox(2);
+            private final Label[] stars = new Label[5];
+
+            {
+                container.setAlignment(Pos.CENTER_LEFT);
+                container.getStyleClass().add("rating-cell");
+                for (int i = 0; i < 5; i++) {
+                    final int idx = i;
+                    Label star = new Label("★");
+                    star.getStyleClass().add("star");
+                    star.setOnMouseClicked(e -> {
+                        Song s = getTableRow() != null ? (Song) getTableRow().getItem() : null;
+                        if (s == null) return;
+                        int newRating = idx + 1;
+                        s.setRating(newRating);
+                        try { songRepository.save(s); } catch (Exception ignored) {}
+                        updateStars(newRating);
+                        if (songsTableView != null) songsTableView.refresh();
+                    });
+                    stars[i] = star;
+                    container.getChildren().add(star);
+                }
+            }
+
+            private void updateStars(int rating) {
+                for (int i = 0; i < 5; i++) {
+                    if (i < rating) {
+                        if (!stars[i].getStyleClass().contains("star-filled")) {
+                            stars[i].getStyleClass().add("star-filled");
+                        }
+                    } else {
+                        stars[i].getStyleClass().remove("star-filled");
+                    }
+                }
+            }
+
+            @Override
+            protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setGraphic(null);
+                } else {
+                    Song s = (Song) getTableRow().getItem();
+                    updateStars(s.getRating());
+                    setGraphic(container);
+                }
+            }
+        });
     }
 
     private void setupSearchControls() {

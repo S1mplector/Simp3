@@ -1,5 +1,7 @@
 package com.musicplayer.ui.components;
 
+import java.io.File;
+import java.io.InputStream;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -18,9 +20,13 @@ public class PinboardItem extends HBox {
     }
     
     private final String id;
-    private final String name;
-    private final ItemType type;
-    private final Runnable onClickAction;
+    private String name;
+    private ItemType type;
+    private Runnable onClickAction;
+    private ImageView iconView;
+    private Label nameLabel;
+    private File customIconFile;
+    private String actionId;
     
     public PinboardItem(String id, String name, ItemType type, Runnable onClickAction) {
         this.id = id;
@@ -38,28 +44,17 @@ public class PinboardItem extends HBox {
         setCursor(Cursor.HAND);
         setMaxWidth(Double.MAX_VALUE);
         
-        // Icon based on type and special cases
-        String iconPath;
-        if ("favorites".equals(id)) {
-            iconPath = "/images/icons/fav.png";
-        } else {
-            iconPath = switch (type) {
-            case ALBUM -> "/images/icons/album_placeholder.png";
-            case PLAYLIST -> "/images/icons/song.png";
-            case ARTIST -> "/images/icons/app.png";
-        };
-        }
+        iconView = new ImageView();
+        iconView.setFitHeight(20);
+        iconView.setFitWidth(20);
+        updateIcon();
         
-        ImageView icon = new ImageView(new Image(getClass().getResourceAsStream(iconPath)));
-        icon.setFitHeight(20);
-        icon.setFitWidth(20);
-        
-        Label nameLabel = new Label(name);
+        nameLabel = new Label(name);
         nameLabel.setStyle("-fx-text-fill: #444444; -fx-font-size: 12px;");
         nameLabel.setMaxWidth(150);
         nameLabel.setEllipsisString("...");
         
-        getChildren().addAll(icon, nameLabel);
+        getChildren().addAll(iconView, nameLabel);
         
         // Hover effect
         setOnMouseEntered(e -> {
@@ -80,6 +75,32 @@ public class PinboardItem extends HBox {
         });
     }
     
+    private String getIconPath() {
+        if ("favorites".equals(id)) {
+            return "/images/icons/fav.png";
+        }
+        return switch (type) {
+            case ALBUM -> "/images/icons/album_placeholder.png";
+            case PLAYLIST -> "/images/icons/song.png";
+            case ARTIST -> "/images/icons/app.png";
+        };
+    }
+    
+    private void updateIcon() {
+        if (iconView == null) return;
+        try {
+            if (customIconFile != null && customIconFile.exists()) {
+                iconView.setImage(new Image(customIconFile.toURI().toString()));
+                return;
+            }
+            String path = getIconPath();
+            InputStream is = getClass().getResourceAsStream(path);
+            if (is != null) {
+                iconView.setImage(new Image(is));
+            }
+        } catch (Exception ignored) {}
+    }
+    
     public String getItemId() {
         return id;
     }
@@ -87,4 +108,50 @@ public class PinboardItem extends HBox {
     public ItemType getType() {
         return type;
     }
-} 
+    
+    public void setType(ItemType newType) {
+        this.type = newType;
+        updateIcon();
+    }
+    
+    public Runnable getOnClickAction() {
+        return onClickAction;
+    }
+    
+    public void setOnClickAction(Runnable action) {
+        this.onClickAction = action;
+    }
+    
+    public void setCustomIconFile(File file) {
+        this.customIconFile = file;
+        updateIcon();
+    }
+    
+    public void clearCustomIcon() {
+        this.customIconFile = null;
+        updateIcon();
+    }
+    
+    public void setName(String newName) {
+        this.name = newName;
+        if (nameLabel != null) {
+            nameLabel.setText(name);
+        }
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public File getCustomIconFile() {
+        return customIconFile;
+    }
+
+    public String getActionId() {
+        return actionId;
+    }
+
+    public void setActionId(String actionId) {
+        this.actionId = actionId;
+    }
+}
