@@ -240,6 +240,8 @@ public class MainController implements Initializable, IControllerCommunication {
         
         // Initialize settings service
         settingsService = new SettingsService();
+        // Bind settings to music library manager so it can persist and watch the music root
+        musicLibraryManager.setSettingsService(settingsService);
         
         // Initialize update service
         javafx.application.Platform.runLater(this::applyTheme);
@@ -737,6 +739,7 @@ public class MainController implements Initializable, IControllerCommunication {
         
         // Save library data to persistent storage
         if (musicLibraryManager != null) {
+            try { musicLibraryManager.shutdown(); } catch (Exception ignored) {}
             musicLibraryManager.forceSave();
             System.out.println("Library data saved to storage");
         }
@@ -1149,6 +1152,7 @@ public class MainController implements Initializable, IControllerCommunication {
             SettingsController controller = loader.getController();
             controller.setSettingsService(settingsService);
             controller.setUpdateService(updateService);
+            controller.setMusicLibraryManager(musicLibraryManager);
 
             Dialog<ButtonType> dialog = new Dialog<>();
             dialog.setDialogPane(dialogPane);

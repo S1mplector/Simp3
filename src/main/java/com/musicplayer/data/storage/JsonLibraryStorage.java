@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -73,8 +74,8 @@ public class JsonLibraryStorage implements LibraryStorage {
     
     @Override
     public void saveSongs(List<Song> songs) throws IOException {
-        File songsFile = dataDirectory.resolve(SONGS_FILE).toFile();
-        objectMapper.writeValue(songsFile, songs);
+        Path target = dataDirectory.resolve(SONGS_FILE);
+        writeJsonAtomically(target, songs);
     }
     
     @Override
@@ -95,8 +96,8 @@ public class JsonLibraryStorage implements LibraryStorage {
     
     @Override
     public void saveAlbums(List<Album> albums) throws IOException {
-        File albumsFile = dataDirectory.resolve(ALBUMS_FILE).toFile();
-        objectMapper.writeValue(albumsFile, albums);
+        Path target = dataDirectory.resolve(ALBUMS_FILE);
+        writeJsonAtomically(target, albums);
     }
     
     @Override
@@ -116,8 +117,8 @@ public class JsonLibraryStorage implements LibraryStorage {
     
     @Override
     public void saveArtists(List<Artist> artists) throws IOException {
-        File artistsFile = dataDirectory.resolve(ARTISTS_FILE).toFile();
-        objectMapper.writeValue(artistsFile, artists);
+        Path target = dataDirectory.resolve(ARTISTS_FILE);
+        writeJsonAtomically(target, artists);
     }
     
     @Override
@@ -137,8 +138,8 @@ public class JsonLibraryStorage implements LibraryStorage {
     
     @Override
     public void savePlaylists(List<Playlist> playlists) throws IOException {
-        File playlistsFile = dataDirectory.resolve(PLAYLISTS_FILE).toFile();
-        objectMapper.writeValue(playlistsFile, playlists);
+        Path target = dataDirectory.resolve(PLAYLISTS_FILE);
+        writeJsonAtomically(target, playlists);
     }
     
     @Override
@@ -164,5 +165,16 @@ public class JsonLibraryStorage implements LibraryStorage {
     @Override
     public boolean hasExistingData() {
         return dataDirectory.resolve(SONGS_FILE).toFile().exists();
+    }
+
+    private void writeJsonAtomically(Path target, Object value) throws IOException {
+        Files.createDirectories(target.getParent());
+        Path temp = target.resolveSibling(target.getFileName().toString() + ".tmp");
+        objectMapper.writeValue(temp.toFile(), value);
+        try {
+            Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ex) {
+            Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 }

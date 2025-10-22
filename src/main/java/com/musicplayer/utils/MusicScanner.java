@@ -42,6 +42,16 @@ public class MusicScanner {
         return songs;
     }
     
+    public static Song scanFile(File file) {
+        if (file == null || !file.exists() || !file.isFile()) {
+            return null;
+        }
+        if (!isSupportedAudioFile(file)) {
+            return null;
+        }
+        return extractMetadata(file);
+    }
+    
     private static void scanDirectoryRecursive(File directory, List<Song> songs, int depth) {
         File[] files = directory.listFiles();
         if (files == null) {
@@ -60,16 +70,16 @@ public class MusicScanner {
             
             if (file.isDirectory()) {
                 // Recursively scan subdirectories
-                System.out.println(indent + "  📁 Entering subdirectory: " + file.getName());
+                System.out.println(indent + "  Entering subdirectory: " + file.getName());
                 scanDirectoryRecursive(file, songs, depth + 1);
             } else if (file.isFile() && isSupportedAudioFile(file)) {
                 // Extract metadata from audio file
-                System.out.println(indent + "  🎵 Found music file: " + file.getName());
+                System.out.println(indent + "  Found music file: " + file.getName());
                 Song song = extractMetadata(file);
                 if (song != null) {
                     songs.add(song);
                 } else {
-                    System.err.println(indent + "    ❌ Failed to extract metadata from: " + file.getName());
+                    System.err.println(indent + "    Failed to extract metadata from: " + file.getName());
                 }
             }
         }
@@ -100,15 +110,24 @@ public class MusicScanner {
                 song.setAlbum(albumTag);
                 song.setGenre(getTagValue(tag, FieldKey.GENRE, "Unknown"));
                 
-                // Parse track number
                 String trackStr = tag.getFirst(FieldKey.TRACK);
                 if (!trackStr.isEmpty()) {
                     try {
-                        // Handle track numbers like "1/12" or just "1"
                         String trackNumber = trackStr.split("/")[0];
                         song.setTrackNumber(Integer.parseInt(trackNumber));
                     } catch (NumberFormatException e) {
                         song.setTrackNumber(0);
+                    }
+                }
+                String yearStr = null;
+                try { yearStr = tag.getFirst(FieldKey.YEAR); } catch (Exception ignored) {}
+                if (yearStr != null && !yearStr.isBlank()) {
+                    String y = yearStr.trim();
+                    if (y.length() >= 4) {
+                        String y4 = y.substring(0, 4).replaceAll("[^0-9]", "");
+                        try { song.setYear(Integer.parseInt(y4)); } catch (NumberFormatException ignored) {}
+                    } else {
+                        try { song.setYear(Integer.parseInt(y)); } catch (NumberFormatException ignored) {}
                     }
                 }
             } else {
@@ -123,6 +142,20 @@ public class MusicScanner {
             // Get duration from audio file
             if (audioFile.getAudioHeader() != null) {
                 song.setDuration(audioFile.getAudioHeader().getTrackLength());
+            }
+            if (song.getTrackNumber() == 0) {
+                String n = file.getName();
+                int i = 0; while (i < n.length() && Character.isDigit(n.charAt(i))) i++;
+                if (i > 0) {
+                    try { song.setTrackNumber(Integer.parseInt(n.substring(0, i))); } catch (NumberFormatException ignored) {}
+                }
+            }
+            if (song.getArtist() == null || song.getArtist().isBlank() || "Unknown Artist".equalsIgnoreCase(song.getArtist())) {
+                File p = file.getParentFile();
+                File pp = p != null ? p.getParentFile() : null;
+                if (pp != null) {
+                    song.setArtist(pp.getName());
+                }
             }
             
             return song;

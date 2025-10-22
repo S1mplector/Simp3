@@ -51,22 +51,20 @@ public class InMemoryLibraryEngine implements LibraryEngine {
     @Override
     public List<Album> getAllAlbums() {
         Map<String, Album> albumMap = new HashMap<>();
-        
         for (Song song : songs) {
             if (song.getAlbum() != null && !song.getAlbum().trim().isEmpty()) {
-                String albumKey = song.getAlbum().toLowerCase();
-                Album album = albumMap.get(albumKey);
+                String artist = song.getArtist() != null ? song.getArtist() : "";
+                String key = (song.getAlbum() + "||" + artist).toLowerCase();
+                Album album = albumMap.get(key);
                 if (album == null) {
                     album = new Album();
                     album.setTitle(song.getAlbum());
-                    album.setArtistName(song.getArtist());
-                    albumMap.put(albumKey, album);
+                    album.setArtistName(artist);
+                    albumMap.put(key, album);
                 }
-                // Add song to album
                 album.addSong(song);
             }
         }
-        
         return new ArrayList<>(albumMap.values());
     }
     
@@ -146,7 +144,19 @@ public class InMemoryLibraryEngine implements LibraryEngine {
         
         String albumKey = album.getTitle().toLowerCase();
         Set<Song> albumSongs = albumIndex.get(albumKey);
-        return albumSongs != null ? new ArrayList<>(albumSongs) : new ArrayList<>();
+        if (albumSongs == null) return new ArrayList<>();
+        String artistFilter = album.getArtistName();
+        if (artistFilter == null || artistFilter.isBlank()) {
+            return new ArrayList<>(albumSongs);
+        }
+        String artistKey = artistFilter.toLowerCase();
+        List<Song> filtered = new ArrayList<>();
+        for (Song s : albumSongs) {
+            if (s.getArtist() != null && s.getArtist().toLowerCase().equals(artistKey)) {
+                filtered.add(s);
+            }
+        }
+        return filtered;
     }
     
     @Override
@@ -183,7 +193,7 @@ public class InMemoryLibraryEngine implements LibraryEngine {
     
     @Override
     public int getAlbumCount() {
-        return albumIndex.size();
+        return getAllAlbums().size();
     }
     
     @Override

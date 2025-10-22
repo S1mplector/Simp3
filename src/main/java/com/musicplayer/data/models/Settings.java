@@ -33,6 +33,10 @@ public class Settings {
     private double lastPositionSeconds = 0.0;
     private double lastVolume = 0.5; // default volume
     
+    // Library settings
+    private String musicRootPath;
+    private boolean libraryWatcherEnabled = true;
+    
     // Update settings
     private boolean autoCheckForUpdates = true;
     private int updateCheckIntervalHours = 24;
@@ -141,6 +145,22 @@ public class Settings {
 
     public void setLastVolume(double lastVolume) {
         this.lastVolume = lastVolume;
+    }
+    
+    public String getMusicRootPath() {
+        return musicRootPath;
+    }
+    
+    public void setMusicRootPath(String musicRootPath) {
+        this.musicRootPath = musicRootPath;
+    }
+    
+    public boolean isLibraryWatcherEnabled() {
+        return libraryWatcherEnabled;
+    }
+    
+    public void setLibraryWatcherEnabled(boolean libraryWatcherEnabled) {
+        this.libraryWatcherEnabled = libraryWatcherEnabled;
     }
     
     // Update settings getters and setters

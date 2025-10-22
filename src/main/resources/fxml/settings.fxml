@@ -65,6 +65,20 @@
                             
                         </VBox>
                         
+                        <!-- Library Section -->
+                        <VBox spacing="10">
+                            <Label text="Library" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                            <Separator/>
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <Label text="Music folder:"/>
+                                <TextField fx:id="musicRootPathField" promptText="Select music folder" prefWidth="280" editable="false"/>
+                                <Button fx:id="browseMusicFolderButton" text="Browse..."/>
+                            </HBox>
+                            <HBox alignment="CENTER_LEFT" spacing="10">
+                                <CheckBox fx:id="libraryWatcherEnabledCheckBox" text="Automatically detect new files and changes"/>
+                            </HBox>
+                        </VBox>
+                        
                         <!-- Updates Section -->
                         <VBox spacing="10">
                             <Label text="Updates" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>

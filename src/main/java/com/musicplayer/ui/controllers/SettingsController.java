@@ -2,11 +2,13 @@ package com.musicplayer.ui.controllers;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.io.File;
 
 import com.musicplayer.data.models.DistributionType;
 import com.musicplayer.data.models.Settings;
 import com.musicplayer.services.SettingsService;
 import com.musicplayer.services.UpdateService;
+import com.musicplayer.services.MusicLibraryManager;
 import com.musicplayer.ui.dialogs.UpdateDialog;
 
 import javafx.application.Platform;
@@ -22,6 +24,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.ToggleGroup;
+import javafx.stage.DirectoryChooser;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
@@ -44,6 +47,9 @@ public class SettingsController {
     
     // Theme controls
     @FXML private ChoiceBox<com.musicplayer.data.models.Settings.Theme> themeChoiceBox;
+    @FXML private javafx.scene.control.TextField musicRootPathField;
+    @FXML private Button browseMusicFolderButton;
+    @FXML private CheckBox libraryWatcherEnabledCheckBox;
 
     // Update settings controls
     @FXML private CheckBox autoCheckUpdatesCheckBox;
@@ -68,6 +74,7 @@ public class SettingsController {
     private SettingsService settingsService;
     private UpdateService updateService;
     private Settings settings;
+    private MusicLibraryManager musicLibraryManager;
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
         DateTimeFormatter.ofPattern("MMM d, yyyy 'at' h:mm a");
     
@@ -87,6 +94,10 @@ public class SettingsController {
      */
     public void setUpdateService(UpdateService updateService) {
         this.updateService = updateService;
+    }
+    
+    public void setMusicLibraryManager(MusicLibraryManager musicLibraryManager) {
+        this.musicLibraryManager = musicLibraryManager;
     }
     
     /**
@@ -135,6 +146,19 @@ public class SettingsController {
         // Create custom icon buttons if buttonBar exists
         if (buttonBar != null) {
             setupIconButtons();
+        }
+
+        if (browseMusicFolderButton != null) {
+            browseMusicFolderButton.setOnAction(e -> {
+                DirectoryChooser chooser = new DirectoryChooser();
+                chooser.setTitle("Select Music Folder");
+                File selected = chooser.showDialog(browseMusicFolderButton.getScene().getWindow());
+                if (selected != null && selected.isDirectory()) {
+                    if (musicRootPathField != null) {
+                        musicRootPathField.setText(selected.getAbsolutePath());
+                    }
+                }
+            });
         }
     }
     
@@ -251,6 +275,14 @@ public class SettingsController {
         } else {
             lastUpdateCheckLabel.setText("Never");
         }
+
+        if (musicRootPathField != null) {
+            String path = settings.getMusicRootPath();
+            musicRootPathField.setText(path != null ? path : "");
+        }
+        if (libraryWatcherEnabledCheckBox != null) {
+            libraryWatcherEnabledCheckBox.setSelected(settings.isLibraryWatcherEnabled());
+        }
     }
     
     /**
@@ -296,8 +328,20 @@ public class SettingsController {
             settings.setPreferredDistributionType(DistributionType.RELEASE);
         }
         
+        // Save library settings
+        if (musicRootPathField != null) {
+            settings.setMusicRootPath(musicRootPathField.getText());
+        }
+        if (libraryWatcherEnabledCheckBox != null) {
+            settings.setLibraryWatcherEnabled(libraryWatcherEnabledCheckBox.isSelected());
+        }
+        
         // Save to file
         settingsService.saveSettings();
+
+        if (musicLibraryManager != null) {
+            musicLibraryManager.refreshWatcherFromSettings();
+        }
     }
     
     /**
