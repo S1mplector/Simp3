@@ -5,6 +5,8 @@
 
 # SiMP3 - Simple Music Player
 
+> Status: Development of SiMP3 has ended. This project is no longer in active development.
+
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://www.oracle.com/java/)
 [![JavaFX](https://img.shields.io/badge/JavaFX-17%2B-blue.svg)](https://openjfx.io/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -221,7 +223,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
   
-**Made with ❤️ by S1mplector**
+**Made with love by S1mplector**
 
 [Report Bug](https://github.com/yourusername/simp3/issues) • [Request Feature](https://github.com/yourusername/simp3/issues) • [Discussions](https://github.com/yourusername/simp3/discussions)
 
